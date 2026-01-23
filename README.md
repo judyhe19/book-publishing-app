@@ -28,8 +28,7 @@ POSTGRES_PORT=5432
 # Django Settings
 DJANGO_SECRET_KEY=django-insecure-8+2^ikp4y+1u6@&70=f@mekqy-dmfa(4ia@4mhw$1mvqm!-0h8
 DJANGO_DEBUG=True
-DJANGO_ALLOWED_HOSTS=vcm-51984.vm.duke.edu,localhost,127.0.0.1,backend
-(change the VM host to your own Duke VM host)
+DJANGO_ALLOWED_HOSTS=vcm-51984.vm.duke.edu,localhost,127.0.0.1,backend # change the VM host to your own Duke VM host
 ```
 
 ### Step 2: Start the Environment

@@ -26,7 +26,6 @@ POSTGRES_HOST=db
 POSTGRES_PORT=5432
 
 # Django Settings
-# Update this to your secret key
 DJANGO_SECRET_KEY=django-insecure-8+2^ikp4y+1u6@&70=f@mekqy-dmfa(4ia@4mhw$1mvqm!-0h8
 DJANGO_DEBUG=True
 DJANGO_ALLOWED_HOSTS=vcm-51984.vm.duke.edu,localhost,127.0.0.1,backend

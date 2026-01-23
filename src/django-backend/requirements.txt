@@ -1,0 +1,5 @@
+django>=5.2
+psycopg2-binary
+gunicorn
+django-cors-headers
+whitenoise

@@ -30,9 +30,16 @@ services:
         condition: service_healthy
 
   frontend:
-    build: ./src/react-frontend
+    build:
+      context: ./src/react-frontend
+      target: build # <--- CRITICAL: Tells Docker to stop at the Node.js stage
+    # Override the command to run the dev server instead of building
+    command: npm run dev -- --host 0.0.0.0 --port 80
     ports:
       - "80:80"
+    volumes:
+      - ./src/react-frontend:/app
+      - /app/node_modules
     depends_on:
       - backend
 

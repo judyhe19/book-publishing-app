@@ -171,9 +171,9 @@ Remote: `docker exec -it book-app-deployment-backend-1 python manage.py inspectd
 
 ### View Logs
 
-Local: `docker compose -f docker-compose.dev.yml logs -f backend` # can also view frontend
+Local: `docker compose -f docker-compose.dev.yml logs -f backend` (can also view frontend)
 
-Remote: `docker logs -f book-app-deployment-backend-1` # can also view frontend
+Remote: `docker logs -f book-app-deployment-backend-1` (can also view frontend)
 
 ### Key Differences in Production
 

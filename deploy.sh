@@ -3,9 +3,9 @@
 # ==========================================
 # CONFIGURATION
 # ==========================================
-HUB_USER="judyhe19" 
-NETID="yh381"                  
-VM_HOST="vcm-51984.vm.duke.edu"
+HUB_USER="judyhe19" # change this to your docker hub username
+NETID="yh381" # change this to your netid                  
+VM_HOST="vcm-51984.vm.duke.edu" # change this to your vm host
 PROJECT_DIR="~/book-app-deployment"       # Directory on VM to store config
 
 # Image Names

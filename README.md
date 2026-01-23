@@ -1,6 +1,6 @@
 # Book Publishing App
 
-# Book Publishing App - Setup Guide
+# Setup Guide
 
 ## 1. Local Development Setup
 Use this workflow to run the application on your own machine (Mac/Windows/Linux) for testing and development.

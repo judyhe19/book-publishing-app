@@ -161,6 +161,7 @@ docker exec -it book-app-deployment-backend-1 python manage.py migrate
 ```bash
 docker exec -it book-app-deployment-backend-1 python manage.py createsuperuser
 
+```
 
 ### View DB
 

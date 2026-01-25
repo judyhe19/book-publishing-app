@@ -1,0 +1,38 @@
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import LoginPage from "../features/auth/pages/LoginPage";
+import RegisterPage from "../features/auth/pages/RegisterPage";
+import AccountPage from "../features/auth/pages/AccountPage";
+import ChangePasswordPage from "../features/auth/pages/ChangePasswordPage";
+import { RequireAuth } from "../features/auth/routes/RequireAuth";
+
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/account" replace />} />
+
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+
+      <Route
+        path="/account"
+        element={
+          <RequireAuth>
+            <AccountPage />
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/changepassword"
+        element={
+          <RequireAuth>
+            <ChangePasswordPage />
+          </RequireAuth>
+        }
+      />
+
+      <Route path="*" element={<div className="p-6">Not found</div>} />
+    </Routes>
+  );
+}

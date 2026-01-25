@@ -94,6 +94,8 @@ CORS_ALLOWED_ORIGINS = [
 CSRF_TRUSTED_ORIGINS = [
     "http://vcm-51984.vm.duke.edu",
     "https://vcm-51984.vm.duke.edu",
+    "http://localhost",
+    "http://127.0.0.1",
 ]
 
 # Database

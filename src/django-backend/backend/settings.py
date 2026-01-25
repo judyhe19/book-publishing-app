@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'bookapp',
+    "rest_framework",
 ]
 
 MIDDLEWARE = [

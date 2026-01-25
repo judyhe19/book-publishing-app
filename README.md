@@ -1,5 +1,11 @@
 # Book Publishing App - Setup Guide
 
+# Rules
+* Only run `./deploy.sh` on `main` branch to deploy to VM (production)
+* Only run `./dev.sh` on `dev` branch to deploy to local (development)
+
+# Setup Guide
+
 ## 1. Local Development Setup
 Use this workflow to run the application on your own machine for testing and development.
 

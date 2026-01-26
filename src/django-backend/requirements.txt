@@ -5,3 +5,5 @@ django-cors-headers
 whitenoise
 djangorestframework
 django-cors-headers
+pytest
+pytest-django

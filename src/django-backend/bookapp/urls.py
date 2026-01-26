@@ -21,6 +21,8 @@ from .views.registration import RegisterView
 from .views.change_password import ChangePasswordView
 from .views.account import MeView
 from .views.csrf import csrf
+from .views.book import BookListCreateView, BookDetailView
+
 
 urlpatterns = [
     path("csrf", csrf),
@@ -29,4 +31,6 @@ urlpatterns = [
     path("user/register", RegisterView.as_view()),
     path("user/changepassword", ChangePasswordView.as_view()),
     path("user/me", MeView.as_view()),
+    path("books/", BookListCreateView.as_view()),
+    path("books/<int:book_id>/", BookDetailView.as_view()),
 ]

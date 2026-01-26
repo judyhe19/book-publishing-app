@@ -8,24 +8,31 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10"]
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
-      with:
-        python-version: ${{ matrix.python-version }}
-        
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        # 1. Install pylint AND the Django plugin
-        pip install pylint pylint-django
-        # 2. Install your actual project dependencies (Django, etc.)
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        # If your requirements are in a subfolder (e.g., src/), adjust the path above.
 
-    - name: Analysing the code with pylint
-      run: |
-        # 3. Load the plugin and ignore the migration folder
-        pylint --load-plugins=pylint_django --ignore=migrations $(git ls-files '*.py')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pylint pylint-django
+
+          # Install backend dependencies (Django, DRF, etc.)
+          if [ -f src/django-backend/requirements.txt ]; then
+            pip install -r src/django-backend/requirements.txt
+          elif [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      - name: Analysing the code with pylint
+        run: |
+          # Run pylint from the backend folder so imports resolve properly
+          cd src/django-backend
+
+          # Load the plugin and ignore migrations; lint only Django packages
+          pylint --load-plugins=pylint_django --ignore=migrations backend bookapp

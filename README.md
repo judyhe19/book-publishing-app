@@ -199,3 +199,97 @@ Remote: `docker logs -f book-app-deployment-backend-1` (can also view frontend)
 
 * **Static Files:** In production (`docker-compose.yml`), Django uses `collectstatic` and WhiteNoise to serve CSS/JS files efficiently, whereas local dev serves them on the fly.
 * **Volumes:** Code changes in production require a re-deploy (running `./deploy.sh`) to take effect. They do not hot-reload.
+
+
+## 3. Running Tests (Backend)
+
+The backend uses pytest + pytest-django to run automated tests for API endpoints and application logic. Tests are executed inside the Docker backend container to ensure the environment matches production dependencies.
+
+---
+
+### Prerequisites
+
+Make sure your local development environment is running:
+
+./dev.sh
+
+Verify the backend container is running:
+
+docker compose -f docker-compose.dev.yml ps
+
+You should see a running `backend` service.
+
+---
+
+### Run All Tests
+
+To run the entire test suite:
+
+docker compose -f docker-compose.dev.yml exec backend pytest
+
+For quieter output:
+
+docker compose -f docker-compose.dev.yml exec backend pytest -q
+
+---
+
+### Run Tests From a Specific File
+
+To run only one test file (example: Books API tests):
+
+docker compose -f docker-compose.dev.yml exec backend pytest bookapp/tests/test_books_api.py
+
+---
+
+### Run a Single Test Function
+
+To run one specific test:
+
+docker compose -f docker-compose.dev.yml exec backend pytest -k test_post_duplicate_isbn_13_returns_400
+
+The `-k` flag filters tests by name.
+
+---
+
+### Important Notes About Testing
+
+- Tests use a temporary test database that is automatically created and destroyed.
+- Your real development or production data is never modified.
+- Database migrations are applied automatically to the test database.
+- Each test runs in isolation using database transactions.
+- Authentication is mocked internally using DRF’s APIClient.force_authenticate.
+
+---
+
+### Common Issues
+
+pytest command not found
+
+Make sure pytest and pytest-django are installed in the backend image:
+
+pip install pytest pytest-django
+
+Then rebuild:
+
+docker compose -f docker-compose.dev.yml build backend
+
+---
+
+Permission denied creating test database
+
+If Postgres permissions fail, reset local volumes:
+
+docker compose -f docker-compose.dev.yml down -v
+./dev.sh
+
+---
+
+### Example Successful Output
+
+When tests pass, you should see:
+
+........
+8 passed in 2.8s
+
+---
+    

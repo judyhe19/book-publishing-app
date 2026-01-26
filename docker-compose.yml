@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:18-alpine
+    image: postgres:15-alpine
     restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -31,8 +31,18 @@ services:
     restart: always
     ports:
       - "80:80"
+      - "443:443" # Expose HTTPS port
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt # Share certs
+      - ./certbot/www:/var/www/certbot # Share validation files
     depends_on:
       - backend
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
 
 volumes:
   postgres_data:

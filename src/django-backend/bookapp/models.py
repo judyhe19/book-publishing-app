@@ -17,17 +17,28 @@ class Book(models.Model):
     isbn_10 = models.CharField(max_length=10, blank=True, null=True)
     
     # Financials
-    author_royalty_rate = models.DecimalField(max_digits=5, decimal_places=2, help_text="Percentage, e.g. 0.15 for 15%")
     total_sales_to_date = models.IntegerField(default=0)
     
     # Relationships
     publisher_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='published_books')
-    authors = models.ManyToManyField(Author, related_name='books')
+    authors = models.ManyToManyField(Author, through='AuthorBook', related_name='books')
 
     def __str__(self):
         return self.title
 
-# 3. SALE Table
+# 3. AUTHOR_BOOK Table (Through Table)
+class AuthorBook(models.Model):
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)
+    royalty_rate = models.DecimalField(max_digits=5, decimal_places=4, help_text="Royalty rate as a decimal (e.g. 0.15 for 15%)")
+
+    class Meta:
+        unique_together = ('author', 'book')
+
+    def __str__(self):
+        return f"{self.author.name} - {self.book.title} ({self.royalty_rate})"
+
+# 4. SALE Table
 class Sale(models.Model):
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name='sales')
     date = models.DateTimeField(auto_now_add=True)
@@ -35,8 +46,19 @@ class Sale(models.Model):
     
     # Financial snapshots
     publisher_revenue = models.DecimalField(max_digits=10, decimal_places=2)
-    author_paid = models.BooleanField(default=False)
-    author_royalty_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    # Relationships
+    authors = models.ManyToManyField(Author, through='AuthorSale', related_name='sales')
 
     def __str__(self):
         return f"{self.quantity} x {self.book.title} on {self.date.strftime('%Y-%m-%d')}"
+
+# 5. AUTHOR_SALE Table
+class AuthorSale(models.Model):
+    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='author_sales')
+    author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name='sales_records')
+    royalty_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    author_paid = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.author.name} paid ${self.royalty_amount} for Sale {self.sale.id}"

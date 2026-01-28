@@ -7,6 +7,8 @@ from ..models import Sale, Book, AuthorSale, AuthorBook, Author
 from ..serializers.sales import SaleSerializer, SaleCreateSerializer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from decimal import Decimal
+from django.db.models import Sum
 
 class SaleGetView(APIView):
     def get(self, request):
@@ -106,3 +108,29 @@ class SaleDeleteView(APIView):
         sale = get_object_or_404(Sale, id=sale_id)
         sale.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class SalePayAuthorsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, sale_id):
+        sale = get_object_or_404(Sale, id=sale_id)
+
+        with transaction.atomic():
+            qs = (
+            AuthorSale.objects
+            .select_for_update()
+            .filter(sale_id=sale.id, author_paid=False)
+            )
+
+            total_to_pay = qs.aggregate(total=Sum("royalty_amount")).get("total") or Decimal("0.00")
+            updated_count = qs.update(author_paid=True)
+
+        return Response(
+        {
+        "sale_id": sale.id,
+        "authors_marked_paid": updated_count,
+        "total_royalties_paid": str(total_to_pay),
+        },
+        status=status.HTTP_200_OK,
+        )

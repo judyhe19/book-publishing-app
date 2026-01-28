@@ -53,6 +53,22 @@ class Sale(models.Model):
     def __str__(self):
         return f"{self.quantity} x {self.book.title} on {self.date.strftime('%Y-%m-%d')}"
 
+    def create_author_sales(self, author_royalties={}, author_paid={}):
+        author_books = AuthorBook.objects.filter(book=self.book)
+        for ab in author_books:
+            # Check for override
+            if str(ab.author.id) in author_royalties:
+                royalty_amount = author_royalties[str(ab.author.id)]
+            else:
+                royalty_amount = self.publisher_revenue * ab.royalty_rate
+
+            AuthorSale.objects.create(
+                sale=self,
+                author=ab.author,
+                royalty_amount=royalty_amount,
+                author_paid=author_paid.get(str(ab.author.id), False)
+            )
+
 # 5. AUTHOR_SALE Table
 class AuthorSale(models.Model):
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='author_sales')

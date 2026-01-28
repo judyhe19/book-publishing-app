@@ -11,8 +11,14 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ["username", "email", "password", "password2"]
 
     def validate(self, data):
+        if User.objects.filter(is_staff=False, is_superuser=False).exists():
+            raise serializers.ValidationError(
+                {"detail": "Registration is disabled. A user already exists."}
+            )
+
         if data["password"] != data["password2"]:
             raise serializers.ValidationError("Passwords do not match")
+
         validate_password(data["password"])
         return data
 

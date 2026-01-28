@@ -22,6 +22,7 @@ from .views.change_password import ChangePasswordView
 from .views.account import MeView
 from .views.csrf import csrf
 from .views.book import BookListCreateView, BookDetailView
+from .views.sales import SaleGetView, SaleCreateView, SaleCreateManyView, SaleEditView, SaleDeleteView
 
 
 urlpatterns = [
@@ -31,6 +32,13 @@ urlpatterns = [
     path("user/register", RegisterView.as_view()),
     path("user/changepassword", ChangePasswordView.as_view()),
     path("user/me", MeView.as_view()),
+    
     path("books/", BookListCreateView.as_view()),
     path("books/<int:book_id>/", BookDetailView.as_view()),
+    
+    path("sale/get_all", SaleGetView.as_view()),
+    path("sale/create", SaleCreateView.as_view()),
+    path("sale/createmany", SaleCreateManyView.as_view()),
+    path("sale/<int:sale_id>/edit", SaleEditView.as_view()),
+    path("sale/<int:sale_id>", SaleDeleteView.as_view()),
 ]

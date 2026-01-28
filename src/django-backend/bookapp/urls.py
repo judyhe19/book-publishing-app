@@ -22,7 +22,8 @@ from .views.change_password import ChangePasswordView
 from .views.account import MeView
 from .views.csrf import csrf
 from .views.book import BookListCreateView, BookDetailView
-from .views.sales import SaleGetView, SaleCreateView, SaleCreateManyView, SaleEditView, SaleDeleteView
+from .views.sales import SaleGetView, SaleCreateView, SaleCreateManyView, SaleEditView, SaleDeleteView, SalePayAuthorsView
+from .views.author import AuthorUnpaidSubtotalView
 
 
 urlpatterns = [
@@ -41,4 +42,7 @@ urlpatterns = [
     path("sale/createmany", SaleCreateManyView.as_view()),
     path("sale/<int:sale_id>/edit", SaleEditView.as_view()),
     path("sale/<int:sale_id>", SaleDeleteView.as_view()),
+    path("sale/<int:sale_id>/pay_authors", SalePayAuthorsView.as_view()),
+    
+    path("author/<int:author_id>/unpaid/subtotal", AuthorUnpaidSubtotalView.as_view()),
 ]

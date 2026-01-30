@@ -44,7 +44,8 @@ def test_create_sale_creates_author_sale_records(authed_client, user):
     payload = {
         "book": b1.id,
         "quantity": 100,
-        "publisher_revenue": "1000.00"
+        "publisher_revenue": "1000.00",
+        "date": "2023-01-01"
     }
 
     resp = authed_client.post("/api/sale/create", payload, format="json")
@@ -72,6 +73,7 @@ def test_create_sale_with_royalty_override(authed_client, user):
         "book": b1.id,
         "quantity": 100,
         "publisher_revenue": "1000.00",
+        "date": "2023-01-01",
         "author_royalties": {
             str(a1.id): "500.00"
         },
@@ -95,12 +97,14 @@ def test_create_many_sales(authed_client, user):
         {
             "book": b1.id,
             "quantity": 10,
-            "publisher_revenue": "100.00"
+            "publisher_revenue": "100.00",
+            "date": "2023-01-01"
         },
         {
             "book": b1.id,
             "quantity": 20,
-            "publisher_revenue": "200.00"
+            "publisher_revenue": "200.00",
+            "date": "2023-01-02"
         }
     ]
 
@@ -119,10 +123,10 @@ def test_get_all_sales_filtering(authed_client, user):
     b2 = make_book(publisher_user=u2, isbn_13="9780000000005", title="Book2", author=a1)
 
     # Sale for Book 1
-    s1 = Sale.objects.create(book=b1, quantity=10, publisher_revenue=100)
+    s1 = Sale.objects.create(book=b1, quantity=10, publisher_revenue=100, date="2023-01-01")
     s1.create_author_sales()
     # Sale for Book 2
-    s2 = Sale.objects.create(book=b2, quantity=10, publisher_revenue=100)
+    s2 = Sale.objects.create(book=b2, quantity=10, publisher_revenue=100, date="2023-01-01")
     s2.create_author_sales()
 
     # Test Filter by Book
@@ -139,17 +143,13 @@ def test_get_all_sales_filtering(authed_client, user):
     
     # Verify extra fields in response
     sale_data = resp2.data[0]
-    assert 'author_royalties' in sale_data
-    assert 'author_paid' in sale_data
-    # author_royalties should have entry for a1
-    assert str(a1.id) in sale_data['author_royalties']
-    assert str(a1.id) in sale_data['author_paid']
+    assert 'author_details' in sale_data
 
 def test_edit_sale_updates_fields_and_royalties(authed_client, user):
     a1 = make_author()
     b1 = make_book(publisher_user=user, isbn_13="9780000000006", author=a1, royalty_rate="0.10")
     
-    sale = Sale.objects.create(book=b1, quantity=10, publisher_revenue=Decimal("100.00"))
+    sale = Sale.objects.create(book=b1, quantity=10, publisher_revenue=Decimal("100.00"), date="2023-01-01")
     # Initial AuthorSale (100 * 0.10 = 10.00)
     sale.create_author_sales() 
     
@@ -177,7 +177,7 @@ def test_edit_sale_updates_author_paid(authed_client, user):
     b1 = make_book(publisher_user=user, isbn_13="9780000000008", author=a1, royalty_rate="0.10")
     
     # Create sale where author is NOT paid
-    sale = Sale.objects.create(book=b1, quantity=10, publisher_revenue=Decimal("100.00"))
+    sale = Sale.objects.create(book=b1, quantity=10, publisher_revenue=Decimal("100.00"), date="2023-01-01")
     sale.create_author_sales() # author_paid defaults to False
     
     assert AuthorSale.objects.get(sale=sale).author_paid is False
@@ -212,9 +212,55 @@ def test_edit_sale_updates_author_paid(authed_client, user):
 def test_delete_sale(authed_client, user):
     a1 = make_author()
     b1 = make_book(publisher_user=user, isbn_13="9780000000007", author=a1)
-    sale = Sale.objects.create(book=b1, quantity=10, publisher_revenue=100)
+    sale = Sale.objects.create(book=b1, quantity=10, publisher_revenue=100, date="2023-01-01")
     
     resp = authed_client.delete(f"/api/sale/{sale.id}")
     assert resp.status_code == 204
     
     assert Sale.objects.count() == 0
+
+def test_get_all_sales_sorting_and_date_filtering_and_details(authed_client, user):
+    a1 = make_author(name="Alice")
+    b1 = make_book(publisher_user=user, isbn_13="9780000000009", title="BookSort", author=a1)
+
+    # Create sales with different dates and quantities
+    # s1: Date 2023-01-01, Qty 10
+    s1 = Sale.objects.create(book=b1, quantity=10, publisher_revenue=100, date="2023-01-01")
+    s1.save()
+    s1.create_author_sales()
+
+    # s2: Date 2023-02-01, Qty 5
+    s2 = Sale.objects.create(book=b1, quantity=5, publisher_revenue=50, date="2023-02-01")
+    s2.save()
+    s2.create_author_sales()
+
+    # s3: Date 2023-03-01, Qty 20
+    s3 = Sale.objects.create(book=b1, quantity=20, publisher_revenue=200, date="2023-03-01")
+    s3.save()
+    s3.create_author_sales()
+
+    # 1. Test Date Range Filtering
+    # Filter for Feb only
+    resp = authed_client.get(f"/api/sale/get_all?start_date=2023-01-15&end_date=2023-02-15")
+    assert resp.status_code == 200
+    assert len(resp.data) == 1
+    assert resp.data[0]['id'] == s2.id
+
+    # 2. Test Sorting (sorting is client-side)
+    # Default sort is date desc
+    resp = authed_client.get(f"/api/sale/get_all")
+    assert resp.status_code == 200
+    # s3 (Mar), s2 (Feb), s1 (Jan) -> Descending date
+    assert resp.data[0]['id'] == s3.id
+    assert resp.data[1]['id'] == s2.id
+    assert resp.data[2]['id'] == s1.id
+
+    # 3. Verify author_details structure
+    sale_data = resp.data[0]
+    assert 'author_details' in sale_data
+    details = sale_data['author_details']
+    assert isinstance(details, list)
+    assert len(details) == 1
+    assert details[0]['name'] == "Alice"
+    assert 'royalty_amount' in details[0]
+    assert 'paid' in details[0]

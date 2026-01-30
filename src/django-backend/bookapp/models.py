@@ -41,7 +41,7 @@ class AuthorBook(models.Model):
 # 4. SALE Table
 class Sale(models.Model):
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name='sales')
-    date = models.DateTimeField(auto_now_add=True)
+    date = models.DateField()
     quantity = models.IntegerField()
     
     # Financial snapshots

@@ -4,6 +4,7 @@ import LoginPage from "../features/auth/pages/LoginPage";
 import RegisterPage from "../features/auth/pages/RegisterPage";
 import AccountPage from "../features/auth/pages/AccountPage";
 import ChangePasswordPage from "../features/auth/pages/ChangePasswordPage";
+import SalesListPage from "../features/sales/pages/SalesListPage";
 import { RequireAuth } from "../features/auth/routes/RequireAuth";
 
 export function AppRoutes() {
@@ -13,6 +14,15 @@ export function AppRoutes() {
 
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+
+      <Route
+        path="/sales"
+        element={
+          <RequireAuth>
+            <SalesListPage />
+          </RequireAuth>
+        }
+      />
 
       <Route
         path="/account"

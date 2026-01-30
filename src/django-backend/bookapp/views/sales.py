@@ -24,6 +24,15 @@ class SaleGetView(APIView):
         if user_id:
             queryset = queryset.filter(book__publisher_user_id=user_id)
 
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        if start_date:
+            queryset = queryset.filter(date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(date__lte=end_date)
+        
+        queryset = queryset.order_by('-date')
+
         serializer = SaleSerializer(queryset, many=True)
         return Response(serializer.data)
 

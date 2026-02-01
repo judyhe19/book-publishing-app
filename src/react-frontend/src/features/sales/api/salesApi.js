@@ -10,3 +10,7 @@ export function createManySales(salesData) {
         body: salesData,
     })
 }
+
+export function payUnpaidSalesForAuthor(authorId) {
+  return apiFetch(`/api/author/${authorId}/pay_unpaid_sales`, { method: "POST" });
+}

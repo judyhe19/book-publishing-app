@@ -24,9 +24,16 @@ export default function SalesListPage() {
                     <h1 className="text-2xl font-bold text-slate-900">Sales Records</h1>
                     <p className="text-slate-500 mt-1">Manage and view your book sales.</p>
                 </div>
-                <Button onClick={() => navigate("/sales/input")}>
-                    Input New Sales
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="secondary" onClick={() => navigate("/sales/authors")}>
+                        Author Payments
+                    </Button>
+                    <Button onClick={() => navigate("/sales/input")}>
+                        Input New Sales
+                    </Button>
+                </div>
+
+
             </div>
 
             <Card>

@@ -7,7 +7,7 @@ class AuthorBookSerializer(serializers.ModelSerializer):
     """
     Represents the relationship between an Author and a Book, including royalty_rate.
     """
-    author_id = serializers.IntegerField(write_only=True)
+    author_id = serializers.IntegerField()
     name = serializers.CharField(source="author.name", read_only=True)
 
     class Meta:

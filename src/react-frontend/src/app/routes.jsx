@@ -5,6 +5,7 @@ import RegisterPage from "../features/auth/pages/RegisterPage";
 import AccountPage from "../features/auth/pages/AccountPage";
 import ChangePasswordPage from "../features/auth/pages/ChangePasswordPage";
 import SalesListPage from "../features/sales/pages/SalesListPage";
+import SalesInputPage from "../features/sales/pages/SalesInputPage";
 import { RequireAuth } from "../features/auth/routes/RequireAuth";
 
 export function AppRoutes() {
@@ -20,6 +21,15 @@ export function AppRoutes() {
         element={
           <RequireAuth>
             <SalesListPage />
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/sales/input"
+        element={
+          <RequireAuth>
+            <SalesInputPage />
           </RequireAuth>
         }
       />

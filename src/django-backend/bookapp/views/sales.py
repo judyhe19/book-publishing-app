@@ -42,9 +42,6 @@ class SaleCreateView(APIView):
         if serializer.is_valid():
             with transaction.atomic():
                 sale = serializer.save()
-                author_royalties = serializer.validated_data.get('author_royalties', {})
-                author_paid = serializer.validated_data.get('author_paid', {})
-                sale.create_author_sales(author_royalties, author_paid)
             
             full_serializer = SaleSerializer(sale)
             return Response(full_serializer.data, status=status.HTTP_201_CREATED)
@@ -65,11 +62,9 @@ class SaleCreateManyView(APIView):
                 serializer = SaleCreateSerializer(data=sale_data)
                 if serializer.is_valid():
                     sale = serializer.save()
-                    author_royalties = serializer.validated_data.get('author_royalties', {})
-                    author_paid = serializer.validated_data.get('author_paid', {})
-                    sale.create_author_sales(author_royalties, author_paid)
                     created_sales.append(sale)
                 else:
+                    print(f"Validation Error at index {index}: {serializer.errors}")
                     errors.append({"index": index, "errors": serializer.errors})
             
             if errors:

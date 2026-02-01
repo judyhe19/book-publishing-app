@@ -9,6 +9,9 @@ class SaleSerializer(serializers.ModelSerializer):
         fields = ['id', 'book', 'book_title', 'date', 'quantity', 'publisher_revenue', 'author_details']
 
     def get_author_details(self, obj):
+        """
+        Get author details for the sale.
+        """
         return [
             {
                 "id": ars.author.id,
@@ -42,6 +45,11 @@ class SaleCreateSerializer(serializers.ModelSerializer):
         # paid is a boolean that indicates whether the author has been paid for this sale
 
     def create(self, validated_data):
+        """
+        Create a Sale instance and associated AuthorSales based on the validated data.
+        """
         author_royalties = validated_data.pop('author_royalties', {})
         author_paid = validated_data.pop('author_paid', {})
-        return super().create(validated_data)
+        sale = super().create(validated_data)
+        sale.create_author_sales(author_royalties, author_paid)
+        return sale

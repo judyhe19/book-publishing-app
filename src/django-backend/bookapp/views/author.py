@@ -39,14 +39,20 @@ class AuthorPayUnpaidSalesView(APIView):
 
         with transaction.atomic():
             qs = (
-                AuthorSale.objects
-                .select_for_update()
-                .filter(author_id=author_id, author_paid=False)
-            )
+                 AuthorSale.objects
+                 .select_for_update()
+                 .filter(author_id=author_id, author_paid=False)
+             )
+
 
             total_to_pay = qs.aggregate(total=Sum("royalty_amount")).get("total") or Decimal("0.00")
 
-            sale_ids = list(qs.values_list("sale_id", flat=True).distinct())
+            sale_ids = list(
+               AuthorSale.objects
+                .filter(author_id=author_id, author_paid=False)
+                .values_list("sale_id", flat=True)
+                .distinct()
+            )
 
             updated_count = qs.update(author_paid=True)
 

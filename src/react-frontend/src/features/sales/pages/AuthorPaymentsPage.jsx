@@ -37,7 +37,7 @@ export default function AuthorPaymentsPage() {
             Sales Records
           </Button>
 
-          <Button onClick={() => { /* Nothing forr now*/ }}>
+          <Button onClick={() => { navigate("/sales/input") }}>
             Sales Input Tool
           </Button>
         </div>

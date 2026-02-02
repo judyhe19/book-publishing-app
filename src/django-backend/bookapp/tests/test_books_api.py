@@ -197,3 +197,66 @@ def test_post_duplicate_isbn_13_returns_400(authed_client):
 
     # DRF typically returns field-specific errors like {"isbn_13": ["..."]}
     assert "isbn_13" in resp2.data
+
+
+def test_get_books_search(authed_client, user):
+    a1 = make_author()
+    # Create books
+    make_book(publisher_user=user, isbn_13="9780000001000", title="Harry Potter", authors=[(a1, "0.10")])
+    make_book(publisher_user=user, isbn_13="9780000002000", title="Lord of the Rings", authors=[(a1, "0.10")])
+    make_book(publisher_user=user, isbn_13="9781234567890", title="Test Book", authors=[(a1, "0.10")])
+
+    # Search by Title
+    resp = authed_client.get("/api/books/?q=Harry")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["title"] == "Harry Potter"
+
+    # Search by part of Title (case insensitive)
+    resp = authed_client.get("/api/books/?q=rings")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["title"] == "Lord of the Rings"
+
+    # Search by ISBN (exact)
+    resp = authed_client.get("/api/books/?q=9781234567890")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["isbn_13"] == "9781234567890"
+
+    # Search by ISBN (with dashes - should still find it)
+    resp = authed_client.get("/api/books/?q=978-123-456-7890")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["isbn_13"] == "9781234567890"
+
+
+def test_get_books_published_before_filter(authed_client, user):
+    a1 = make_author()
+    # Create books with specific publication dates
+    make_book(publisher_user=user, isbn_13="9780000003001", title="Old Book", 
+              authors=[(a1, "0.10")]) # Will defaults to 2000-01-01
+    
+    make_book(publisher_user=user, isbn_13="9780000003002", title="New Book", 
+              authors=[(a1, "0.10")]) # Will defaults to 2000-01-01
+
+    # Update dates manually
+    b1 = Book.objects.get(isbn_13="9780000003001")
+    b1.publication_date = "2020-01-01"
+    b1.save()
+
+    b2 = Book.objects.get(isbn_13="9780000003002")
+    b2.publication_date = "2025-01-01"
+    b2.save()
+
+    # Filter: published_before=2022-01-01 (Should include 2020, exclude 2025)
+    resp = authed_client.get("/api/books/?published_before=2022-01-01")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["title"] == "Old Book"
+
+    # Filter: published_before=2025-01-01 (Should include 2025 too)
+    resp = authed_client.get("/api/books/?published_before=2025-01-01")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 2
+

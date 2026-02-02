@@ -23,6 +23,23 @@ class BookListCreateView(APIView):
             publisher_user=request.user
         ).order_by("id")
 
+        # Search functionality
+        q = request.query_params.get("q")
+        if q:
+            from django.db.models import Q
+            # Remove dashes for ISBN search
+            c_q = q.replace("-", "").strip()
+            qs = qs.filter(
+                Q(title__icontains=q) | 
+                Q(isbn_13__icontains=c_q) | 
+                Q(isbn_10__icontains=c_q)
+            )
+
+        # Filter by publication date (only return books published ON or BEFORE this date)
+        published_before = request.query_params.get("published_before")
+        if published_before:
+            qs = qs.filter(publication_date__lte=published_before)
+
         total = qs.count()
         start = (page - 1) * page_size
         end = start + page_size

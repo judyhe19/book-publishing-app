@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { getAllSales } from "../api/salesApi";
 import { SORT_CONFIG, TABLE_COLUMNS } from "../config/salesTableConfig";
 
@@ -11,10 +11,10 @@ export function useSalesList() {
         ordering: SORT_CONFIG.DEFAULT_ORDER,
     });
 
-    // fetch from backend only when date filters change
+    // fetch from backend when date filters OR ordering changes
     useEffect(() => {
         fetchSales();
-    }, [filters.start_date, filters.end_date]);
+    }, [filters.start_date, filters.end_date, filters.ordering]);
 
     const fetchSales = async () => {
         setLoading(true);
@@ -22,6 +22,7 @@ export function useSalesList() {
             const activeFilters = {};
             if (filters.start_date) activeFilters.start_date = filters.start_date;
             if (filters.end_date) activeFilters.end_date = filters.end_date;
+            if (filters.ordering) activeFilters.ordering = filters.ordering;
 
             const queryParams = new URLSearchParams(activeFilters).toString();
 
@@ -53,37 +54,8 @@ export function useSalesList() {
         setFilters((prev) => ({ ...prev, [name]: value }));
     };
 
-    // client side sorting 
-    const sortedSales = useMemo(() => {
-        if (!sales) return [];
-        const sorted = [...sales];
-        const { ordering } = filters;
-        if (!ordering) return sorted;
-
-        const isDesc = ordering.startsWith('-');
-        const field = isDesc ? ordering.substring(1) : ordering;
-
-        const columnConfig = TABLE_COLUMNS.find(col => col.sortKey === field);
-        const isNumeric = columnConfig?.type === 'number';
-
-        sorted.sort((a, b) => {
-            let valA = columnConfig?.sortValue ? columnConfig.sortValue(a) : a[field];
-            let valB = columnConfig?.sortValue ? columnConfig.sortValue(b) : b[field];
-
-            if (isNumeric) {
-                valA = Number(valA);
-                valB = Number(valB);
-            }
-
-            if (valA < valB) return isDesc ? 1 : -1;
-            if (valA > valB) return isDesc ? -1 : 1;
-            return 0;
-        });
-        return sorted;
-    }, [sales, filters.ordering]);
-
     return {
-        sales: sortedSales, // Return the processed/sorted list
+        sales, // Return the list directly (sorting is now server-side)
         loading,
         filters,
         handleSort,
@@ -91,3 +63,4 @@ export function useSalesList() {
         refresh: fetchSales,
     };
 }
+

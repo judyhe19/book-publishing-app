@@ -8,7 +8,8 @@ from ..serializers.sales import SaleSerializer, SaleCreateSerializer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from decimal import Decimal
-from django.db.models import Sum
+from django.db.models import Sum, Count, Case, When, Value, IntegerField
+from ..config.sort_config import SALES_SORT_FIELD_MAP, SALES_DEFAULT_SORT
 
 class SaleGetView(APIView):
     def get(self, request):
@@ -31,7 +32,31 @@ class SaleGetView(APIView):
         if end_date:
             queryset = queryset.filter(date__lte=end_date)
         
-        queryset = queryset.order_by('-date')
+        # annotate with computed fields for sorting: total_royalties and unpaid_count
+        queryset = queryset.annotate(
+            # total royalties for this sale (sum of all author royalties)
+            total_royalties=Sum('author_sales__royalty_amount'),
+            # count of unpaid authors (0 means all paid)
+            unpaid_count=Count(
+                Case(
+                    When(author_sales__author_paid=False, then=1),
+                    output_field=IntegerField()
+                )
+            )
+        )
+        
+        # server-side ordering
+        ordering = request.query_params.get('ordering', SALES_DEFAULT_SORT)
+
+        # parse ordering (handle descending prefix)
+        is_desc = ordering.startswith('-')
+        field = ordering[1:] if is_desc else ordering
+        
+        if field in SALES_SORT_FIELD_MAP:
+            order_field = ('-' if is_desc else '') + SALES_SORT_FIELD_MAP[field]
+            queryset = queryset.order_by(order_field)
+        else:
+            queryset = queryset.order_by('-date')  # fallback to default if invalid field was passed in
 
         serializer = SaleSerializer(queryset, many=True)
         return Response(serializer.data)
@@ -46,8 +71,6 @@ class SaleCreateView(APIView):
             full_serializer = SaleSerializer(sale)
             return Response(full_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
 
 class SaleCreateManyView(APIView):
     def post(self, request):
@@ -92,16 +115,13 @@ class SaleEditView(APIView):
             allowed_fields = fields_param.split(',')
             data = {k: v for k, v in request.data.items() if k in allowed_fields}
 
-        serializer = SaleCreateSerializer(sale, data=data, partial=partial)
+        serializer = SaleCreateSerializer(sale, data=data, partial=partial) # calls update() if sale is passed in
         if serializer.is_valid():
             with transaction.atomic():
-                updated_sale = serializer.save()
                 # If quantity or revenue changed, we might need to recalculate royalties. 
-                # Delete old AuthorSales and recreate them.
+                # Delete old AuthorSales and recreate them when call serializer.save()
                 sale.author_sales.all().delete()
-                author_royalties = serializer.validated_data.get('author_royalties', {})
-                author_paid = serializer.validated_data.get('author_paid', {})
-                updated_sale.create_author_sales(author_royalties, author_paid)
+                updated_sale = serializer.save()
 
             full_serializer = SaleSerializer(updated_sale)
             return Response(full_serializer.data)

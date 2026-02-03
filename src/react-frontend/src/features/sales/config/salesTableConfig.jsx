@@ -46,7 +46,11 @@ export const TABLE_COLUMNS = [
     {
         label: 'Date',
         sortKey: 'date',
-        render: (sale) => new Date(sale.date).toLocaleDateString(),
+        render: (sale) => {
+            const [year, month] = sale.date.split('-').map(Number);
+            const date = new Date(year, month - 1);
+            return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        },
     },
     {
         label: 'Quantity',

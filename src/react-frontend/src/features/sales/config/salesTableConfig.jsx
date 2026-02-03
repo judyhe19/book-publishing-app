@@ -1,10 +1,13 @@
 import { Link } from "react-router-dom";
 import React from "react";
 
+// Sort configuration
+// IMPORTANT: Keep sortKeys in sync with backend: bookapp/views/sales.py (FIELD_MAP)
 export const SORT_CONFIG = {
     DEFAULT_FIELD: 'date',
     DEFAULT_ORDER: '-date',
-    DESC_FIELDS: ['date', 'quantity', 'publisher_revenue'],
+    // Fields that should default to descending on first click
+    DESC_FIELDS: ['date', 'quantity', 'publisher_revenue', 'total_royalties'],
 };
 
 export const TABLE_COLUMNS = [

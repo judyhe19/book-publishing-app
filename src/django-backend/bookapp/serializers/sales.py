@@ -53,3 +53,14 @@ class SaleCreateSerializer(serializers.ModelSerializer):
         sale = super().create(validated_data)
         sale.create_author_sales(author_royalties, author_paid)
         return sale
+
+    def update(self, instance, validated_data):
+        """
+        Update a Sale instance and recreate associated AuthorSales.
+        """
+        author_royalties = validated_data.pop('author_royalties', {})
+        author_paid = validated_data.pop('author_paid', {})
+        sale = super().update(instance, validated_data)
+        sale.create_author_sales(author_royalties, author_paid)
+        return sale
+

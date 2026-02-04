@@ -5,7 +5,7 @@ import { Spinner } from "../../../shared/components/Spinner";
 import { Card, CardContent } from "../../../shared/components/Card";
 
 import SalesInputRow from "../components/SalesInputRow";
-import { useSalesDetail } from "../hooks/useSalesDetail";
+import { useSalesDetails } from "../hooks/useSalesDetails";
 import DeleteSalesRecordDialog from "../components/DeleteSalesRecordDialog";
 
 function saleToRow(sale) {
@@ -48,7 +48,7 @@ export default function SalesDetailPage() {
   const { saleId } = useParams();
   const navigate = useNavigate();
 
-  const { sale, loading, saving, error, save, remove } = useSalesDetail(saleId);
+  const { sale, loading, saving, error, save, remove } = useSalesDetails(saleId);
 
   const [row, setRow] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);

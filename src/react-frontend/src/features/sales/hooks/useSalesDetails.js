@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { getSaleDetail, updateSalesRecord, deleteSalesRecord } from "../api/salesApi";
+import { getSalesRecord, updateSalesRecord, deleteSalesRecord } from "../api/salesApi";
 
-export function useSalesDetail(saleId) {
+export function useSalesDetails(saleId) {
   const [sale, setSale] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -11,7 +11,7 @@ export function useSalesDetail(saleId) {
     try {
       setLoading(true);
       setError("");
-      const data = await getSaleDetail(saleId);
+      const data = await getSalesRecord(saleId);
       setSale(data);
     } catch (e) {
       setError(e?.message || "Failed to load sale");

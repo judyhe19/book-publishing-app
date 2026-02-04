@@ -6,6 +6,7 @@ export default function DeleteSalesRecordDialog({
   open,
   onOpenChange,
   onConfirm,
+  onCancel,
   saleId,
   disabled,
 }) {
@@ -18,6 +19,7 @@ export default function DeleteSalesRecordDialog({
       confirmText="Delete"
       confirmVariant="danger"
       onConfirm={onConfirm}
+      onCancel={onCancel}
       disabled={disabled}
     />
   );

@@ -139,31 +139,34 @@ export default function SalesDetailPage() {
         </div>
       ) : null}
 
-      {/* “View all fields” section */}
-      <Card className="mb-6">
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-            <div><span className="text-slate-500">Sale ID:</span> {sale.id}</div>
-            <div><span className="text-slate-500">Book:</span> {sale.book?.title || sale.book_id}</div>
-            <div><span className="text-slate-500">Date:</span> {sale.date || `${sale.year}-${sale.month}`}</div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        {/* “View all fields” section */}
+        <Card>
+            <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                <div><span className="text-slate-500">Sale ID:</span> {sale.id}</div>
+                <div><span className="text-slate-500">Book:</span> {sale.book?.title || sale.book_id}</div>
+                <div><span className="text-slate-500">Date:</span> {sale.date || `${sale.year}-${sale.month}`}</div>
+            </div>
+            </CardContent>
+        </Card>
 
-      {row ? (
-        <SalesInputRow
-          index={0}
-          data={row}
-          onChange={handleRowChange}
-          onRemove={() => {}}
-          isFirst={true}
-        />
-      ) : null}
+        {row ? (
+            <SalesInputRow
+            index={0}
+            data={row}
+            onChange={handleRowChange}
+            onRemove={() => {}}
+            isFirst={true}
+            />
+        ) : null}
+        </div>
 
       <DeleteSalesRecordDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         onConfirm={onConfirmDelete}
+        onCancel={() => setDeleteOpen(false)}
         saleId={sale.id}
         disabled={saving}
       />

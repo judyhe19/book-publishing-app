@@ -29,5 +29,5 @@ export function deleteSalesRecord(saleId) {
 }
 
 export function getSalesRecord(saleId) {
-    return apiFetch(`/api/sale/${saleId}`);
+    return apiFetch(`/api/sale/${saleId}/get`);
 }

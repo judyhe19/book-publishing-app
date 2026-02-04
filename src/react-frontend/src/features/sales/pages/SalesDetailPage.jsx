@@ -58,7 +58,6 @@ export default function SalesDetailPage() {
     setRow(saleToRow(sale));
   }, [sale]);
 
-  // Simple onChange adapter for SalesInputRow signature
   const handleRowChange = (index, field, value) => {
     setRow((prev) => ({ ...prev, [field]: value }));
   };
@@ -66,9 +65,6 @@ export default function SalesDetailPage() {
   const payload = useMemo(() => {
     if (!row) return null;
 
-    // Convert back into the format your SaleEditView / SaleCreateSerializer expects.
-    // In your backend, you mentioned "frontend needs to send full state of author_paid and royalties during an edit"
-    // so we send the full maps.
     const book_id = row.book?.value ?? row.book?.id ?? null;
 
     return {
@@ -84,7 +80,6 @@ export default function SalesDetailPage() {
   async function onSave() {
     if (!payload) return;
     await save(payload);
-    // After save, the hook updates `sale`, which will re-init row from latest sale
   }
 
   async function onConfirmDelete() {
@@ -155,18 +150,16 @@ export default function SalesDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Reuse the exact same row editor UI you already have */}
       {row ? (
         <SalesInputRow
           index={0}
           data={row}
           onChange={handleRowChange}
           onRemove={() => {}}
-          isFirst={true} // hides remove button
+          isFirst={true}
         />
       ) : null}
 
-      {/* Delete confirm dialog (separate file) */}
       <DeleteSalesRecordDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}

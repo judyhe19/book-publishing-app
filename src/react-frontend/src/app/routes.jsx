@@ -28,6 +28,8 @@ export function AppRoutes() {
 
       <Route path="/sales/authors" element={<AuthorPaymentsPage />} />
 
+      <Route path="/sales/:saleId" element={<SalesDetailPage />} />
+
       <Route
         path="/sales/input"
         element={

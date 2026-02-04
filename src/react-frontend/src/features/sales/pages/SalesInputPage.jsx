@@ -43,7 +43,7 @@ const SalesInputPage = () => {
             </div>
 
             <div className="mt-8 flex justify-end gap-4">
-                <Button variant="secondary" onClick={() => navigate('/sales')}>
+                <Button variant="secondary" onClick={() => navigate(-1)}>
                     Cancel
                 </Button>
                 <Button onClick={handleSubmit} disabled={isSubmitting}>

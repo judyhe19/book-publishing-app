@@ -9,7 +9,7 @@ SALES_SORT_FIELD_MAP = {
     'book_title': 'book__title',
     'authors': 'first_author_name',  # annotated field - first author's name
     'total_royalties': 'total_royalties',  # annotated field - total royalties for this sale
-    'paid_status': 'unpaid_count',  # annotated field - 0 = all paid (sorts first ascending)
+    'paid_status': 'paid_status_order',  # annotated field - 0=Fully Paid, 1=Partially Paid, 2=Unpaid
 }
 
 SALES_DEFAULT_SORT = '-date'

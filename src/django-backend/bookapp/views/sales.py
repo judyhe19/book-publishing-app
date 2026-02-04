@@ -12,7 +12,13 @@ from django.db.models import Sum, Count, Case, When, Value, IntegerField, Subque
 from ..config.sort_config import SALES_SORT_FIELD_MAP, SALES_DEFAULT_SORT
 
 class SaleGetView(APIView):
-    def get(self, request):
+    def get(self, request, sale_id=None):
+        # If sale_id is provided, return a single sale
+        if sale_id is not None:
+            sale = get_object_or_404(Sale, id=sale_id)
+            serializer = SaleSerializer(sale)
+            return Response(serializer.data)
+        
         book_id = request.query_params.get('book_id')
         user_id = request.query_params.get('user_id')
 

@@ -33,7 +33,7 @@ def make_author(name="Frank Herbert"):
     return Author.objects.create(name=name)
 
 
-def make_book(*, publisher_user, isbn_13, title="T", authors=None):
+def make_book(*, isbn_13, title="T", authors=None):
     """
     Creates a Book and (optionally) attaches authors via the AuthorBook through table.
     authors: list of tuples [(Author, royalty_rate_str), ...]
@@ -44,7 +44,6 @@ def make_book(*, publisher_user, isbn_13, title="T", authors=None):
         isbn_13=isbn_13,
         isbn_10=None,
         total_sales_to_date=0,
-        publisher_user=publisher_user,
     )
 
     if authors:
@@ -64,7 +63,7 @@ def test_get_books_requires_auth(api_client):
     assert resp.status_code in (401, 403)
 
 
-def test_post_creates_book_sets_owner_and_ignores_total_sales(authed_client, user):
+def test_post_creates_book_and_total_sales_defaults_to_zero(authed_client):
     a1 = make_author()
 
     payload = {
@@ -72,11 +71,11 @@ def test_post_creates_book_sets_owner_and_ignores_total_sales(authed_client, use
         "publication_date": "1965-08-01",
         "isbn_13": "9780441172719",
         "isbn_10": "0441172717",
-        "total_sales_to_date": 999,  # should be ignored due to read_only_fields
+        # IMPORTANT: BookCreateSerializer does NOT accept total_sales_to_date,
+        # so do NOT include it in payload.
         "authors": [
             {"author_id": a1.id, "royalty_rate": "0.15"},
         ],
-        # publisher_user intentionally omitted (read-only)
     }
 
     resp = authed_client.post("/api/books/", payload, format="json")
@@ -85,10 +84,7 @@ def test_post_creates_book_sets_owner_and_ignores_total_sales(authed_client, use
     created_id = resp.data["id"]
     book = Book.objects.get(id=created_id)
 
-    # owner forced server-side
-    assert book.publisher_user_id == user.id
-
-    # read-only field should not be set from input
+    # Field should default to 0 server-side
     assert book.total_sales_to_date == 0
 
     # through table row created correctly
@@ -96,27 +92,28 @@ def test_post_creates_book_sets_owner_and_ignores_total_sales(authed_client, use
     assert str(through.royalty_rate) == "0.1500"
 
 
-def test_get_books_returns_only_authenticated_users_books(authed_client, user, other_user):
+def test_get_books_returns_all_books_regardless_of_user(authed_client, other_user):
     a1 = make_author()
 
-    make_book(publisher_user=user, isbn_13="9780000000001", title="Mine1", authors=[(a1, "0.10")])
-    make_book(publisher_user=user, isbn_13="9780000000002", title="Mine2", authors=[(a1, "0.10")])
-    make_book(publisher_user=other_user, isbn_13="9780000000003", title="NotMine", authors=[(a1, "0.10")])
+    # Create books (no ownership concept anymore)
+    make_book(isbn_13="9780000000001", title="Book1", authors=[(a1, "0.10")])
+    make_book(isbn_13="9780000000002", title="Book2", authors=[(a1, "0.10")])
+    make_book(isbn_13="9780000000003", title="Book3", authors=[(a1, "0.10")])
 
     resp = authed_client.get("/api/books/")
     assert resp.status_code == 200, resp.content
 
-    assert resp.data["count"] == 2
+    assert resp.data["count"] == 3
     titles = {r["title"] for r in resp.data["results"]}
-    assert titles == {"Mine1", "Mine2"}
+    assert titles == {"Book1", "Book2", "Book3"}
 
 
-def test_get_books_pagination(authed_client, user):
+def test_get_books_pagination(authed_client):
     a1 = make_author()
 
-    make_book(publisher_user=user, isbn_13="9780000000100", title="B0", authors=[(a1, "0.10")])
-    make_book(publisher_user=user, isbn_13="9780000000101", title="B1", authors=[(a1, "0.10")])
-    make_book(publisher_user=user, isbn_13="9780000000102", title="B2", authors=[(a1, "0.10")])
+    make_book(isbn_13="9780000000100", title="B0", authors=[(a1, "0.10")])
+    make_book(isbn_13="9780000000101", title="B1", authors=[(a1, "0.10")])
+    make_book(isbn_13="9780000000102", title="B2", authors=[(a1, "0.10")])
 
     resp1 = authed_client.get("/api/books/?page=1&page_size=2")
     assert resp1.status_code == 200
@@ -128,9 +125,9 @@ def test_get_books_pagination(authed_client, user):
     assert len(resp2.data["results"]) == 1
 
 
-def test_get_books_fields_filtering(authed_client, user):
+def test_get_books_fields_filtering(authed_client):
     a1 = make_author()
-    make_book(publisher_user=user, isbn_13="9780000009999", title="B", authors=[(a1, "0.10")])
+    make_book(isbn_13="9780000009999", title="B", authors=[(a1, "0.10")])
 
     resp = authed_client.get("/api/books/?fields=title,isbn_13")
     assert resp.status_code == 200
@@ -139,9 +136,9 @@ def test_get_books_fields_filtering(authed_client, user):
     assert set(item.keys()) == {"title", "isbn_13"}
 
 
-def test_patch_updates_book(authed_client, user):
+def test_patch_updates_book(authed_client):
     a1 = make_author()
-    b = make_book(publisher_user=user, isbn_13="9780000001234", title="Old", authors=[(a1, "0.10")])
+    b = make_book(isbn_13="9780000001234", title="Old", authors=[(a1, "0.10")])
 
     resp = authed_client.patch(f"/api/books/{b.id}/", {"title": "New"}, format="json")
     assert resp.status_code == 200, resp.content
@@ -150,9 +147,9 @@ def test_patch_updates_book(authed_client, user):
     assert b.title == "New"
 
 
-def test_delete_removes_book(authed_client, user):
+def test_delete_removes_book(authed_client):
     a1 = make_author()
-    b = make_book(publisher_user=user, isbn_13="9780000005678", title="ToDelete", authors=[(a1, "0.10")])
+    b = make_book(isbn_13="9780000005678", title="ToDelete", authors=[(a1, "0.10")])
 
     resp = authed_client.delete(f"/api/books/{b.id}/")
     assert resp.status_code == 204
@@ -160,14 +157,16 @@ def test_delete_removes_book(authed_client, user):
     assert not Book.objects.filter(id=b.id).exists()
 
 
-def test_patch_forbidden_on_someone_elses_book(authed_client, other_user):
-    # authed_client is authenticated as "user" fixture, not other_user
+def test_patch_allowed_on_any_book_when_authenticated(authed_client):
+    # There is no per-user ownership anymore, so this should succeed.
     a1 = make_author()
-    b = make_book(publisher_user=other_user, isbn_13="9780000007777", title="Other", authors=[(a1, "0.10")])
+    b = make_book(isbn_13="9780000007777", title="Other", authors=[(a1, "0.10")])
 
-    resp = authed_client.patch(f"/api/books/{b.id}/", {"title": "Hack"}, format="json")
-    # get_object_or_404 with publisher_user=request.user causes 404 (not 403)
-    assert resp.status_code == 404
+    resp = authed_client.patch(f"/api/books/{b.id}/", {"title": "Updated"}, format="json")
+    assert resp.status_code == 200, resp.content
+
+    b.refresh_from_db()
+    assert b.title == "Updated"
 
 
 def test_post_duplicate_isbn_13_returns_400(authed_client):
@@ -199,12 +198,12 @@ def test_post_duplicate_isbn_13_returns_400(authed_client):
     assert "isbn_13" in resp2.data
 
 
-def test_get_books_search(authed_client, user):
+def test_get_books_search(authed_client):
     a1 = make_author()
-    # Create books
-    make_book(publisher_user=user, isbn_13="9780000001000", title="Harry Potter", authors=[(a1, "0.10")])
-    make_book(publisher_user=user, isbn_13="9780000002000", title="Lord of the Rings", authors=[(a1, "0.10")])
-    make_book(publisher_user=user, isbn_13="9781234567890", title="Test Book", authors=[(a1, "0.10")])
+
+    make_book(isbn_13="9780000001000", title="Harry Potter", authors=[(a1, "0.10")])
+    make_book(isbn_13="9780000002000", title="Lord of the Rings", authors=[(a1, "0.10")])
+    make_book(isbn_13="9781234567890", title="Test Book", authors=[(a1, "0.10")])
 
     # Search by Title
     resp = authed_client.get("/api/books/?q=Harry")
@@ -231,14 +230,11 @@ def test_get_books_search(authed_client, user):
     assert resp.data["results"][0]["isbn_13"] == "9781234567890"
 
 
-def test_get_books_published_before_filter(authed_client, user):
+def test_get_books_published_before_filter(authed_client):
     a1 = make_author()
-    # Create books with specific publication dates
-    make_book(publisher_user=user, isbn_13="9780000003001", title="Old Book", 
-              authors=[(a1, "0.10")]) # Will defaults to 2000-01-01
-    
-    make_book(publisher_user=user, isbn_13="9780000003002", title="New Book", 
-              authors=[(a1, "0.10")]) # Will defaults to 2000-01-01
+
+    make_book(isbn_13="9780000003001", title="Old Book", authors=[(a1, "0.10")])
+    make_book(isbn_13="9780000003002", title="New Book", authors=[(a1, "0.10")])
 
     # Update dates manually
     b1 = Book.objects.get(isbn_13="9780000003001")
@@ -260,3 +256,50 @@ def test_get_books_published_before_filter(authed_client, user):
     assert resp.status_code == 200
     assert resp.data["count"] == 2
 
+def test_get_books_search_by_author_name(authed_client):
+    a1 = make_author(name="Frank Herbert")
+    a2 = make_author(name="Brian Herbert")
+
+    # Book with two authors
+    make_book(
+        isbn_13="9781111111111",
+        title="Dune",
+        authors=[
+            (a1, "0.15"),
+            (a2, "0.10"),
+        ],
+    )
+
+    # Book with a different author
+    a3 = make_author(name="J. R. R. Tolkien")
+    make_book(
+        isbn_13="9782222222222",
+        title="Lord of the Rings",
+        authors=[
+            (a3, "0.12"),
+        ],
+    )
+
+    # Search by first author
+    resp = authed_client.get("/api/books/?q=Frank")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["title"] == "Dune"
+
+    # Search by second author
+    resp = authed_client.get("/api/books/?q=Brian")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["title"] == "Dune"
+
+    # Search by partial author name (case-insensitive)
+    resp = authed_client.get("/api/books/?q=herbert")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["title"] == "Dune"
+
+    # Search by author that should not match
+    resp = authed_client.get("/api/books/?q=Tolkien")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["title"] == "Lord of the Rings"

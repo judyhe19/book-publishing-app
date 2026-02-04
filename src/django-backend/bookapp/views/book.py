@@ -1,5 +1,5 @@
-# views/books.py (or your existing module path)
-# Updated to use separate read/write serializers from serializers/book.py
+# views/books.py
+# User-agnostic: removes all dependencies on request.user and publisher_user
 
 from math import ceil
 
@@ -21,6 +21,8 @@ from ..serializers.book import (
 
 
 class BookListCreateView(APIView):
+    # Keep auth if you still want only logged-in users to access the API.
+    # If you truly want public access, replace with AllowAny.
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -38,12 +40,12 @@ class BookListCreateView(APIView):
         page_size = min(max(page_size, 1), 100)
 
         # --------------------
-        # Base queryset (publisher ownership enforced)
+        # Base queryset (NO user scoping)
         # Prefetch through table + author for efficient nested output
         # --------------------
         qs = (
             Book.objects
-            .filter(publisher_user=request.user)
+            .all()
             .prefetch_related(
                 Prefetch(
                     "authorbook_set",
@@ -128,8 +130,8 @@ class BookListCreateView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        # Enforce publisher ownership here
-        book = serializer.save(publisher_user=request.user)
+        # No user-based ownership
+        book = serializer.save()
 
         # Return read-shape (consistent with list/detail)
         return Response(
@@ -139,16 +141,15 @@ class BookListCreateView(APIView):
 
 
 class BookDetailView(APIView):
+    # Keep auth if you still want only logged-in users to access the API.
+    # If you truly want public access, replace with AllowAny.
     permission_classes = [IsAuthenticated]
 
     def get(self, request, book_id):
-        book = get_object_or_404(
-            Book,
-            id=book_id,
-            publisher_user=request.user
-        )
+        book = get_object_or_404(Book, id=book_id)
+
         # Prefetch authors for consistent detail response
-        book_qs = (
+        book = (
             Book.objects
             .filter(id=book.id)
             .prefetch_related(
@@ -157,16 +158,13 @@ class BookDetailView(APIView):
                     queryset=AuthorBook.objects.select_related("author").order_by("author__name", "author_id"),
                 )
             )
+            .first()
         )
-        book = book_qs.first()
+
         return Response(BookDetailSerializer(book).data)
 
     def patch(self, request, book_id):
-        book = get_object_or_404(
-            Book,
-            id=book_id,
-            publisher_user=request.user
-        )
+        book = get_object_or_404(Book, id=book_id)
 
         serializer = BookUpdateSerializer(book, data=request.data, partial=True)
         if not serializer.is_valid():
@@ -174,11 +172,10 @@ class BookDetailView(APIView):
 
         book = serializer.save()
 
-        # Return read-shape (consistent with list/detail)
         # Re-fetch with prefetch for nested output consistency
         book = (
             Book.objects
-            .filter(id=book.id, publisher_user=request.user)
+            .filter(id=book.id)
             .prefetch_related(
                 Prefetch(
                     "authorbook_set",
@@ -191,10 +188,6 @@ class BookDetailView(APIView):
         return Response(BookDetailSerializer(book).data)
 
     def delete(self, request, book_id):
-        book = get_object_or_404(
-            Book,
-            id=book_id,
-            publisher_user=request.user
-        )
+        book = get_object_or_404(Book, id=book_id)
         book.delete()
         return Response(status=204)

@@ -9,43 +9,35 @@ import { useSalesDetails } from "../hooks/useSalesDetails";
 import DeleteSalesRecordDialog from "../components/DeleteSalesRecordDialog";
 
 function saleToRow(sale) {
-  const date =
-    sale.date ||
-    (sale.year && sale.month
-      ? `${String(sale.year)}-${String(sale.month).padStart(2, "0")}`
-      : "");
+  const date = sale.date;
 
-  const bookId = sale.book ?? sale.book_id ?? null;
-  const bookTitle = sale.book_title ?? sale.book?.title ?? null;
+  const bookObj = {
+    value: sale.book,
+    label: sale.book_title,
+    authors: (sale.author_details || []).map(a => ({
+      author_id: a.author_id,
+      name: a.name,
+    })),
+  };
 
-  const bookObj = bookId
-    ? {
-        value: bookId,
-        label: bookTitle ? bookTitle : `Book #${bookId}`,
-        ...(typeof sale.book === "object" ? sale.book : {}),
-      }
-    : null;
-
-  const authorSales = sale.author_sales || [];
   const author_royalties = {};
   const author_paid = {};
 
-  for (const as of authorSales) {
-    const authorId = as.author_id ?? as.author?.author_id ?? as.author?.id;
-    if (!authorId) continue;
-    author_royalties[authorId] = as.royalty_amount ?? as.royalty ?? "";
-    author_paid[authorId] = !!as.author_paid;
+  for (const a of sale.author_details || []) {
+    author_royalties[a.author_id] = a.royalty_amount;
+    author_paid[a.author_id] = !!a.author_paid;
   }
 
   return {
     date,
     book: bookObj,
-    quantity: sale.quantity_sold ?? sale.quantity ?? "",
-    publisher_revenue: sale.publisher_revenue ?? "",
+    quantity: sale.quantity,
+    publisher_revenue: sale.publisher_revenue,
     author_royalties,
     author_paid,
   };
 }
+
 
 
 export default function SalesDetailPage() {
@@ -149,7 +141,7 @@ export default function SalesDetailPage() {
             <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                 <div><span className="text-slate-500">Sale ID:</span> {sale.id}</div>
-                <div><span className="text-slate-500">Book:</span> {sale.book?.title || sale.book_id}</div>
+                <div><span className="text-slate-500">Book:</span> {sale.book_title}</div>
                 <div><span className="text-slate-500">Date:</span> {sale.date || `${sale.year}-${sale.month}`}</div>
             </div>
             </CardContent>

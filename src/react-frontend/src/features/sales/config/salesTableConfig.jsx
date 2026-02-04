@@ -108,7 +108,7 @@ export const TABLE_COLUMNS = [
         label: 'Actions',
         render: (sale) => (
             <Link
-                to={`/sale/${sale.id}/edit`}
+                to={`/sale/${sale.id}`}
                 className="text-indigo-600 hover:text-indigo-900 font-medium"
             >
                 Modify

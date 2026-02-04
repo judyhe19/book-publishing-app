@@ -219,6 +219,37 @@ def test_delete_sale(authed_client, user):
     
     assert Sale.objects.count() == 0
 
+
+def test_get_sale_by_id(authed_client, user):
+    """Test retrieving a single sale by its ID."""
+    a1 = make_author(name="Test Author")
+    b1 = make_book(publisher_user=user, isbn_13="9780000000023", title="Test Book", author=a1, royalty_rate="0.10")
+    
+    sale = Sale.objects.create(book=b1, quantity=15, publisher_revenue=Decimal("150.00"), date="2023-05-01")
+    sale.create_author_sales()
+    
+    resp = authed_client.get(f"/api/sale/{sale.id}/get")
+    assert resp.status_code == 200
+    
+    data = resp.data
+    assert data['id'] == sale.id
+    assert data['book'] == b1.id
+    assert data['quantity'] == 15
+    assert Decimal(data['publisher_revenue']) == Decimal("150.00")
+    assert data['date'] == "2023-05-01"
+    
+    # Verify author_details are included
+    assert 'author_details' in data
+    assert len(data['author_details']) == 1
+    assert data['author_details'][0]['name'] == "Test Author"
+    assert Decimal(data['author_details'][0]['royalty_amount']) == Decimal("15.00")  # 150 * 0.10
+
+
+def test_get_sale_by_id_not_found(authed_client, user):
+    """Test that requesting a non-existent sale returns 404."""
+    resp = authed_client.get("/api/sale/99999/get")
+    assert resp.status_code == 404
+
 def test_get_all_sales_sorting_and_date_filtering_and_details(authed_client, user):
     a1 = make_author(name="Alice")
     b1 = make_book(publisher_user=user, isbn_13="9780000000009", title="BookSort", author=a1)

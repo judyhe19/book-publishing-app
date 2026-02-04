@@ -5,7 +5,7 @@ import { Spinner } from "../../../shared/components/Spinner";
 import { Card, CardContent } from "../../../shared/components/Card";
 
 import SalesInputRow from "../components/SalesInputRow";
-import { useSalesDetail } from "../hooks/useSalesDetail";
+import { useSalesDetails } from "../hooks/useSalesDetails";
 import DeleteSalesRecordDialog from "../components/DeleteSalesRecordDialog";
 
 function saleToRow(sale) {
@@ -48,7 +48,7 @@ export default function SalesDetailPage() {
   const { saleId } = useParams();
   const navigate = useNavigate();
 
-  const { sale, loading, saving, error, save, remove } = useSalesDetail(saleId);
+  const { sale, loading, saving, error, save, remove } = useSalesDetails(saleId);
 
   const [row, setRow] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -58,7 +58,6 @@ export default function SalesDetailPage() {
     setRow(saleToRow(sale));
   }, [sale]);
 
-  // Simple onChange adapter for SalesInputRow signature
   const handleRowChange = (index, field, value) => {
     setRow((prev) => ({ ...prev, [field]: value }));
   };
@@ -66,9 +65,6 @@ export default function SalesDetailPage() {
   const payload = useMemo(() => {
     if (!row) return null;
 
-    // Convert back into the format your SaleEditView / SaleCreateSerializer expects.
-    // In your backend, you mentioned "frontend needs to send full state of author_paid and royalties during an edit"
-    // so we send the full maps.
     const book_id = row.book?.value ?? row.book?.id ?? null;
 
     return {
@@ -84,7 +80,6 @@ export default function SalesDetailPage() {
   async function onSave() {
     if (!payload) return;
     await save(payload);
-    // After save, the hook updates `sale`, which will re-init row from latest sale
   }
 
   async function onConfirmDelete() {
@@ -144,33 +139,34 @@ export default function SalesDetailPage() {
         </div>
       ) : null}
 
-      {/* “View all fields” section */}
-      <Card className="mb-6">
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-            <div><span className="text-slate-500">Sale ID:</span> {sale.id}</div>
-            <div><span className="text-slate-500">Book:</span> {sale.book?.title || sale.book_id}</div>
-            <div><span className="text-slate-500">Date:</span> {sale.date || `${sale.year}-${sale.month}`}</div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        {/* “View all fields” section */}
+        <Card>
+            <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                <div><span className="text-slate-500">Sale ID:</span> {sale.id}</div>
+                <div><span className="text-slate-500">Book:</span> {sale.book?.title || sale.book_id}</div>
+                <div><span className="text-slate-500">Date:</span> {sale.date || `${sale.year}-${sale.month}`}</div>
+            </div>
+            </CardContent>
+        </Card>
 
-      {/* Reuse the exact same row editor UI you already have */}
-      {row ? (
-        <SalesInputRow
-          index={0}
-          data={row}
-          onChange={handleRowChange}
-          onRemove={() => {}}
-          isFirst={true} // hides remove button
-        />
-      ) : null}
+        {row ? (
+            <SalesInputRow
+            index={0}
+            data={row}
+            onChange={handleRowChange}
+            onRemove={() => {}}
+            isFirst={true}
+            />
+        ) : null}
+        </div>
 
-      {/* Delete confirm dialog (separate file) */}
       <DeleteSalesRecordDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         onConfirm={onConfirmDelete}
+        onCancel={() => setDeleteOpen(false)}
         saleId={sale.id}
         disabled={saving}
       />

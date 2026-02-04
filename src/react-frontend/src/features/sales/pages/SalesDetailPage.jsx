@@ -15,11 +15,14 @@ function saleToRow(sale) {
       ? `${String(sale.year)}-${String(sale.month).padStart(2, "0")}`
       : "");
 
-  const bookObj = sale.book
+  const bookId = sale.book ?? sale.book_id ?? null;
+  const bookTitle = sale.book_title ?? sale.book?.title ?? null;
+
+  const bookObj = bookId
     ? {
-        value: sale.book.id,
-        label: sale.book.title ? `${sale.book.title}${sale.book.isbn ? ` (${sale.book.isbn})` : ""}` : `Book #${sale.book.id}`,
-        ...sale.book,
+        value: bookId,
+        label: bookTitle ? bookTitle : `Book #${bookId}`,
+        ...(typeof sale.book === "object" ? sale.book : {}),
       }
     : null;
 
@@ -43,6 +46,7 @@ function saleToRow(sale) {
     author_paid,
   };
 }
+
 
 export default function SalesDetailPage() {
   const { saleId } = useParams();

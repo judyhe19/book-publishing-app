@@ -8,6 +8,7 @@ import SalesListPage from "../features/sales/pages/SalesListPage";
 import SalesInputPage from "../features/sales/pages/SalesInputPage";
 import AuthorPaymentsPage from "../features/sales/pages/AuthorPaymentsPage";
 import { RequireAuth } from "../features/auth/routes/RequireAuth";
+import BooksListPage from "../features/books/pages/BooksListPage";
 
 export function AppRoutes() {
   return (
@@ -16,6 +17,15 @@ export function AppRoutes() {
 
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+
+      <Route
+        path="/books"
+        element={
+          <RequireAuth>
+            <BooksListPage />
+          </RequireAuth>
+        }
+      />
 
       <Route
         path="/sales"

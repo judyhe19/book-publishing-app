@@ -20,7 +20,7 @@ export default function AuthorPaymentsPage() {
   } = useAuthorPayments();
 
   const onGoBook = (bookId) => navigate(`/books/${bookId}`);
-  const onGoSale = (saleId) => navigate(`/sale/${saleId}/edit`);
+  const onGoSale = (saleId) => navigate(`/sale/${saleId}`);
 
   return (
     <div className="p-6 max-w-7xl mx-auto">

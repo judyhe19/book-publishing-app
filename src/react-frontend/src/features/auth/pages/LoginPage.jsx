@@ -64,12 +64,12 @@ export default function LoginPage() {
               {submitting ? "Logging in..." : "Login"}
             </Button>
 
-            <div className="text-sm text-slate-600">
+            {/* <div className="text-sm text-slate-600">
               New here?{" "}
               <Link className="text-slate-900 underline" to="/register">
                 Create an account
               </Link>
-            </div>
+            </div> */}
           </form>
         </CardContent>
       </Card>

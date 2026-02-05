@@ -32,6 +32,7 @@ const SalesInputRow = ({ index, data, onChange, onRemove, isFirst }) => {
                     authorRoyalties={data.author_royalties}
                     authorPaid={data.author_paid}
                     overrides={overrides}
+                    isEdit={data.isEdit}
                     onRoyaltyChange={handleRoyaltyChange}
                     onRoyaltyBlur={handleRoyaltyBlur}
                     onPaidChange={handlePaidChange}

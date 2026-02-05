@@ -87,7 +87,7 @@ export const RevenueField = ({ value, onChange }) => (
     </div>
 );
 
-const AuthorRoyaltyRow = ({ author, royaltyValue, isPaid, isOverridden, onRoyaltyChange, onRoyaltyBlur, onPaidChange }) => (
+const AuthorRoyaltyRow = ({ author, royaltyValue, isPaid, isOverridden, onRoyaltyChange, onRoyaltyBlur, onPaidChange, isEdit=false }) => (
     <div className="flex items-end gap-3">
         <div className="flex-1">
             <span className="text-xs text-gray-500 truncate mb-0.5 block">{author.name}</span>
@@ -98,7 +98,7 @@ const AuthorRoyaltyRow = ({ author, royaltyValue, isPaid, isOverridden, onRoyalt
                 <Input
                     type="number"
                     step="0.01"
-                    className={`pl-6 py-1 text-sm h-8 ${isOverridden ? 'bg-yellow-50 border-yellow-400 text-yellow-800' : ''}`}
+                    className={`pl-6 py-1 text-sm h-8 ${(isOverridden && !isEdit )? 'bg-yellow-50 border-yellow-400 text-yellow-800' : ''}`}
                     placeholder="0.00"
                     value={royaltyValue || ''}
                     onChange={(e) => onRoyaltyChange(e.target.value)}
@@ -118,7 +118,7 @@ const AuthorRoyaltyRow = ({ author, royaltyValue, isPaid, isOverridden, onRoyalt
     </div>
 );
 
-export const AuthorRoyaltiesSection = ({ book, authorRoyalties, authorPaid, overrides, onRoyaltyChange, onRoyaltyBlur, onPaidChange }) => (
+export const AuthorRoyaltiesSection = ({ book, authorRoyalties, authorPaid, overrides, onRoyaltyChange, onRoyaltyBlur, onPaidChange, isEdit=false }) => (
     <div className="min-w-[200px] flex flex-col gap-2">
         <div className="flex justify-between items-center mb-0">
             <label className="block text-sm font-medium text-gray-700">Royalties</label>
@@ -136,6 +136,7 @@ export const AuthorRoyaltiesSection = ({ book, authorRoyalties, authorPaid, over
                     royaltyValue={authorRoyalties?.[author.author_id]}
                     isPaid={authorPaid?.[author.author_id] || false}
                     isOverridden={overrides[author.author_id]}
+                    isEdit={isEdit}
                     onRoyaltyChange={(val) => onRoyaltyChange(author.author_id, val)}
                     onRoyaltyBlur={() => onRoyaltyBlur(author.author_id)}
                     onPaidChange={(val) => onPaidChange(author.author_id, val)}

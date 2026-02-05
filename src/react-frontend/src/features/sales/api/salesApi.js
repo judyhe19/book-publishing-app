@@ -18,7 +18,7 @@ export function payUnpaidSalesForAuthor(authorId) {
 export function updateSalesRecord(saleId, data) {
   return apiFetch(`/api/sale/${saleId}/edit`, {
     method: "POST",
-    body: JSON.stringify(data),
+    body: data,
   });
 }
 

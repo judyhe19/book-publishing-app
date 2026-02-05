@@ -9,35 +9,46 @@ import { useSalesDetails } from "../hooks/useSalesDetails";
 import DeleteSalesRecordDialog from "../components/DeleteSalesRecordDialog";
 
 function saleToRow(sale) {
-  const date = sale.date;
-
-  const bookObj = {
+  const book = {
     value: sale.book,
     label: sale.book_title,
     authors: (sale.author_details || []).map(a => ({
-      author_id: a.author_id,
+      author_id: a.id,
       name: a.name,
     })),
   };
 
   const author_royalties = {};
   const author_paid = {};
+  const overrides = {};
 
   for (const a of sale.author_details || []) {
-    author_royalties[a.author_id] = a.royalty_amount;
-    author_paid[a.author_id] = !!a.author_paid;
+    author_royalties[String(a.id)] = String(a.royalty_amount);
+    author_paid[String(a.id)] = !!a.paid;
+    overrides[String(a.id)] = true;
   }
 
   return {
-    date,
-    book: bookObj,
+    isEdit: true,
+    date: sale.date,
+    book,
     quantity: sale.quantity,
     publisher_revenue: sale.publisher_revenue,
     author_royalties,
     author_paid,
+    overrides,
   };
 }
 
+function formatMonthYear(isoDate) {
+  if (!isoDate) return "";
+  
+  const [y, m] = isoDate.split("-").map(Number);
+  if (!y || !m) return isoDate;
+
+  const d = new Date(Date.UTC(y, m - 1, 1));
+  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC", }).format(d);
+}
 
 
 export default function SalesDetailPage() {
@@ -58,24 +69,23 @@ export default function SalesDetailPage() {
     setRow((prev) => ({ ...prev, [field]: value }));
   };
 
-  const payload = useMemo(() => {
-    if (!row) return null;
-
-    const book_id = row.book?.value ?? row.book?.id ?? null;
+const payload = useMemo(() => {
+  if (!row) return null;
 
     return {
-      date: row.date,
-      book_id,
-      quantity: row.quantity,
-      publisher_revenue: row.publisher_revenue,
-      author_royalties: row.author_royalties || {},
-      author_paid: row.author_paid || {},
+        date: row.date,
+        book: row.book.value,
+        quantity: Number(row.quantity),
+        publisher_revenue: String(row.publisher_revenue),
+        author_royalties: row.author_royalties || {},
+        author_paid: row.author_paid || {},
     };
-  }, [row]);
+    }, [row]);
 
   async function onSave() {
     if (!payload) return;
     await save(payload);
+    navigate(-1);
   }
 
   async function onConfirmDelete() {
@@ -142,7 +152,7 @@ export default function SalesDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                 <div><span className="text-slate-500">Sale ID:</span> {sale.id}</div>
                 <div><span className="text-slate-500">Book:</span> {sale.book_title}</div>
-                <div><span className="text-slate-500">Date:</span> {sale.date || `${sale.year}-${sale.month}`}</div>
+                <div><span className="text-slate-500">Date:</span> {formatMonthYear(sale.date)}</div>
             </div>
             </CardContent>
         </Card>

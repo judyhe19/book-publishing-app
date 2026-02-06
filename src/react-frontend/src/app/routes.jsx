@@ -14,7 +14,7 @@ import BooksListPage from "../features/books/pages/BooksListPage";
 export function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/account" replace />} />
+      <Route path="/" element={<Navigate to="/books" replace />} />
 
       <Route path="/login" element={<LoginPage />} />
       {/* <Route path="/register" element={<RegisterPage />} /> */}

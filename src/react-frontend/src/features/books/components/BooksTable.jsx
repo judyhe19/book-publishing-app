@@ -63,8 +63,11 @@ export default function BooksTable({
       "publication_date",
       "total_sales_to_date",
       "id",
+      "first_author_name",
+      "first_author_royalty_rate",
     ]).has(field);
   };
+
 
   const headerCell = (label, field) => {
     const sortable = canSort(field);
@@ -90,11 +93,11 @@ export default function BooksTable({
             <thead>
               <tr className="bg-slate-50">
                 {headerCell("Title", "title")}
-                <th className={thBase}>Author(s)</th>
+                {headerCell("Author(s)", "first_author_name")}
                 {headerCell("ISBN-13", "isbn_13")}
                 {headerCell("ISBN-10", "isbn_10")}
                 {headerCell("Publication", "publication_date")}
-                <th className={thBase}>Royalty Rate</th>
+                {headerCell("Royalty Rate", "first_author_royalty_rate")}
                 {headerCell("Total Sales", "total_sales_to_date")}
                 <th className={thBase}>Actions</th>
               </tr>

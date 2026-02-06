@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card } from '../../../shared/components/Card';
+import { Card } from './Card';
 import {
     DateField,
     BookSelect,
@@ -7,23 +7,24 @@ import {
     RevenueField,
     AuthorRoyaltiesSection,
     RemoveRowButton
-} from './SalesInputFields';
-import { useSalesInputRow } from '../hooks/useSalesInputRow';
+} from './SaleEntryFields';
+import { useSaleEntry } from '../hooks/useSaleEntry';
 
-const SalesInputRow = ({ index, data, onChange, onRemove, isFirst }) => {
+const SaleEntryRow = ({ index, data, onChange, onRemove, isFirst }) => {
     const {
         overrides,
         loadOptions,
+        handleDateChange,
         handleBookChange,
         handleRoyaltyChange,
         handleRoyaltyBlur,
         handlePaidChange
-    } = useSalesInputRow({ index, data, onChange });
+    } = useSaleEntry({ index, data, onChange });
 
     return (
         <Card>
             <div className="flex flex-wrap gap-4 items-start p-4 pr-12 bg-white rounded-2xl relative">
-                <DateField value={data.date} onChange={(val) => onChange(index, 'date', val)} />
+                <DateField value={data.date} onChange={handleDateChange} />
                 <BookSelect date={data.date} value={data.book} loadOptions={loadOptions} onChange={handleBookChange} />
                 <QuantityField value={data.quantity} onChange={(val) => onChange(index, 'quantity', val)} />
                 <RevenueField value={data.publisher_revenue} onChange={(val) => onChange(index, 'publisher_revenue', val)} />
@@ -43,4 +44,4 @@ const SalesInputRow = ({ index, data, onChange, onRemove, isFirst }) => {
     );
 };
 
-export default SalesInputRow;
+export default SaleEntryRow;

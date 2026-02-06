@@ -46,7 +46,7 @@ export async function apiFetch(path, { method = "GET", headers, body } = {}) {
                     const details = Object.entries(item.errors)
                         .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
                         .join("; ");
-                    return `Row ${item.index + 1}: ${details}`;
+                    return `Entry ${item.index + 1}: ${details}`;
                 }
                 return typeof item === 'string' ? item : JSON.stringify(item);
             }).join("\n");

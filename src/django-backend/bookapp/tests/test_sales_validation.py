@@ -103,3 +103,24 @@ def test_create_sale_valid(authed_client, sample_book):
     resp = authed_client.post("/api/sale/create", payload, format="json")
     assert resp.status_code == 201
 
+def test_edit_sale_negative_quantity(authed_client, sample_book):
+    # Create valid sale first
+    payload = {
+        "book": sample_book.id,
+        "quantity": 10,
+        "publisher_revenue": "100.00",
+        "date": "2023-01-01"
+    }
+    create_resp = authed_client.post("/api/sale/create", payload, format="json")
+    assert create_resp.status_code == 201
+    sale_id = create_resp.data['id']
+    
+    # Try to edit with negative quantity
+    edit_payload = {
+        "quantity": -5
+    }
+    resp = authed_client.post(f"/api/sale/{sale_id}/edit", edit_payload, format="json")
+    assert resp.status_code == 400
+    assert "quantity" in resp.data
+
+

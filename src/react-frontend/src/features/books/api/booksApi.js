@@ -12,3 +12,12 @@ export function getBooks(queryParams = "") {
   const qs = queryParams ? `?${queryParams}` : "";
   return apiFetch(`/api/books/${qs}`);
 }
+
+/**
+ * Get a single book by ID
+ * @param {number} bookId - Book ID
+ * @returns {Promise<Object>} - Book data
+ */
+export function getBook(bookId) {
+    return apiFetch(`/api/books/${bookId}/`);
+}

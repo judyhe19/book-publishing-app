@@ -77,6 +77,13 @@ docker compose -f docker-compose.dev.yml down -v
 
 ```
 
+**Populate Books and Sales (Local):**
+
+```bash
+python3 src/scripts/populate_books.py
+python3 src/scripts/populate_sales.py
+```
+
 **Create a Superuser (to log into Admin):**
 
 ```bash

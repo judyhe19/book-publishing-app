@@ -1,17 +1,29 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useBookSearch } from './useBookSearch';
 import { useRoyaltyCalculation } from './useRoyaltyCalculation';
 
 /**
  * Custom hook to manage sale entry row logic
  * Handles book search, royalty calculations, and author payment tracking
+ * @param {Object} options
+ * @param {number} options.index - Row index
+ * @param {Object} options.data - Row data
+ * @param {Function} options.onChange - Change handler
+ * @param {Object} [options.fixedBook] - Optional pre-selected book (skips book selector)
  */
-export const useSaleEntry = ({ index, data, onChange }) => {
+export const useSaleEntry = ({ index, data, onChange, fixedBook }) => {
     // track which author's royalty is overridden: { [authorId]: boolean }
     const [overrides, setOverrides] = useState(() => data.overrides || {});
 
     // Use shared book search hook
     const { loadOptions } = useBookSearch({ date: data.date });
+
+    // When fixedBook is provided, set it on mount
+    useEffect(() => {
+        if (fixedBook && !data.book) {
+            onChange(index, 'book', fixedBook);
+        }
+    }, [fixedBook]);
 
     const handleDateChange = (newDate) => {
         onChange(index, 'date', newDate);

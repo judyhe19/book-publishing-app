@@ -11,6 +11,7 @@ from decimal import Decimal
 from django.db.models import Sum, Count, Case, When, Value, IntegerField, Subquery, OuterRef
 from ..config.sort_config import SALES_SORT_FIELD_MAP, SALES_DEFAULT_SORT
 
+
 class SaleGetView(APIView):
     def get(self, request, sale_id=None):
         # If sale_id is provided, return a single sale
@@ -113,6 +114,7 @@ class SaleCreateView(APIView):
         if serializer.is_valid():
             with transaction.atomic():
                 sale = serializer.save()
+                sale.book.update_total_sales(sale.quantity)
             
             full_serializer = SaleSerializer(sale)
             return Response(full_serializer.data, status=status.HTTP_201_CREATED)
@@ -131,6 +133,7 @@ class SaleCreateManyView(APIView):
                 serializer = SaleCreateSerializer(data=sale_data)
                 if serializer.is_valid():
                     sale = serializer.save()
+                    sale.book.update_total_sales(sale.quantity)
                     created_sales.append(sale)
                 else:
                     print(f"Validation Error at index {index}: {serializer.errors}")
@@ -152,6 +155,7 @@ class SaleCreateManyView(APIView):
 class SaleEditView(APIView):
     def post(self, request, sale_id):
         sale = get_object_or_404(Sale, id=sale_id)
+        old_quantity = sale.quantity
         
         fields_param = request.query_params.get('fields')
         partial = True # Always partial update for 'edit' unless specified otherwise
@@ -168,6 +172,11 @@ class SaleEditView(APIView):
                 # Delete old AuthorSales and recreate them when call serializer.save()
                 sale.author_sales.all().delete()
                 updated_sale = serializer.save()
+                
+                # Update book's total_sales_to_date if quantity changed
+                quantity_diff = updated_sale.quantity - old_quantity
+                if quantity_diff != 0:
+                    updated_sale.book.update_total_sales(quantity_diff)
 
             full_serializer = SaleSerializer(updated_sale)
             return Response(full_serializer.data)
@@ -176,7 +185,9 @@ class SaleEditView(APIView):
 class SaleDeleteView(APIView):
     def delete(self, request, sale_id):
         sale = get_object_or_404(Sale, id=sale_id)
-        sale.delete()
+        with transaction.atomic():
+            sale.book.update_total_sales(-sale.quantity)
+            sale.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

@@ -7,6 +7,11 @@ import { errorMessage } from "../../../shared/utils/errors";
 import * as booksApi from "../api/booksApi";
 import { DeleteBookDialog } from "../components/DeleteBookDialog";
 import { AuthorsEditor } from "../components/AuthorsEditor";
+import { useBookSales } from "../hooks/useBookSales";
+import BookSalesTable from "../components/BookSalesTable";
+import SaleEntryRow from "../../../shared/components/SaleEntryRow";
+import { EMPTY_ROW, transformRowToSaleData, isRowComplete } from "../../../shared/utils/salesUtils";
+import { createManySales } from "../../sales/api/salesApi";
 
 function normalizeName(s) {
   return (s || "").trim().replace(/\s+/g, " ");
@@ -79,6 +84,67 @@ export default function BookDetailPage() {
   const [authorsLoading, setAuthorsLoading] = useState(true);
   const [openAuthorIdx, setOpenAuthorIdx] = useState(null);
 
+  // book sales
+  const {
+    sales: bookSales,
+    loading: salesLoading,
+    ordering: salesOrdering,
+    handleSort: handleSalesSort,
+    refresh: refreshSales,
+  } = useBookSales(bookId);
+
+  // inline sale entry
+  const [showSaleEntry, setShowSaleEntry] = useState(false);
+  const [saleRow, setSaleRow] = useState({ ...EMPTY_ROW });
+  const [saleSubmitting, setSaleSubmitting] = useState(false);
+  const [saleError, setSaleError] = useState(null);
+
+  // Convert book to the format expected by SaleEntryRow
+  const fixedBook = book ? {
+    value: book.id,
+    label: book.title,
+    authors: book.authors,
+    publication_date: book.publication_date,
+  } : null;
+
+  const handleSaleRowChange = (index, field, value) => {
+    setSaleRow(prev => {
+      if (typeof field === 'object' && field !== null) {
+        return { ...prev, ...field };
+      }
+      return { ...prev, [field]: value };
+    });
+  };
+
+  const handleSubmitSale = async () => {
+    setSaleError(null);
+    
+    if (!isRowComplete(saleRow)) {
+      setSaleError("Please fill in all fields.");
+      return;
+    }
+
+    setSaleSubmitting(true);
+    try {
+      const saleData = transformRowToSaleData(saleRow);
+      await createManySales([saleData]);
+      setSaleRow({ ...EMPTY_ROW });
+      setShowSaleEntry(false);
+      refreshBook();
+      refreshSales();
+    } catch (e) {
+      setSaleError(errorMessage(e));
+    } finally {
+      setSaleSubmitting(false);
+    }
+  };
+
+  const handleCancelSale = () => {
+    setSaleRow({ ...EMPTY_ROW });
+    setSaleError(null);
+    setShowSaleEntry(false);
+  };
+
   useEffect(() => {
     let cancelled = false;
 
@@ -126,6 +192,26 @@ export default function BookDetailPage() {
     };
   }, [bookId]);
 
+  async function refreshBook() {
+    try {
+      const b = await booksApi.getBook(bookId);
+      setBook(b);
+    } catch (e) {
+      console.error("Error refreshing book:", e);
+    }
+  }
+
+  // Refetch book and sales data when page regains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshBook();
+      refreshSales();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [bookId]);
+
   function resetFormToBook(b) {
     if (!b) return;
     setTitle(b.title || "");
@@ -153,7 +239,7 @@ export default function BookDetailPage() {
       }));
 
       if (!title.trim()) throw new Error("Title is required.");
-      if (!publicationMonth) throw new Error("Publication month is required.");
+      if (!publicationMonth) throw new Error("Publication month/year is required.");
 
       for (const r of cleanedAuthors) {
         if (!r.author_name) throw new Error("Each author must have a name.");
@@ -250,7 +336,7 @@ export default function BookDetailPage() {
 
   return (
     <div className="min-h-screen flex items-start justify-center p-6">
-      <div className="w-full max-w-3xl">
+      <div className="w-full max-w-6xl">
         <Card>
           <CardHeader
             title={editing ? "Edit Book" : "Book Details"}
@@ -380,7 +466,7 @@ export default function BookDetailPage() {
 
                 <div>
                   <label className="text-sm font-medium text-slate-700">
-                    Publication month
+                    Publication month, year
                   </label>
                   <div className="mt-1">
                     <input
@@ -434,6 +520,97 @@ export default function BookDetailPage() {
           }}
           onConfirm={onConfirmDelete}
         />
+
+        {/* Sales Records Section */}
+        <Card className="mt-8">
+          <CardHeader
+            title="Sales Records"
+            subtitle="All sales records for this book."
+          />
+          <CardContent>
+            <div className="mb-4 flex justify-end">
+              {!showSaleEntry ? (
+                <Button onClick={() => setShowSaleEntry(true)}>Add Sale</Button>
+              ) : null}
+            </div>
+
+            {showSaleEntry && (
+              <div className="mb-6">
+                {saleError && (
+                  <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {saleError}
+                  </div>
+                )}
+                <SaleEntryRow
+                  index={0}
+                  data={saleRow}
+                  onChange={handleSaleRowChange}
+                  onRemove={() => {}}
+                  isFirst={true}
+                  fixedBook={fixedBook}
+                />
+                <div className="mt-4 flex justify-end gap-2">
+                  <Button variant="secondary" onClick={handleCancelSale} disabled={saleSubmitting}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSubmitSale} disabled={saleSubmitting}>
+                    {saleSubmitting ? "Submitting..." : "Submit Sale"}
+                  </Button>
+                </div>
+              </div>
+            )}
+            {/* Sales Totals Summary */}
+            {!salesLoading && bookSales.length > 0 && (
+              <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs font-semibold uppercase text-slate-500">
+                    Publisher Revenue
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-slate-900">
+                    ${bookSales.reduce((sum, s) => sum + Number(s.publisher_revenue || 0), 0).toFixed(2)}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs font-semibold uppercase text-slate-500">
+                    Total Royalties
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-slate-900">
+                    ${bookSales.reduce((sum, s) => 
+                      sum + (s.author_details || []).reduce((a, auth) => a + Number(auth.royalty_amount || 0), 0), 0
+                    ).toFixed(2)}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                  <div className="text-xs font-semibold uppercase text-green-600">
+                    Paid Royalties
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-green-700">
+                    ${bookSales.reduce((sum, s) => 
+                      sum + (s.author_details || []).filter(a => a.paid).reduce((a, auth) => a + Number(auth.royalty_amount || 0), 0), 0
+                    ).toFixed(2)}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                  <div className="text-xs font-semibold uppercase text-red-600">
+                    Unpaid Royalties
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-red-700">
+                    ${bookSales.reduce((sum, s) => 
+                      sum + (s.author_details || []).filter(a => !a.paid).reduce((a, auth) => a + Number(auth.royalty_amount || 0), 0), 0
+                    ).toFixed(2)}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <BookSalesTable
+              data={bookSales}
+              loading={salesLoading}
+              ordering={salesOrdering}
+              onSort={handleSalesSort}
+            />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

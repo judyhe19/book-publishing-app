@@ -36,10 +36,10 @@ export function Navbar() {
             </>
           ) : (
             <>
-              <Link className="text-sm text-slate-700 hover:text-slate-900" to="/login">
+              {/* <Link className="text-sm text-slate-700 hover:text-slate-900" to="/login">
                 Login
               </Link>
-              <Button onClick={() => nav("/register")}>Register</Button>
+              <Button onClick={() => nav("/register")}>Register</Button> */}
             </>
           )}
         </div>

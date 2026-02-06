@@ -23,7 +23,7 @@ export const TABLE_COLUMNS = [
     {
         label: 'Author(s)',
         sortKey: 'authors',
-        sortValue: (sale) => sale.author_details?.map(a => a.name).join(', ') || '', // sort by each book's first author's names
+        sortValue: (sale) => sale.author_details?.[0]?.name || '', // sort by first author's name
         render: (sale) => {
             const authors = sale.author_details || [];
             if (authors.length === 0) {
@@ -33,10 +33,18 @@ export const TABLE_COLUMNS = [
             }
 
             return (
-                <div className="flex flex-col">
+                <div className="flex flex-col gap-2">
                     {authors.map((auth, idx) => (
-                        <div key={idx} className="whitespace-nowrap font-medium">
-                            {auth.name}
+                        <div key={idx} className="flex items-center justify-between gap-4">
+                            <span className="font-medium whitespace-nowrap">{auth.name}</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-600">${auth.royalty_amount}</span>
+                                {auth.paid ? (
+                                    <span className="w-2 h-2 rounded-full bg-green-500" title="Paid"></span>
+                                ) : (
+                                    <span className="w-2 h-2 bg-red-500" title="Unpaid"></span>
+                                )}
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -65,49 +73,66 @@ export const TABLE_COLUMNS = [
         render: (sale) => `$${sale.publisher_revenue}`,
     },
     {
-        label: 'Royalties',
+        label: 'Total Royalties',
         sortKey: 'total_royalties',
         type: 'number',
-        sortValue: (sale) => sale.author_details?.reduce((sum, a) => sum + Number(a.royalty_amount), 0) || 0, // sort by each book's total royalties
-        render: (sale) => (
-            <div className="flex flex-col gap-1">
-                {sale.author_details && sale.author_details.map((auth, idx) => (
-                    <div key={idx} className="font-medium text-right">
-                        ${auth.royalty_amount}
-                    </div>
-                ))}
-            </div>
-        ),
+        sortValue: (sale) => sale.author_details?.reduce((sum, a) => sum + Number(a.royalty_amount), 0) || 0,
+        render: (sale) => {
+            const total = sale.author_details?.reduce((sum, a) => sum + Number(a.royalty_amount), 0) || 0;
+            return <span className="font-medium">${total.toFixed(2)}</span>;
+        },
     },
     {
-        label: 'Payment Status',
+        label: 'Status',
         sortKey: 'paid_status',
-        sortValue: (sale) => sale.author_details && sale.author_details.every(a => a.paid), // true if all authors have been paid, false otherwise
-        render: (sale) => (
-            <div className="flex flex-col gap-1">
-                {sale.author_details && sale.author_details.map((auth, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                        {auth.paid ? (
-                            <div className="flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
-                                <span className="text-xs text-green-700">Paid</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-1">
-                                <span className="w-2 h-2 bg-red-500 inline-block"></span>
-                                <span className="text-xs text-red-700">Unpaid</span>
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </div>
-        ),
+        sortValue: (sale) => {
+            const authors = sale.author_details || [];
+            if (authors.length === 0) return 2; // Treat no authors as unpaid
+            const paidCount = authors.filter(a => a.paid).length;
+            if (paidCount === authors.length) return 0; // Fully Paid
+            if (paidCount > 0) return 1; // Partially Paid
+            return 2; // Unpaid
+        },
+        render: (sale) => {
+            const authors = sale.author_details || [];
+            const paidCount = authors.filter(a => a.paid).length;
+            const totalCount = authors.length;
+            
+            // Fully Paid: all authors are paid
+            if (totalCount > 0 && paidCount === totalCount) {
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                        Fully Paid
+                    </span>
+                );
+            }
+            
+            // Partially Paid: some authors are paid
+            if (paidCount > 0) {
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
+                        <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                        Partially Paid
+                    </span>
+                );
+            }
+            
+            // Unpaid: no authors are paid
+            return (
+                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-medium">
+                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                    Unpaid
+                </span>
+            );
+        },
     },
+
     {
         label: 'Actions',
         render: (sale) => (
             <Link
-                to={`/sale/${sale.id}/edit`}
+                to={`/sale/${sale.id}`}
                 className="text-indigo-600 hover:text-indigo-900 font-medium"
             >
                 Modify

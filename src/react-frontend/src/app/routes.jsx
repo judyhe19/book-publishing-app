@@ -7,6 +7,7 @@ import ChangePasswordPage from "../features/auth/pages/ChangePasswordPage";
 import SalesListPage from "../features/sales/pages/SalesListPage";
 import SalesInputPage from "../features/sales/pages/SalesInputPage";
 import AuthorPaymentsPage from "../features/sales/pages/AuthorPaymentsPage";
+import SalesDetailPage from "../features/sales/pages/SalesDetailPage";
 import { RequireAuth } from "../features/auth/routes/RequireAuth";
 import BooksListPage from "../features/books/pages/BooksListPage";
 
@@ -16,7 +17,7 @@ export function AppRoutes() {
       <Route path="/" element={<Navigate to="/account" replace />} />
 
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+      {/* <Route path="/register" element={<RegisterPage />} /> */}
 
       <Route
         path="/books"
@@ -37,6 +38,8 @@ export function AppRoutes() {
       />
 
       <Route path="/sales/authors" element={<AuthorPaymentsPage />} />
+
+      <Route path="/sale/:saleId" element={<SalesDetailPage />} />
 
       <Route
         path="/sales/input"

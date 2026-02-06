@@ -8,11 +8,17 @@ from ..serializers.sales import SaleSerializer, SaleCreateSerializer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from decimal import Decimal
-from django.db.models import Sum, Count, Case, When, Value, IntegerField
+from django.db.models import Sum, Count, Case, When, Value, IntegerField, Subquery, OuterRef
 from ..config.sort_config import SALES_SORT_FIELD_MAP, SALES_DEFAULT_SORT
 
 class SaleGetView(APIView):
-    def get(self, request):
+    def get(self, request, sale_id=None):
+        # If sale_id is provided, return a single sale
+        if sale_id is not None:
+            sale = get_object_or_404(Sale, id=sale_id)
+            serializer = SaleSerializer(sale)
+            return Response(serializer.data)
+        
         book_id = request.query_params.get('book_id')
         user_id = request.query_params.get('user_id')
 
@@ -32,8 +38,15 @@ class SaleGetView(APIView):
         if end_date:
             queryset = queryset.filter(date__lte=end_date)
         
-        # annotate with computed fields for sorting: total_royalties and unpaid_count
+        # subquery to get the first author's name for this sale's book
+        first_author_subquery = Author.objects.filter(
+            authorbook__book=OuterRef('book')
+        ).order_by('authorbook__id').values('name')[:1]
+        
+        # annotate with computed fields for sorting: total_royalties, unpaid_count, paid_count, total_author_count, and first_author_name
         queryset = queryset.annotate(
+            # first author's name for sorting
+            first_author_name=Subquery(first_author_subquery),
             # total royalties for this sale (sum of all author royalties)
             total_royalties=Sum('author_sales__royalty_amount'),
             # count of unpaid authors (0 means all paid)
@@ -42,6 +55,26 @@ class SaleGetView(APIView):
                     When(author_sales__author_paid=False, then=1),
                     output_field=IntegerField()
                 )
+            ),
+            # count of paid authors (for partial payment detection)
+            paid_count=Count(
+                Case(
+                    When(author_sales__author_paid=True, then=1),
+                    output_field=IntegerField()
+                )
+            ),
+            # total author count for this sale
+            total_author_count=Count('author_sales'),
+            # paid_status_order: 0=Fully Paid, 1=Partially Paid, 2=Unpaid
+            # Using Case/When to create a sortable status field
+            paid_status_order=Case(
+                # Fully Paid: unpaid_count = 0 AND total_author_count > 0
+                When(unpaid_count=0, total_author_count__gt=0, then=Value(0)),
+                # Partially Paid: paid_count > 0 AND unpaid_count > 0
+                When(paid_count__gt=0, unpaid_count__gt=0, then=Value(1)),
+                # Unpaid: paid_count = 0 (or no authors at all)
+                default=Value(2),
+                output_field=IntegerField()
             )
         )
         

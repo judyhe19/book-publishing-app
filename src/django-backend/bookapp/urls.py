@@ -39,6 +39,7 @@ urlpatterns = [
     path("books/<int:book_id>/", BookDetailView.as_view()),
     
     path("sale/get_all", SaleGetView.as_view()),
+    path("sale/<int:sale_id>/get", SaleGetView.as_view()),
     path("sale/create", SaleCreateView.as_view()),
     path("sale/createmany", SaleCreateManyView.as_view()),
     path("sale/<int:sale_id>/edit", SaleEditView.as_view()),

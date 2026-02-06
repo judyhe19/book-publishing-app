@@ -32,6 +32,7 @@ export const useBookSearch = ({ date } = {}) => {
                 label: formatBookLabel(book.title, book.isbn_13),
                 value: book.id,
                 authors: book.authors,
+                publication_date: book.publication_date,
                 ...book
             }));
         } catch (error) {

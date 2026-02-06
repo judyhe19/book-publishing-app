@@ -8,18 +8,18 @@ import { apiFetch } from "../../../shared/api/http";
  *   count, page, page_size, total_pages, results: [...]
  * }
  */
+
+// LIST
 export function getBooks(queryParams = "") {
   const qs = queryParams ? `?${queryParams}` : "";
   return apiFetch(`/api/books/${qs}`);
 }
 
-
-// GET /authors/
+// AUTHORS
 export function listAuthors() {
   return apiFetch("/api/authors/");
 }
 
-// POST /authors/  body: { name }
 export function createAuthor(name) {
   return apiFetch("/api/authors/", {
     method: "POST",
@@ -27,18 +27,27 @@ export function createAuthor(name) {
   });
 }
 
-// POST /books/  body matches BookCreateSerializer
+// BOOK CRUD
+export function getBook(bookId) {
+  return apiFetch(`/api/books/${bookId}/`);
+}
+
+export function updateBook(bookId, payload) {
+  return apiFetch(`/api/books/${bookId}/`, {
+    method: "PATCH",
+    body: payload,
+  });
+}
+
+export function deleteBook(bookId) {
+  return apiFetch(`/api/books/${bookId}/`, {
+    method: "DELETE",
+  });
+}
+
 export function createBook(payload) {
   return apiFetch("/api/books/", {
     method: "POST",
     body: payload,
   });
-}
-/**
- * Get a single book by ID
- * @param {number} bookId - Book ID
- * @returns {Promise<Object>} - Book data
- */
-export function getBook(bookId) {
-    return apiFetch(`/api/books/${bookId}/`);
 }

@@ -19,6 +19,7 @@ function saleToRow(sale, bookData) {
       name: a.name,
       royalty_rate: a.royalty_rate,
     })),
+    publication_date: bookData.publication_date,
   };
 
   const author_royalties = {};
@@ -99,7 +100,7 @@ const payload = useMemo(() => {
 
   async function onConfirmDelete() {
     await remove();
-    navigate("/sales");
+    navigate(-1);
   }
 
   if (loading) {

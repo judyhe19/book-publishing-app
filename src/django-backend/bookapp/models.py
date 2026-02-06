@@ -24,6 +24,11 @@ class Book(models.Model):
     def __str__(self):
         return self.title
 
+    def update_total_sales(self, quantity_delta):
+        """Update total_sales_to_date by the given delta."""
+        self.total_sales_to_date += quantity_delta
+        self.save(update_fields=['total_sales_to_date'])
+
 # 3. AUTHOR_BOOK Table (Through Table)
 class AuthorBook(models.Model):
     author = models.ForeignKey(Author, on_delete=models.CASCADE)

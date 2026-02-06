@@ -20,6 +20,8 @@ from ..serializers.book import (
 )
 
 
+from ..utils import get_first_author_name_subquery
+
 class BookListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -64,7 +66,7 @@ class BookListCreateView(APIView):
         )
 
         qs = qs.annotate(
-            first_author_name=Subquery(first_ab.values("author__name")[:1]),
+            first_author_name=get_first_author_name_subquery("pk"),
             # CHANGE THIS FIELD NAME IF NEEDED:
             first_author_royalty_rate=Subquery(first_ab.values("royalty_rate")[:1]),
         )
@@ -217,4 +219,6 @@ class BookDetailView(APIView):
 
     def delete(self, request, book_id):
         book = get_object_or_404(Book, id=book_id)
-        book.d
+        book.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+

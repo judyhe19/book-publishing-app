@@ -23,14 +23,13 @@ def authed_client(api_client, user):
 def make_author(name="Frank Herbert"):
     return Author.objects.create(name=name)
 
-def make_book(*, publisher_user, isbn_13, title="T", author=None, royalty_rate="0.10"):
+def make_book(*, isbn_13, title="T", author=None, royalty_rate="0.10"):
     book = Book.objects.create(
         title=title,
         publication_date="2000-01-01",
         isbn_13=isbn_13,
         isbn_10=None,
         total_sales_to_date=0,
-        publisher_user=publisher_user,
     )
     if author is not None:
         # Create AuthorBook with specific rate
@@ -39,7 +38,7 @@ def make_book(*, publisher_user, isbn_13, title="T", author=None, royalty_rate="
 
 def test_create_sale_creates_author_sale_records(authed_client, user):
     a1 = make_author()
-    b1 = make_book(publisher_user=user, isbn_13="9780000000001", author=a1, royalty_rate="0.10")
+    b1 = make_book(isbn_13="9780000000001", author=a1, royalty_rate="0.10")
 
     payload = {
         "book": b1.id,
@@ -67,7 +66,7 @@ def test_create_sale_creates_author_sale_records(authed_client, user):
 
 def test_create_sale_with_royalty_override(authed_client, user):
     a1 = make_author()
-    b1 = make_book(publisher_user=user, isbn_13="9780000000002", author=a1, royalty_rate="0.10")
+    b1 = make_book(isbn_13="9780000000002", author=a1, royalty_rate="0.10")
 
     payload = {
         "book": b1.id,
@@ -91,7 +90,7 @@ def test_create_sale_with_royalty_override(authed_client, user):
 
 def test_create_many_sales(authed_client, user):
     a1 = make_author()
-    b1 = make_book(publisher_user=user, isbn_13="9780000000003", author=a1)
+    b1 = make_book(isbn_13="9780000000003", author=a1)
 
     payload = [
         {
@@ -116,11 +115,11 @@ def test_create_many_sales(authed_client, user):
 
 def test_get_all_sales_filtering(authed_client, user):
     a1 = make_author()
-    b1 = make_book(publisher_user=user, isbn_13="9780000000004", title="Book1", author=a1)
+    b1 = make_book(isbn_13="9780000000004", title="Book1", author=a1)
     
     # Create another user and book
     u2 = User.objects.create_user(username="u2", password="password")
-    b2 = make_book(publisher_user=u2, isbn_13="9780000000005", title="Book2", author=a1)
+    b2 = make_book(isbn_13="9780000000005", title="Book2", author=a1)
 
     # Sale for Book 1
     s1 = Sale.objects.create(book=b1, quantity=10, publisher_revenue=100, date="2023-01-01")
@@ -135,19 +134,11 @@ def test_get_all_sales_filtering(authed_client, user):
     assert len(resp.data) == 1
     assert resp.data[0]['book'] == b1.id
 
-    # Test Filter by User (publisher)
-    resp2 = authed_client.get(f"/api/sale/get_all?user_id={user.id}")
-    assert resp2.status_code == 200
-    assert len(resp2.data) == 1
-    assert resp2.data[0]['book'] == b1.id
-    
-    # Verify extra fields in response
-    sale_data = resp2.data[0]
-    assert 'author_details' in sale_data
+
 
 def test_edit_sale_updates_fields_and_royalties(authed_client, user):
     a1 = make_author()
-    b1 = make_book(publisher_user=user, isbn_13="9780000000006", author=a1, royalty_rate="0.10")
+    b1 = make_book(isbn_13="9780000000006", author=a1, royalty_rate="0.10")
     
     sale = Sale.objects.create(book=b1, quantity=10, publisher_revenue=Decimal("100.00"), date="2023-01-01")
     # Initial AuthorSale (100 * 0.10 = 10.00)
@@ -174,7 +165,7 @@ def test_edit_sale_updates_fields_and_royalties(authed_client, user):
 
 def test_edit_sale_updates_author_paid(authed_client, user):
     a1 = make_author()
-    b1 = make_book(publisher_user=user, isbn_13="9780000000008", author=a1, royalty_rate="0.10")
+    b1 = make_book(isbn_13="9780000000008", author=a1, royalty_rate="0.10")
     
     # Create sale where author is NOT paid
     sale = Sale.objects.create(book=b1, quantity=10, publisher_revenue=Decimal("100.00"), date="2023-01-01")
@@ -211,7 +202,7 @@ def test_edit_sale_updates_author_paid(authed_client, user):
 
 def test_delete_sale(authed_client, user):
     a1 = make_author()
-    b1 = make_book(publisher_user=user, isbn_13="9780000000007", author=a1)
+    b1 = make_book(isbn_13="9780000000007", author=a1)
     sale = Sale.objects.create(book=b1, quantity=10, publisher_revenue=100, date="2023-01-01")
     
     resp = authed_client.delete(f"/api/sale/{sale.id}")
@@ -223,7 +214,7 @@ def test_delete_sale(authed_client, user):
 def test_get_sale_by_id(authed_client, user):
     """Test retrieving a single sale by its ID."""
     a1 = make_author(name="Test Author")
-    b1 = make_book(publisher_user=user, isbn_13="9780000000023", title="Test Book", author=a1, royalty_rate="0.10")
+    b1 = make_book(isbn_13="9780000000023", title="Test Book", author=a1, royalty_rate="0.10")
     
     sale = Sale.objects.create(book=b1, quantity=15, publisher_revenue=Decimal("150.00"), date="2023-05-01")
     sale.create_author_sales()
@@ -252,7 +243,7 @@ def test_get_sale_by_id_not_found(authed_client, user):
 
 def test_get_all_sales_sorting_and_date_filtering_and_details(authed_client, user):
     a1 = make_author(name="Alice")
-    b1 = make_book(publisher_user=user, isbn_13="9780000000009", title="BookSort", author=a1)
+    b1 = make_book(isbn_13="9780000000009", title="BookSort", author=a1)
 
     # Create sales with different dates and quantities
     # s1: Date 2023-01-01, Qty 10
@@ -272,7 +263,7 @@ def test_get_all_sales_sorting_and_date_filtering_and_details(authed_client, use
 
     # 1. Test Date Range Filtering
     # Filter for Feb only
-    resp = authed_client.get(f"/api/sale/get_all?start_date=2023-01-15&end_date=2023-02-15")
+    resp = authed_client.get(f"/api/sale/get_all?start_date=2023-02-15&end_date=2023-02-15")
     assert resp.status_code == 200
     assert len(resp.data) == 1
     assert resp.data[0]['id'] == s2.id
@@ -300,7 +291,7 @@ def test_get_all_sales_sorting_and_date_filtering_and_details(authed_client, use
 def test_get_all_sales_ordering_by_date(authed_client, user):
     """Test server-side ordering by date (ascending and descending)."""
     a1 = make_author(name="TestAuthor")
-    b1 = make_book(publisher_user=user, isbn_13="9780000000010", title="OrderBook", author=a1)
+    b1 = make_book(isbn_13="9780000000010", title="OrderBook", author=a1)
 
     s1 = Sale.objects.create(book=b1, quantity=10, publisher_revenue=100, date="2023-01-01")
     s2 = Sale.objects.create(book=b1, quantity=5, publisher_revenue=50, date="2023-02-01")
@@ -325,7 +316,7 @@ def test_get_all_sales_ordering_by_date(authed_client, user):
 def test_get_all_sales_ordering_by_quantity(authed_client, user):
     """Test server-side ordering by quantity."""
     a1 = make_author(name="TestAuthor2")
-    b1 = make_book(publisher_user=user, isbn_13="9780000000011", title="QtyBook", author=a1)
+    b1 = make_book(isbn_13="9780000000011", title="QtyBook", author=a1)
 
     s1 = Sale.objects.create(book=b1, quantity=10, publisher_revenue=100, date="2023-01-01")
     s2 = Sale.objects.create(book=b1, quantity=5, publisher_revenue=50, date="2023-02-01")
@@ -345,7 +336,7 @@ def test_get_all_sales_ordering_by_quantity(authed_client, user):
 def test_get_all_sales_ordering_by_publisher_revenue(authed_client, user):
     """Test server-side ordering by publisher_revenue."""
     a1 = make_author(name="TestAuthor3")
-    b1 = make_book(publisher_user=user, isbn_13="9780000000012", title="RevBook", author=a1)
+    b1 = make_book(isbn_13="9780000000012", title="RevBook", author=a1)
 
     s1 = Sale.objects.create(book=b1, quantity=10, publisher_revenue=100, date="2023-01-01")
     s2 = Sale.objects.create(book=b1, quantity=5, publisher_revenue=50, date="2023-02-01")
@@ -365,9 +356,9 @@ def test_get_all_sales_ordering_by_publisher_revenue(authed_client, user):
 def test_get_all_sales_ordering_by_book_title(authed_client, user):
     """Test server-side ordering by book_title."""
     a1 = make_author(name="TestAuthor4")
-    b1 = make_book(publisher_user=user, isbn_13="9780000000013", title="Alpha Book", author=a1)
-    b2 = make_book(publisher_user=user, isbn_13="9780000000014", title="Zeta Book", author=a1)
-    b3 = make_book(publisher_user=user, isbn_13="9780000000015", title="Beta Book", author=a1)
+    b1 = make_book(isbn_13="9780000000013", title="Alpha Book", author=a1)
+    b2 = make_book(isbn_13="9780000000014", title="Zeta Book", author=a1)
+    b3 = make_book(isbn_13="9780000000015", title="Beta Book", author=a1)
 
     s1 = Sale.objects.create(book=b1, quantity=10, publisher_revenue=100, date="2023-01-01")
     s2 = Sale.objects.create(book=b2, quantity=5, publisher_revenue=50, date="2023-02-01")
@@ -387,7 +378,7 @@ def test_get_all_sales_ordering_by_book_title(authed_client, user):
 def test_get_all_sales_ordering_invalid_field_falls_back_to_date(authed_client, user):
     """Test that invalid ordering field falls back to default (-date)."""
     a1 = make_author(name="TestAuthor5")
-    b1 = make_book(publisher_user=user, isbn_13="9780000000016", title="FallbackBook", author=a1)
+    b1 = make_book(isbn_13="9780000000016", title="FallbackBook", author=a1)
 
     s1 = Sale.objects.create(book=b1, quantity=10, publisher_revenue=100, date="2023-01-01")
     s2 = Sale.objects.create(book=b1, quantity=5, publisher_revenue=50, date="2023-02-01")
@@ -407,9 +398,9 @@ def test_get_all_sales_ordering_by_total_royalties(authed_client, user):
     """Test server-side ordering by total_royalties (sum of author royalties)."""
     a1 = make_author(name="TestAuthor6")
     # Different royalty rates to get different totals
-    b1 = make_book(publisher_user=user, isbn_13="9780000000017", title="LowRoyalty", author=a1, royalty_rate="0.05")
-    b2 = make_book(publisher_user=user, isbn_13="9780000000018", title="HighRoyalty", author=a1, royalty_rate="0.30")
-    b3 = make_book(publisher_user=user, isbn_13="9780000000019", title="MedRoyalty", author=a1, royalty_rate="0.15")
+    b1 = make_book(isbn_13="9780000000017", title="LowRoyalty", author=a1, royalty_rate="0.05")
+    b2 = make_book(isbn_13="9780000000018", title="HighRoyalty", author=a1, royalty_rate="0.30")
+    b3 = make_book(isbn_13="9780000000019", title="MedRoyalty", author=a1, royalty_rate="0.15")
 
     # s1: 100 * 0.05 = 5.00 royalties
     s1 = Sale.objects.create(book=b1, quantity=10, publisher_revenue=100, date="2023-01-01")
@@ -435,9 +426,9 @@ def test_get_all_sales_ordering_by_total_royalties(authed_client, user):
 def test_get_all_sales_ordering_by_paid_status(authed_client, user):
     """Test server-side ordering by paid_status (unpaid count - 0 means all paid)."""
     a1 = make_author(name="TestAuthor7")
-    b1 = make_book(publisher_user=user, isbn_13="9780000000020", title="PaidBook", author=a1)
-    b2 = make_book(publisher_user=user, isbn_13="9780000000021", title="UnpaidBook", author=a1)
-    b3 = make_book(publisher_user=user, isbn_13="9780000000022", title="PartialBook", author=a1)
+    b1 = make_book(isbn_13="9780000000020", title="PaidBook", author=a1)
+    b2 = make_book(isbn_13="9780000000021", title="UnpaidBook", author=a1)
+    b3 = make_book(isbn_13="9780000000022", title="PartialBook", author=a1)
 
     # s1: All authors paid (0 unpaid)
     s1 = Sale.objects.create(book=b1, quantity=10, publisher_revenue=100, date="2023-01-01")

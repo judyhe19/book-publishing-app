@@ -124,6 +124,8 @@ export default function BookDetailPage() {
       return;
     }
 
+
+
     setSaleSubmitting(true);
     try {
       const saleData = transformRowToSaleData(saleRow);

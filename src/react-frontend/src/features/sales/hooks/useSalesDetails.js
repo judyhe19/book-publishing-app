@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { getSalesRecord, updateSalesRecord, deleteSalesRecord } from "../api/salesApi";
+import { getBook } from "../../books/api/bookApi";
 
 export function useSalesDetails(saleId) {
   const [sale, setSale] = useState(null);
+  const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -11,11 +13,15 @@ export function useSalesDetails(saleId) {
     try {
       setLoading(true);
       setError("");
-      const data = await getSalesRecord(saleId);
-      setSale(data);
+      const saleData = await getSalesRecord(saleId);
+      // Fetch book data to get ISBN and other details
+      const bookData = await getBook(saleData.book);
+      setSale(saleData);
+      setBook(bookData);
     } catch (e) {
       setError(e?.message || "Failed to load sale");
       setSale(null);
+      setBook(null);
     } finally {
       setLoading(false);
     }
@@ -57,5 +63,5 @@ export function useSalesDetails(saleId) {
     }
   }, [saleId]);
 
-  return { sale, loading, saving, error, reload, save, remove };
+  return { sale, book, loading, saving, error, reload, save, remove };
 }

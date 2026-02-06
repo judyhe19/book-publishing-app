@@ -2,7 +2,7 @@ import React from 'react';
 import AsyncSelect from 'react-select/async';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { Input } from '../../../shared/components/Input';
+import { Input } from './Input';
 
 export const DateField = ({ value, onChange }) => {
     // Convert "YYYY-MM" string to Date object (use local timezone to avoid off-by-one month issues)

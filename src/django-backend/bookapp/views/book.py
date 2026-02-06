@@ -217,4 +217,6 @@ class BookDetailView(APIView):
 
     def delete(self, request, book_id):
         book = get_object_or_404(Book, id=book_id)
-        book.d
+        book.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+

@@ -11,6 +11,7 @@ import SalesDetailPage from "../features/sales/pages/SalesDetailPage";
 import { RequireAuth } from "../features/auth/routes/RequireAuth";
 import BooksListPage from "../features/books/pages/BooksListPage";
 import CreateBookPage from "../features/books/pages/CreateBookPage";
+import BookDetailPage from "../features/books/pages/BookDetailPage";
 
 
 export function AppRoutes() {
@@ -29,6 +30,16 @@ export function AppRoutes() {
           </RequireAuth>
         }
       />
+
+      <Route
+        path="/books/:bookId"
+        element={
+          <RequireAuth>
+            <BookDetailPage />
+          </RequireAuth>
+        }
+      />
+
       
       <Route
         path="/books"

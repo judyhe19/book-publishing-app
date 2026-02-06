@@ -85,20 +85,44 @@ export const TABLE_COLUMNS = [
     {
         label: 'Status',
         sortKey: 'paid_status',
-        sortValue: (sale) => sale.author_details && sale.author_details.every(a => a.paid),
+        sortValue: (sale) => {
+            const authors = sale.author_details || [];
+            if (authors.length === 0) return 2; // Treat no authors as unpaid
+            const paidCount = authors.filter(a => a.paid).length;
+            if (paidCount === authors.length) return 0; // Fully Paid
+            if (paidCount > 0) return 1; // Partially Paid
+            return 2; // Unpaid
+        },
         render: (sale) => {
             const authors = sale.author_details || [];
-            const allPaid = authors.length > 0 && authors.every(a => a.paid);
+            const paidCount = authors.filter(a => a.paid).length;
+            const totalCount = authors.length;
             
-            return allPaid ? (
-                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                    Fully Paid
-                </span>
-            ) : (
+            // Fully Paid: all authors are paid
+            if (totalCount > 0 && paidCount === totalCount) {
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                        Fully Paid
+                    </span>
+                );
+            }
+            
+            // Partially Paid: some authors are paid
+            if (paidCount > 0) {
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
+                        <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                        Partially Paid
+                    </span>
+                );
+            }
+            
+            // Unpaid: no authors are paid
+            return (
                 <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-medium">
-                    <span className="w-2 h-2 bg-red-500"></span>
-                    Partially Paid / Unpaid
+                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                    Unpaid
                 </span>
             );
         },

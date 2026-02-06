@@ -17,7 +17,7 @@ export default function LoginPage() {
   const nav = useNavigate();
   const loc = useLocation();
   const { refresh } = useAuth();
-  const redirectTo = loc.state?.from || "/account";
+  const redirectTo = loc.state?.from || "/books";
 
   async function onSubmit(e) {
     e.preventDefault();

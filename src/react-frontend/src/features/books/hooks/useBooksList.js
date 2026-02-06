@@ -12,6 +12,7 @@ import { getBooks } from "../api/booksApi";
  * - pagination: page, pageSize
  * - sorting: ordering (e.g. "title", "-publication_date")
  * - search: q
+ * - showAll: uses backend ?all=true to return all records on one page
  */
 export function useBooksList(initial = {}) {
   const [loading, setLoading] = useState(true);
@@ -30,19 +31,31 @@ export function useBooksList(initial = {}) {
   const [ordering, setOrdering] = useState(initial.ordering ?? "title");
   const [q, setQ] = useState(initial.q ?? "");
 
+  // NEW: show all toggle
+  const [showAll, setShowAll] = useState(initial.showAll ?? false);
+
   // Build query params in a stable way
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
-    params.set("page", String(page));
-    params.set("page_size", String(pageSize));
 
+    // Sorting + search always apply
     if (ordering) params.set("ordering", ordering);
 
     const trimmed = (q || "").trim();
     if (trimmed) params.set("q", trimmed);
 
+    if (showAll) {
+      // backend shortcut: return everything
+      params.set("all", "true");
+      params.set("page", "1");
+      // omit page_size
+    } else {
+      params.set("page", String(page));
+      params.set("page_size", String(pageSize));
+    }
+
     return params.toString();
-  }, [page, pageSize, ordering, q]);
+  }, [page, pageSize, ordering, q, showAll]);
 
   const fetchBooks = async () => {
     setLoading(true);
@@ -51,11 +64,12 @@ export function useBooksList(initial = {}) {
       const data = await getBooks(queryParams);
 
       // Defensive defaults to avoid UI crashes
+      // When showAll=true, backend returns page=1, total_pages=1, page_size=count
       setResp({
         count: data?.count ?? 0,
-        page: data?.page ?? page,
-        page_size: data?.page_size ?? pageSize,
-        total_pages: data?.total_pages ?? 0,
+        page: data?.page ?? (showAll ? 1 : page),
+        page_size: data?.page_size ?? (showAll ? (data?.count ?? 0) : pageSize),
+        total_pages: data?.total_pages ?? (showAll ? 1 : 0),
         results: data?.results ?? [],
       });
     } catch (e) {
@@ -63,9 +77,9 @@ export function useBooksList(initial = {}) {
       setError(e?.message || "Failed to load books.");
       setResp({
         count: 0,
-        page,
-        page_size: pageSize,
-        total_pages: 0,
+        page: showAll ? 1 : page,
+        page_size: showAll ? 0 : pageSize,
+        total_pages: showAll ? 1 : 0,
         results: [],
       });
     } finally {
@@ -98,6 +112,12 @@ export function useBooksList(initial = {}) {
     setQ(nextQ);
   };
 
+  // NEW: toggling showAll should reset to page 1
+  const setShowAllSafe = (next) => {
+    setPage(1);
+    setShowAll(next);
+  };
+
   return {
     // data
     loading,
@@ -116,6 +136,10 @@ export function useBooksList(initial = {}) {
       setPage(1);
       setOrdering(o);
     },
+
+    // NEW: show all
+    showAll,
+    setShowAll: setShowAllSafe,
 
     // pagination setters
     setPage,

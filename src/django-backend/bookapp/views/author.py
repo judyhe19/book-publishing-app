@@ -1,11 +1,13 @@
 from decimal import Decimal
 from django.db.models import Sum
+from django.db import IntegrityError
 from django.db import transaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+from ..serializers.author import AuthorListSerializer, AuthorCreateSerializer
 
 from ..models import Author, AuthorSale
 
@@ -65,3 +67,36 @@ class AuthorPayUnpaidSalesView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+class AuthorListCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        authors = Author.objects.all().order_by("name")
+        return Response(AuthorListSerializer(authors, many=True).data)
+
+    def post(self, request):
+        serializer = AuthorCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        name = serializer.validated_data["name"]
+
+        # "Create if not exists" behavior (nice for your UX)
+        existing = Author.objects.filter(name__iexact=name).first()
+        if existing:
+            return Response(
+                AuthorListSerializer(existing).data,
+                status=status.HTTP_200_OK
+            )
+
+        try:
+            author = Author.objects.create(name=name)
+        except IntegrityError:
+            # In case of race condition or DB constraint hit
+            author = Author.objects.filter(name__iexact=name).first()
+            if author:
+                return Response(AuthorListSerializer(author).data, status=status.HTTP_200_OK)
+            raise
+
+        return Response(AuthorListSerializer(author).data, status=status.HTTP_201_CREATED)

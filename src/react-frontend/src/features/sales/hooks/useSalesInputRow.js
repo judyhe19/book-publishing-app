@@ -7,7 +7,8 @@ import { apiFetch } from '../../../shared/api/http';
  */
 export const useSalesInputRow = ({ index, data, onChange }) => {
     // track which author's royalty is overridden: { [authorId]: boolean }
-    const [overrides, setOverrides] = useState({});
+    const [overrides, setOverrides] = useState(() => data.overrides || {});
+
 
     // book search function for AsyncSelect
     const loadOptions = async (inputValue) => {
@@ -49,6 +50,8 @@ export const useSalesInputRow = ({ index, data, onChange }) => {
 
     // auto-calculate royalties per author based on royalty rate
     useEffect(() => {
+        if (data.isEdit) return;
+        
         if (data.publisher_revenue && data.book?.authors) {
             const currentRoyalties = data.author_royalties || {};
             const newRoyalties = { ...currentRoyalties };

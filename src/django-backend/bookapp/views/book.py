@@ -32,12 +32,14 @@ class BookListCreateView(APIView):
         fields = request.query_params.get("fields")  # optional; safe to keep
         page = int(request.query_params.get("page", 1))
         page_size = int(request.query_params.get("page_size", 50))
+        show_all = request.query_params.get("all") in ("1", "true", "True", "yes")
         ordering = request.query_params.get("ordering", "title")
         q = request.query_params.get("q")
         published_before = request.query_params.get("published_before")
 
         page = max(page, 1)
         page_size = min(max(page_size, 1), 100)
+
 
         # --------------------
         # Base queryset (NO user scoping)
@@ -104,6 +106,25 @@ class BookListCreateView(APIView):
         # Pagination
         # --------------------
         total = qs.count()
+
+        show_all = request.query_params.get("all") in ("1", "true", "True", "yes")
+        if show_all:
+            books = qs  # return everything
+            data = BookListSerializer(books, many=True).data
+
+            # Optional: fields filtering
+            if fields:
+                wanted = {f.strip() for f in fields.split(",")}
+                data = [{k: v for k, v in item.items() if k in wanted} for item in data]
+
+            return Response({
+                "count": total,
+                "page": 1,
+                "page_size": total,
+                "total_pages": 1,
+                "results": data,
+            })
+
         start = (page - 1) * page_size
         end = start + page_size
         books = qs[start:end]
@@ -111,7 +132,6 @@ class BookListCreateView(APIView):
         data = BookListSerializer(books, many=True).data
 
         # Optional: fields filtering
-        # (Be careful not to remove fields your frontend needs, like "authors".)
         if fields:
             wanted = {f.strip() for f in fields.split(",")}
             data = [{k: v for k, v in item.items() if k in wanted} for item in data]

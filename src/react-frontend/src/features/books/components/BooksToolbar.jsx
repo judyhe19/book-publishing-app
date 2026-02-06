@@ -1,5 +1,6 @@
 // src/features/books/components/BooksToolbar.jsx
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "../../../shared/components/Button";
 import { Input } from "../../../shared/components/Input";
 
@@ -8,6 +9,7 @@ export default function BooksToolbar({
   onChangeQ,
   onCreateBook,
 }) {
+  const navigate = useNavigate();
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
@@ -24,7 +26,7 @@ export default function BooksToolbar({
           />
         </div>
 
-        <Button onClick={onCreateBook}>
+        <Button onClick={() => navigate("/books/input")}>
           Create Book
         </Button>
       </div>

@@ -7,6 +7,7 @@ import { useBooksList } from "../hooks/useBooksList";
 import BooksToolbar from "../components/BooksToolbar";
 import BooksTable from "../components/BooksTable";
 import BooksPagination from "../components/BooksPagination";
+import { Button } from "../../../shared/components/Button";
 
 export default function BooksListPage() {
   const navigate = useNavigate();
@@ -23,31 +24,40 @@ export default function BooksListPage() {
     ordering,
     toggleOrdering,
     setPage,
-  } = useBooksList({ pageSize: 10, ordering: "title" });
+    showAll,
+    setShowAll,
+  } = useBooksList({ pageSize: 50, ordering: "title" });
 
   const onCreateBook = () => {
-    // Placeholder route (implement later)
-    navigate("/books/new");
+    navigate("/books/input");
   };
 
   const onGoBook = (book) => {
-    // Placeholder route (implement later)
     navigate(`/books/${book.id}`);
   };
 
   return (
     <div className="p-6 space-y-4">
-      <BooksToolbar
-        q={q}
-        onChangeQ={setQ}
-        onCreateBook={onCreateBook}
-      />
+      <BooksToolbar q={q} onChangeQ={setQ} onCreateBook={onCreateBook} />
 
       <div className="flex items-center justify-between">
-        {error ? (
-          <div className="text-sm text-red-600">{error}</div>
-        ) : null}
+        <div className="text-sm text-slate-600">
+          {loading ? "Loading…" : `${count ?? 0} book${count === 1 ? "" : "s"}`}
+          {showAll && count != null ? " (showing all)" : ""}
+        </div>
+
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setShowAll((v) => !v);
+            setPage(1);
+          }}
+        >
+          {showAll ? "Paginate" : "Show all"}
+        </Button>
       </div>
+
+      {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
       <BooksTable
         books={books}
@@ -56,12 +66,14 @@ export default function BooksListPage() {
         onGoBook={onGoBook}
       />
 
-      <BooksPagination
-        page={page}
-        totalPages={totalPages}
-        onPrev={() => setPage(Math.max(1, page - 1))}
-        onNext={() => setPage(page + 1)}
-      />
+      {!showAll && (
+        <BooksPagination
+          page={page}
+          totalPages={totalPages}
+          onPrev={() => setPage(Math.max(1, page - 1))}
+          onNext={() => setPage(page + 1)}
+        />
+      )}
     </div>
   );
 }

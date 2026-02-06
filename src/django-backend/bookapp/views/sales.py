@@ -11,6 +11,9 @@ from decimal import Decimal
 from django.db.models import Sum, Count, Case, When, Value, IntegerField, Subquery, OuterRef
 from ..config.sort_config import SALES_SORT_FIELD_MAP, SALES_DEFAULT_SORT
 
+from math import ceil  # ✅ ADDED
+
+
 class SaleGetView(APIView):
     def get(self, request, sale_id=None):
         # If sale_id is provided, return a single sale
@@ -104,8 +107,40 @@ class SaleGetView(APIView):
         else:
             queryset = queryset.order_by('-date')  # fallback to default if invalid field was passed in
 
-        serializer = SaleSerializer(queryset, many=True)
-        return Response(serializer.data)
+        # ✅ ADDED: show-all support (mirrors Books)
+        show_all = request.query_params.get("all") in ("1", "true", "True", "yes")
+        if show_all:
+            total = queryset.count()
+            serializer = SaleSerializer(queryset, many=True)
+            return Response({
+                "count": total,
+                "page": 1,
+                "page_size": total,
+                "total_pages": 1,
+                "results": serializer.data,
+            })
+
+        # ✅ ADDED: pagination params
+        page = int(request.query_params.get("page", 1))
+        page_size = int(request.query_params.get("page_size", 50))
+        page = max(page, 1)
+        page_size = min(max(page_size, 1), 100)
+
+        # ✅ ADDED: paginated response
+        total = queryset.count()
+        start = (page - 1) * page_size
+        end = start + page_size
+        page_qs = queryset[start:end]
+
+        serializer = SaleSerializer(page_qs, many=True)
+        return Response({
+            "count": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": ceil(total / page_size) if page_size else 0,
+            "results": serializer.data,
+        })
+
 
 class SaleCreateView(APIView):
     def post(self, request):
@@ -117,6 +152,7 @@ class SaleCreateView(APIView):
             full_serializer = SaleSerializer(sale)
             return Response(full_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class SaleCreateManyView(APIView):
     def post(self, request):
@@ -137,16 +173,12 @@ class SaleCreateManyView(APIView):
                     errors.append({"index": index, "errors": serializer.errors})
             
             if errors:
-                # If any fail, we could rollback everything or just report errors. 
-                # Identifying best practice: usually bulk create is all or nothing or partial. 
-                # Given 'transaction.atomic()', this block will rollback if an exception is raised.
-                # However, serializer errors don't raise exceptions by default.
-                # Let's decide to rollback if there are any errors for data integrity.
                 transaction.set_rollback(True)
                 return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         
         full_serializer = SaleSerializer(created_sales, many=True)
         return Response(full_serializer.data, status=status.HTTP_201_CREATED)
+
 
 # TODO: frontend needs to send the full state of author_paid and royalties during an edit!!!
 class SaleEditView(APIView):
@@ -172,6 +204,7 @@ class SaleEditView(APIView):
             full_serializer = SaleSerializer(updated_sale)
             return Response(full_serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class SaleDeleteView(APIView):
     def delete(self, request, sale_id):

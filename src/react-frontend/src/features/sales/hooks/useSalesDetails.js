@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { getSalesRecord, updateSalesRecord, deleteSalesRecord } from "../api/salesApi";
-import { getBook } from "../../books/api/bookApi";
+import { getBook } from "../../books/api/booksApi";
 
 export function useSalesDetails(saleId) {
   const [sale, setSale] = useState(null);

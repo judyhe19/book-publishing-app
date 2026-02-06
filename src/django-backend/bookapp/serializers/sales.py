@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ..models import Sale
+from ..models import Sale, AuthorBook
 
 class SaleSerializer(serializers.ModelSerializer):
     book_title = serializers.CharField(source='book.title', read_only=True)
@@ -9,18 +9,16 @@ class SaleSerializer(serializers.ModelSerializer):
         fields = ['id', 'book', 'book_title', 'date', 'quantity', 'publisher_revenue', 'author_details']
 
     def get_author_details(self, obj):
-        """
-        Get author details for the sale.
-        """
-        return [
-            {
+        """Get author details for the sale - royalty amounts and paid status."""
+        details = []
+        for ars in obj.author_sales.select_related('author').all():
+            details.append({
                 "id": ars.author.id,
                 "name": ars.author.name,
                 "royalty_amount": ars.royalty_amount,
                 "paid": ars.author_paid
-            }
-            for ars in obj.author_sales.select_related('author').all()
-        ]
+            })
+        return details
 
 # TODO: need to get all authors (id, name) of the book to display the authors to allow the user the option to put a royalty amount for each author (instead of using the default amount) 
 class SaleCreateSerializer(serializers.ModelSerializer):

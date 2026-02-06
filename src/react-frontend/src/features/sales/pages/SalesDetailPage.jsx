@@ -3,18 +3,21 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../../shared/components/Button";
 import { Spinner } from "../../../shared/components/Spinner";
 import { Card, CardContent } from "../../../shared/components/Card";
+import SaleEntryRow from "../../../shared/components/SaleEntryRow";
+import { formatBookLabel } from "../../../shared/utils/bookUtils";
 
-import SalesInputRow from "../components/SalesInputRow";
 import { useSalesDetails } from "../hooks/useSalesDetails";
 import DeleteSalesRecordDialog from "../components/DeleteSalesRecordDialog";
 
-function saleToRow(sale) {
+function saleToRow(sale, bookData) {
+  // Use book data from the books API (same source as SalesInputPage)
   const book = {
-    value: sale.book,
-    label: sale.book_title,
-    authors: (sale.author_details || []).map(a => ({
-      author_id: a.id,
+    value: bookData.id,
+    label: formatBookLabel(bookData.title, bookData.isbn_13),
+    authors: (bookData.authors || []).map(a => ({
+      author_id: a.author_id,
       name: a.name,
+      royalty_rate: a.royalty_rate,
     })),
   };
 
@@ -55,25 +58,30 @@ export default function SalesDetailPage() {
   const { saleId } = useParams();
   const navigate = useNavigate();
 
-  const { sale, loading, saving, error, save, remove } = useSalesDetails(saleId);
+  const { sale, book, loading, saving, error, save, remove } = useSalesDetails(saleId);
 
   const [row, setRow] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
-    if (!sale) return;
-    setRow(saleToRow(sale));
-  }, [sale]);
+    if (!sale || !book) return;
+    setRow(saleToRow(sale, book));
+  }, [sale, book]);
 
   const handleRowChange = (index, field, value) => {
     setRow((prev) => ({ ...prev, [field]: value }));
   };
 
 const payload = useMemo(() => {
-  if (!row) return null;
+  if (!row || !row.book) return null;
+
+    // ensure date is in full date format (YYYY-MM-DD), appending -01 if it's just YYYY-MM
+    const dateStr = row.date && row.date.split('-').length === 2 
+        ? `${row.date}-01` 
+        : row.date;
 
     return {
-        date: row.date,
+        date: dateStr,
         book: row.book.value,
         quantity: Number(row.quantity),
         publisher_revenue: String(row.publisher_revenue),
@@ -84,6 +92,7 @@ const payload = useMemo(() => {
 
   async function onSave() {
     if (!payload) return;
+    console.log('Saving payload:', JSON.stringify(payload, null, 2));
     await save(payload);
     navigate(-1);
   }
@@ -122,7 +131,7 @@ const payload = useMemo(() => {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Sales Record</h1>
           <p className="text-slate-500 mt-1">
-            View and modify all fields for record #{sale.id}.
+            View and modify sales record details.
           </p>
         </div>
         <div className="flex gap-2">
@@ -149,19 +158,8 @@ const payload = useMemo(() => {
       ) : null}
 
       <div className="space-y-6">
-        {/* “View all fields” section */}
-        <Card>
-            <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                <div><span className="text-slate-500">Sale ID:</span> {sale.id}</div>
-                <div><span className="text-slate-500">Book:</span> {sale.book_title}</div>
-                <div><span className="text-slate-500">Date:</span> {formatMonthYear(sale.date)}</div>
-            </div>
-            </CardContent>
-        </Card>
-
         {row ? (
-            <SalesInputRow
+            <SaleEntryRow
             index={0}
             data={row}
             onChange={handleRowChange}

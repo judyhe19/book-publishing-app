@@ -79,6 +79,14 @@ class BookListCreateView(APIView):
 class BookDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
+    def get(self, request, book_id):
+        book = get_object_or_404(
+            Book,
+            id=book_id,
+            publisher_user=request.user
+        )
+        return Response(BookSerializer(book).data)
+
     def patch(self, request, book_id):
         book = get_object_or_404(
             Book,

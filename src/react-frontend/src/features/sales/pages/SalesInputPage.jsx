@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import SalesInputRow from '../components/SalesInputRow';
+import SaleEntryRow from '../../../shared/components/SaleEntryRow';
 import { Button } from '../../../shared/components/Button';
 import { useSalesInputPage } from '../hooks/useSalesInputPage';
 
@@ -31,7 +31,7 @@ const SalesInputPage = () => {
 
             <div className="space-y-4">
                 {rows.map((row, index) => (
-                    <SalesInputRow
+                    <SaleEntryRow
                         key={index}
                         index={index}
                         data={row}

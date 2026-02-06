@@ -10,6 +10,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from decimal import Decimal
 from django.db.models import Sum, Count, Case, When, Value, IntegerField, Subquery, OuterRef
 from ..config.sort_config import SALES_SORT_FIELD_MAP, SALES_DEFAULT_SORT
+from ..utils import get_first_author_name_subquery
 
 
 class SaleGetView(APIView):
@@ -52,15 +53,10 @@ class SaleGetView(APIView):
             last_of_month = f"{year}-{month:02d}-{last_day:02d}"
             queryset = queryset.filter(date__lte=last_of_month)
         
-        # subquery to get the first author's name for this sale's book
-        first_author_subquery = Author.objects.filter(
-            authorbook__book=OuterRef('book')
-        ).order_by('authorbook__id').values('name')[:1]
-        
         # annotate with computed fields for sorting: total_royalties, unpaid_count, paid_count, total_author_count, and first_author_name
         queryset = queryset.annotate(
             # first author's name for sorting
-            first_author_name=Subquery(first_author_subquery),
+            first_author_name=get_first_author_name_subquery('book'),
             # total royalties for this sale (sum of all author royalties)
             total_royalties=Sum('author_sales__royalty_amount'),
             # count of unpaid authors (0 means all paid)

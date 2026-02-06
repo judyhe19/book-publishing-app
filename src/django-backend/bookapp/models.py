@@ -1,5 +1,4 @@
 from django.db import models
-from django.contrib.auth.models import User
 
 # 1. AUTHOR Table
 class Author(models.Model):
@@ -20,7 +19,6 @@ class Book(models.Model):
     total_sales_to_date = models.IntegerField(default=0)
     
     # Relationships
-    publisher_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='published_books')
     authors = models.ManyToManyField(Author, through='AuthorBook', related_name='books')
 
     def __str__(self):

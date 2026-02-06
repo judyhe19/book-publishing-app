@@ -27,6 +27,7 @@ from .views.author import AuthorUnpaidSubtotalView, AuthorPayUnpaidSalesView
 
 
 urlpatterns = [
+    path("admin/", admin.site.urls),
     path("csrf", csrf),
     path("user/login", LoginView.as_view()),
     path("user/logout", LogoutView.as_view()),

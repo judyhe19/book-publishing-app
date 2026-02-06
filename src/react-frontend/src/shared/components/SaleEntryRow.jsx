@@ -34,7 +34,11 @@ const SaleEntryRow = ({ index, data, onChange, onRemove, isFirst, fixedBook }) =
     return (
         <Card>
             <div className="flex flex-wrap gap-4 items-start p-4 pr-12 bg-white rounded-2xl relative">
-                <DateField value={data.date} onChange={handleDateChange} />
+                <DateField 
+                    value={data.date} 
+                    onChange={handleDateChange} 
+                    minDate={data.book?.publication_date}
+                />
                 {!fixedBook && (
                     <BookSelect date={data.date} value={data.book} loadOptions={loadOptions} onChange={handleBookChange} />
                 )}

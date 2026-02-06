@@ -91,7 +91,7 @@ export default function CreateBookPage() {
       }));
 
       if (!title.trim()) throw new Error("Title is required.");
-      if (!publicationMonth) throw new Error("Publication month is required.");
+      if (!publicationMonth) throw new Error("Publication date (month, year) is required.");
 
       for (const r of cleanedAuthors) {
         if (!r.author_name) throw new Error("Each author must have a name.");
@@ -166,7 +166,7 @@ export default function CreateBookPage() {
 
               {/* Month/Year picker */}
               <div>
-                <label className="text-sm font-medium text-slate-700">Publication month</label>
+                <label className="text-sm font-medium text-slate-700">Publication date (month, year)</label>
                 <div className="mt-1">
                   <input
                     type="month"

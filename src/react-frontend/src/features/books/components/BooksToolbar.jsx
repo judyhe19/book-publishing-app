@@ -12,7 +12,7 @@ export default function BooksToolbar({
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">Books</h1>
-        <p className="text-slate-600 mt-1">Manage and view your published books.</p>
+        {/* <p className="text-slate-600 mt-1">Manage and view your published books.</p> */}
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">

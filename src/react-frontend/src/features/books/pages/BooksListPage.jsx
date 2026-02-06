@@ -44,17 +44,6 @@ export default function BooksListPage() {
       />
 
       <div className="flex items-center justify-between">
-        <div className="text-sm text-slate-600">
-          {loading ? (
-            "Loading…"
-          ) : (
-            <>
-              <span className="font-semibold text-slate-900">{count}</span>{" "}
-              book{count === 1 ? "" : "s"}
-            </>
-          )}
-        </div>
-
         {error ? (
           <div className="text-sm text-red-600">{error}</div>
         ) : null}

@@ -35,6 +35,7 @@ export async function apiFetch(path, { method = "GET", headers, body } = {}) {
 
   if (!res.ok) {
     let msg = "Request failed";
+    
 
     if (data) {
         if (typeof data === "string") {
@@ -61,8 +62,11 @@ export async function apiFetch(path, { method = "GET", headers, body } = {}) {
                 .join("\n");
         }
     }
-    
-    throw new Error(msg);
+
+    const err = new Error(msg);
+    err.status = res.status;
+    err.data = data;
+    throw err;
   }
 
   return data;

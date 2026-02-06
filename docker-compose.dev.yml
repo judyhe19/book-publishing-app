@@ -16,7 +16,7 @@ services:
 
   backend:
     build: ./src/django-backend
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    command: sh /app/entrypoint.sh
     volumes:
       - ./src/django-backend:/app
     ports:
@@ -28,6 +28,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
 
   frontend:
     build:

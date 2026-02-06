@@ -31,12 +31,25 @@ class SaleGetView(APIView):
         if user_id:
             queryset = queryset.filter(book__publisher_user_id=user_id)
 
+        # Date filtering at month/year granularity
+        # Sales are stored by month, so we normalize filter dates to include the whole month
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
         if start_date:
-            queryset = queryset.filter(date__gte=start_date)
+            # Use first day of the start date's month
+            from datetime import date
+            parts = start_date.split('-')
+            first_of_month = f"{parts[0]}-{parts[1]}-01"
+            queryset = queryset.filter(date__gte=first_of_month)
         if end_date:
-            queryset = queryset.filter(date__lte=end_date)
+            # Use last day of the end date's month
+            from datetime import date
+            import calendar
+            parts = end_date.split('-')
+            year, month = int(parts[0]), int(parts[1])
+            last_day = calendar.monthrange(year, month)[1]
+            last_of_month = f"{year}-{month:02d}-{last_day:02d}"
+            queryset = queryset.filter(date__lte=last_of_month)
         
         # subquery to get the first author's name for this sale's book
         first_author_subquery = Author.objects.filter(

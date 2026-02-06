@@ -10,6 +10,8 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from decimal import Decimal
 from django.db.models import Sum, Count, Case, When, Value, IntegerField, Subquery, OuterRef
 from ..config.sort_config import SALES_SORT_FIELD_MAP, SALES_DEFAULT_SORT
+from ..utils import get_first_author_name_subquery
+
 
 class SaleGetView(APIView):
     def get(self, request, sale_id=None):
@@ -51,15 +53,10 @@ class SaleGetView(APIView):
             last_of_month = f"{year}-{month:02d}-{last_day:02d}"
             queryset = queryset.filter(date__lte=last_of_month)
         
-        # subquery to get the first author's name for this sale's book
-        first_author_subquery = Author.objects.filter(
-            authorbook__book=OuterRef('book')
-        ).order_by('authorbook__id').values('name')[:1]
-        
         # annotate with computed fields for sorting: total_royalties, unpaid_count, paid_count, total_author_count, and first_author_name
         queryset = queryset.annotate(
             # first author's name for sorting
-            first_author_name=Subquery(first_author_subquery),
+            first_author_name=get_first_author_name_subquery('book'),
             # total royalties for this sale (sum of all author royalties)
             total_royalties=Sum('author_sales__royalty_amount'),
             # count of unpaid authors (0 means all paid)
@@ -113,6 +110,7 @@ class SaleCreateView(APIView):
         if serializer.is_valid():
             with transaction.atomic():
                 sale = serializer.save()
+                sale.book.update_total_sales(sale.quantity)
             
             full_serializer = SaleSerializer(sale)
             return Response(full_serializer.data, status=status.HTTP_201_CREATED)
@@ -131,6 +129,7 @@ class SaleCreateManyView(APIView):
                 serializer = SaleCreateSerializer(data=sale_data)
                 if serializer.is_valid():
                     sale = serializer.save()
+                    sale.book.update_total_sales(sale.quantity)
                     created_sales.append(sale)
                 else:
                     print(f"Validation Error at index {index}: {serializer.errors}")
@@ -152,6 +151,7 @@ class SaleCreateManyView(APIView):
 class SaleEditView(APIView):
     def post(self, request, sale_id):
         sale = get_object_or_404(Sale, id=sale_id)
+        old_quantity = sale.quantity
         
         fields_param = request.query_params.get('fields')
         partial = True # Always partial update for 'edit' unless specified otherwise
@@ -168,6 +168,11 @@ class SaleEditView(APIView):
                 # Delete old AuthorSales and recreate them when call serializer.save()
                 sale.author_sales.all().delete()
                 updated_sale = serializer.save()
+                
+                # Update book's total_sales_to_date if quantity changed
+                quantity_diff = updated_sale.quantity - old_quantity
+                if quantity_diff != 0:
+                    updated_sale.book.update_total_sales(quantity_diff)
 
             full_serializer = SaleSerializer(updated_sale)
             return Response(full_serializer.data)
@@ -176,7 +181,9 @@ class SaleEditView(APIView):
 class SaleDeleteView(APIView):
     def delete(self, request, sale_id):
         sale = get_object_or_404(Sale, id=sale_id)
-        sale.delete()
+        with transaction.atomic():
+            sale.book.update_total_sales(-sale.quantity)
+            sale.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

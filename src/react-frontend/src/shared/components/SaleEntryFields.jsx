@@ -1,35 +1,20 @@
 import React from 'react';
 import AsyncSelect from 'react-select/async';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
 import { Input } from './Input';
 
-export const DateField = ({ value, onChange }) => {
-    // Convert "YYYY-MM" string to Date object (use local timezone to avoid off-by-one month issues)
-    const selectedDate = value ? (() => {
-        const [year, month] = value.split('-').map(Number);
-        return new Date(year, month - 1); // month is 0-indexed in JS Date
-    })() : null;
-
-    const handleChange = (date) => {
-        if (date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            onChange(`${year}-${month}`);
-        }
-    };
-
+export const DateField = ({ value, onChange, minDate }) => {
+    // Convert YYYY-MM-DD to YYYY-MM for the min attribute
+    const minMonth = minDate ? minDate.substring(0, 7) : undefined;
+    
     return (
         <div className="w-48">
             <label className="block text-sm font-medium text-gray-700 mb-1">Month/Year</label>
-            <DatePicker
-                selected={selectedDate}
-                onChange={handleChange}
-                dateFormat="MMMM yyyy"
-                showMonthYearPicker
-                showFullMonthYearPicker
-                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent bg-white cursor-pointer"
-                placeholderText="Select month/year"
+            <input
+                type="month"
+                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent bg-white"
+                value={value || ''}
+                onChange={(e) => onChange(e.target.value)}
+                min={minMonth}
             />
         </div>
     );

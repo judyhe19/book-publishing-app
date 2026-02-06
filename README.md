@@ -70,6 +70,13 @@ docker compose -f docker-compose.dev.yml exec backend python manage.py migrate
 
 ```
 
+**Wipe Database:**
+
+```bash
+docker compose -f docker-compose.dev.yml down -v
+
+```
+
 **Create a Superuser (to log into Admin):**
 
 ```bash

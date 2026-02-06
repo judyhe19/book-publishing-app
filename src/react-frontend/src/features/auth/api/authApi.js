@@ -4,8 +4,13 @@ export function login({ username, password }) {
   return apiFetch("/api/user/login", { method: "POST", body: { username, password } });
 }
 
-export function logout() {
-  return apiFetch("/api/user/logout", { method: "POST" });
+export async function logout() {
+  try {
+    await apiFetch("/api/user/logout", { method: "POST" });
+  } catch (e) {
+    if (e?.status === 401 || e?.status === 403) return;
+    throw e;
+  }
 }
 
 export function me() {

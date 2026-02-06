@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AuthLayout } from "../components/AuthLayout";
 import { Card, CardContent, CardHeader } from "../../../shared/components/Card";
 import { Input } from "../../../shared/components/Input";
@@ -13,11 +13,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
+  const [success, setSuccess] = useState(null);
 
   const nav = useNavigate();
   const loc = useLocation();
   const { refresh } = useAuth();
+
   const redirectTo = loc.state?.from || "/books";
+
+  useEffect(() => {
+    const msg = loc.state?.success;
+    if (msg) {
+      setSuccess(msg);
+      window.history.replaceState({}, document.title);
+    }
+  }, [loc.state]);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -39,37 +49,46 @@ export default function LoginPage() {
       <Card>
         <CardHeader title="Welcome back" subtitle="Log in to your publisher account." />
         <CardContent>
+          {/* ✅ show success ABOVE the form */}
+          {success && (
+            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              {success}
+            </div>
+          )}
+
+          {err && (
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {err}
+            </div>
+          )}
+
           <form className="space-y-4" onSubmit={onSubmit}>
             <div>
               <label className="text-sm font-medium text-slate-700">Username</label>
               <div className="mt-1">
-                <Input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
+                <Input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoComplete="username"
+                />
               </div>
             </div>
 
             <div>
               <label className="text-sm font-medium text-slate-700">Password</label>
               <div className="mt-1">
-                <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
               </div>
             </div>
-
-            {err && (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                {err}
-              </div>
-            )}
 
             <Button disabled={submitting} className="w-full">
               {submitting ? "Logging in..." : "Login"}
             </Button>
-
-            {/* <div className="text-sm text-slate-600">
-              New here?{" "}
-              <Link className="text-slate-900 underline" to="/register">
-                Create an account
-              </Link>
-            </div> */}
           </form>
         </CardContent>
       </Card>

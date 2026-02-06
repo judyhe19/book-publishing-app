@@ -24,7 +24,16 @@ export function AuthProvider({ children }) {
     })();
   }, []);
 
-  const value = useMemo(() => ({ user, setUser, loading, refresh }), [user, loading]);
+  async function logout() {
+    setUser(null);
+    try {
+      await authApi.logout();
+    } catch {
+    }
+  }
+
+
+  const value = useMemo(() => ({ user, setUser, loading, refresh, logout }), [user, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

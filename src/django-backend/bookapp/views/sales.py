@@ -29,10 +29,6 @@ class SaleGetView(APIView):
         if book_id:
             queryset = queryset.filter(book_id=book_id)
         
-        # identifying sales by user's published books
-        if user_id:
-            queryset = queryset.filter(book__publisher_user_id=user_id)
-
         # Date filtering at month/year granularity
         # Sales are stored by month, so we normalize filter dates to include the whole month
         start_date = request.query_params.get('start_date')

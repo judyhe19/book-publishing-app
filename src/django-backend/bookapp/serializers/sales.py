@@ -42,6 +42,40 @@ class SaleCreateSerializer(serializers.ModelSerializer):
         # author_paid is a dictionary of author_id: paid 
         # paid is a boolean that indicates whether the author has been paid for this sale
 
+    def validate(self, data):
+        """
+        Check that quantity is positive, revenue is non-negative, royalties are non-negative,
+        and sale date is not before publication date.
+        """
+        # 1. Quantity Check
+        if data.get('quantity') is not None and data['quantity'] <= 0:
+            raise serializers.ValidationError({"quantity": "Quantity must be a positive integer."})
+
+        # 2. Revenue Check
+        if data.get('publisher_revenue') is not None and data['publisher_revenue'] < 0:
+            raise serializers.ValidationError({"publisher_revenue": "Publisher revenue cannot be negative."})
+
+        # 3. Royalties Check
+        author_royalties = data.get('author_royalties', {})
+        for aid, amount in author_royalties.items():
+            if amount < 0:
+                raise serializers.ValidationError({
+                    "author_royalties": f"Royalty amount for author {aid} cannot be negative."
+                })
+
+        # 4. Date Check
+        book = data.get('book')
+        sale_date = data.get('date')
+        
+        if book and sale_date:
+            # book.publication_date is a date object
+            if sale_date < book.publication_date:
+                raise serializers.ValidationError({
+                    "date": f"Sale date ({sale_date}) cannot be before book publication date ({book.publication_date})."
+                })
+
+        return data
+
     def create(self, validated_data):
         """
         Create a Sale instance and associated AuthorSales based on the validated data.

@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../../shared/components/Button";
 import { Spinner } from "../../../shared/components/Spinner";
-import { Card, CardContent } from "../../../shared/components/Card";
 import SaleEntryRow from "../../../shared/components/SaleEntryRow";
 import { formatBookLabel } from "../../../shared/utils/bookUtils";
 
@@ -93,6 +92,9 @@ const payload = useMemo(() => {
 
   async function onSave() {
     if (!payload) return;
+    
+    // Validate - Backend handles logical errors now
+
     console.log('Saving payload:', JSON.stringify(payload, null, 2));
     await save(payload);
     navigate(-1);

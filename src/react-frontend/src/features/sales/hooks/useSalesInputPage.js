@@ -65,7 +65,8 @@ export const useSalesInputPage = () => {
             navigate('/sales');
         } catch (err) {
             console.error("Error creating sales:", err);
-            setError("Failed to create sales. Please check your data.");
+            // apiFetch throws an Error with a formatted message now
+            setError(err.message || "Failed to create sales. Please check your data.");
         } finally {
             setIsSubmitting(false);
         }

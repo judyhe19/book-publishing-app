@@ -54,3 +54,5 @@ export const isRowStarted = (row) => {
 export const isRowComplete = (row) => {
     return row.book && row.quantity && row.publisher_revenue && row.date;
 };
+
+

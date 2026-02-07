@@ -1,3 +1,4 @@
+// src/features/books/pages/BookDetailPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "../../../shared/components/Card";
@@ -10,15 +11,15 @@ import { AuthorsEditor } from "../components/AuthorsEditor";
 import { useBookSales } from "../hooks/useBookSales";
 import BookSalesTable from "../components/BookSalesTable";
 import SaleEntryRow from "../../../shared/components/SaleEntryRow";
-import { EMPTY_ROW, transformRowToSaleData } from "../../../shared/utils/salesUtils";
+import { EMPTY_ROW, transformRowToSaleData, isRowComplete } from "../../../shared/utils/salesUtils";
 import { createManySales } from "../../sales/api/salesApi";
+import SalesPagination from "../../sales/components/SalesPagination";
 
 function normalizeName(s) {
   return (s || "").trim().replace(/\s+/g, " ");
 }
 
 function monthInputFromDate(dateStr) {
-  // "YYYY-MM-DD" -> "YYYY-MM"
   if (!dateStr) return "";
   const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(dateStr);
   return m ? `${m[1]}-${m[2]}` : "";
@@ -31,18 +32,8 @@ function formatMonthYear(dateStr) {
   const year = m[1];
   const month = Number(m[2]);
   const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
   ];
   return `${monthNames[month - 1]} ${year}`;
 }
@@ -75,23 +66,39 @@ export default function BookDetailPage() {
   const [publicationMonth, setPublicationMonth] = useState(""); // YYYY-MM
   const [isbn13, setIsbn13] = useState("");
   const [isbn10, setIsbn10] = useState("");
-  const [authors, setAuthors] = useState([
-    { author_name: "", royalty_rate: "0.50" },
-  ]);
+  const [authors, setAuthors] = useState([{ author_name: "", royalty_rate: "0.50" }]);
 
   // authors list for dropdown
   const [authorOptions, setAuthorOptions] = useState([]);
   const [authorsLoading, setAuthorsLoading] = useState(true);
   const [openAuthorIdx, setOpenAuthorIdx] = useState(null);
 
-  // book sales
+  // ✅ paginated sales + show-all toggle
   const {
     sales: bookSales,
     loading: salesLoading,
     ordering: salesOrdering,
     handleSort: handleSalesSort,
     refresh: refreshSales,
+
+    page: salesPage,
+    totalPages: salesTotalPages,
+    setPage: setSalesPage,
+    count: salesCount,
+
+    showAll: salesShowAll,
+    toggleShowAll: toggleSalesShowAll,
   } = useBookSales(bookId);
+
+  // ✅ totals from backend endpoint
+  const [totalsLoading, setTotalsLoading] = useState(true);
+  const [totalsErr, setTotalsErr] = useState(null);
+  const [totals, setTotals] = useState({
+    publisher_revenue: "0",
+    total_royalties: "0",
+    paid_royalties: "0",
+    unpaid_royalties: "0",
+  });
 
   // inline sale entry
   const [showSaleEntry, setShowSaleEntry] = useState(false);
@@ -99,34 +106,66 @@ export default function BookDetailPage() {
   const [saleSubmitting, setSaleSubmitting] = useState(false);
   const [saleError, setSaleError] = useState(null);
 
-  // Convert book to the format expected by SaleEntryRow
-  const fixedBook = book ? {
-    value: book.id,
-    label: book.title,
-    authors: book.authors,
-    publication_date: book.publication_date,
-  } : null;
+  const fixedBook = book
+    ? {
+        value: book.id,
+        label: book.title,
+        authors: book.authors,
+        publication_date: book.publication_date,
+      }
+    : null;
 
   const handleSaleRowChange = (index, field, value) => {
-    setSaleRow(prev => {
-      if (typeof field === 'object' && field !== null) {
+    setSaleRow((prev) => {
+      if (typeof field === "object" && field !== null) {
         return { ...prev, ...field };
       }
       return { ...prev, [field]: value };
     });
   };
 
+  async function refreshBook() {
+    try {
+      const b = await booksApi.getBook(bookId);
+      setBook(b);
+    } catch (e) {
+      console.error("Error refreshing book:", e);
+    }
+  }
+
+  async function refreshTotals() {
+    if (!bookId) return;
+    setTotalsLoading(true);
+    setTotalsErr(null);
+    try {
+      const t = await booksApi.getBookSalesTotals(bookId);
+      setTotals(t);
+    } catch (e) {
+      setTotalsErr(errorMessage(e));
+    } finally {
+      setTotalsLoading(false);
+    }
+  }
+
   const handleSubmitSale = async () => {
     setSaleError(null);
+
+    if (!isRowComplete(saleRow)) {
+      setSaleError("Please fill in all fields.");
+      return;
+    }
 
     setSaleSubmitting(true);
     try {
       const saleData = transformRowToSaleData(saleRow);
       await createManySales([saleData]);
+
       setSaleRow({ ...EMPTY_ROW });
       setShowSaleEntry(false);
+
       refreshBook();
       refreshSales();
+      refreshTotals();
     } catch (e) {
       setSaleError(errorMessage(e));
     } finally {
@@ -187,24 +226,23 @@ export default function BookDetailPage() {
     };
   }, [bookId]);
 
-  async function refreshBook() {
-    try {
-      const b = await booksApi.getBook(bookId);
-      setBook(b);
-    } catch (e) {
-      console.error("Error refreshing book:", e);
-    }
-  }
+  // ✅ load totals when book changes
+  useEffect(() => {
+    refreshTotals();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookId]);
 
-  // Refetch book and sales data when page regains focus
+  // Refetch when page regains focus
   useEffect(() => {
     const handleFocus = () => {
       refreshBook();
       refreshSales();
+      refreshTotals();
     };
 
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookId]);
 
   function resetFormToBook(b) {
@@ -246,10 +284,7 @@ export default function BookDetailPage() {
         throw new Error("Please don’t enter the same author more than once.");
       }
 
-      // resolve author IDs (create if missing)
-      const byName = new Map(
-        authorOptions.map((a) => [normalizeName(a.name).toLowerCase(), a])
-      );
+      const byName = new Map(authorOptions.map((a) => [normalizeName(a.name).toLowerCase(), a]));
 
       const resolvedAuthors = [];
       for (const r of cleanedAuthors) {
@@ -321,9 +356,7 @@ export default function BookDetailPage() {
         <div className="text-slate-700">Book not found.</div>
         {err ? <div className="mt-2 text-sm text-red-600">{err}</div> : null}
         <div className="mt-4">
-          <Button variant="secondary" onClick={() => nav("/books")}>
-            Back
-          </Button>
+          <Button variant="secondary" onClick={() => nav("/books")}>Back</Button>
         </div>
       </div>
     );
@@ -335,24 +368,16 @@ export default function BookDetailPage() {
         <Card>
           <CardHeader
             title={editing ? "Edit Book" : "Book Details"}
-            subtitle={
-              editing
-                ? "Update fields and save changes."
-                : "View book metadata and authors."
-            }
+            subtitle={editing ? "Update fields and save changes." : "View book metadata and authors."}
           />
           <CardContent>
             <div className="flex items-center justify-between gap-2">
-              <Button variant="secondary" onClick={() => nav("/books")}>
-                Back
-              </Button>
+              <Button variant="secondary" onClick={() => nav("/books")}>Back</Button>
 
               <div className="flex items-center gap-2">
                 {!editing ? (
                   <>
-                    <Button variant="secondary" onClick={() => setEditing(true)}>
-                      Edit
-                    </Button>
+                    <Button variant="secondary" onClick={() => setEditing(true)}>Edit</Button>
                     <Button onClick={onDeleteClick}>Delete</Button>
                   </>
                 ) : (
@@ -380,67 +405,43 @@ export default function BookDetailPage() {
               </div>
             ) : null}
 
-            {/* VIEW MODE */}
             {!editing ? (
               <div className="mt-6 space-y-4">
                 <div>
-                  <div className="text-xs font-semibold uppercase text-slate-500">
-                    Title
-                  </div>
+                  <div className="text-xs font-semibold uppercase text-slate-500">Title</div>
                   <div className="text-slate-900">{book.title}</div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <div className="text-xs font-semibold uppercase text-slate-500">
-                      Publication
-                    </div>
-                    <div className="text-slate-900">
-                      {formatMonthYear(book.publication_date)}
-                    </div>
+                    <div className="text-xs font-semibold uppercase text-slate-500">Publication</div>
+                    <div className="text-slate-900">{formatMonthYear(book.publication_date)}</div>
                   </div>
                   <div>
-                    <div className="text-xs font-semibold uppercase text-slate-500">
-                      Total Sales
-                    </div>
-                    <div className="text-slate-900">
-                      {book.total_sales_to_date ?? 0}
-                    </div>
+                    <div className="text-xs font-semibold uppercase text-slate-500">Total Sales</div>
+                    <div className="text-slate-900">{book.total_sales_to_date ?? 0}</div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <div className="text-xs font-semibold uppercase text-slate-500">
-                      ISBN-13
-                    </div>
-                    <div className="font-mono text-slate-900">
-                      {book.isbn_13 || "—"}
-                    </div>
+                    <div className="text-xs font-semibold uppercase text-slate-500">ISBN-13</div>
+                    <div className="font-mono text-slate-900">{book.isbn_13 || "—"}</div>
                   </div>
                   <div>
-                    <div className="text-xs font-semibold uppercase text-slate-500">
-                      ISBN-10
-                    </div>
-                    <div className="font-mono text-slate-900">
-                      {book.isbn_10 || "—"}
-                    </div>
+                    <div className="text-xs font-semibold uppercase text-slate-500">ISBN-10</div>
+                    <div className="font-mono text-slate-900">{book.isbn_10 || "—"}</div>
                   </div>
                 </div>
 
                 <div>
-                  <div className="text-xs font-semibold uppercase text-slate-500">
-                    Authors
-                  </div>
+                  <div className="text-xs font-semibold uppercase text-slate-500">Authors</div>
                   {(book.authors || []).length === 0 ? (
                     <div className="text-slate-500">—</div>
                   ) : (
                     <div className="mt-2 space-y-1">
                       {book.authors.map((a) => (
-                        <div
-                          key={a.author_id}
-                          className="flex items-center justify-between gap-3"
-                        >
+                        <div key={a.author_id} className="flex items-center justify-between gap-3">
                           <div className="text-slate-900">{a.name}</div>
                           <div className="text-slate-700">{pct(a.royalty_rate)}</div>
                         </div>
@@ -450,7 +451,6 @@ export default function BookDetailPage() {
                 </div>
               </div>
             ) : (
-              /* EDIT MODE */
               <div className="mt-6 space-y-5">
                 <div>
                   <label className="text-sm font-medium text-slate-700">Title</label>
@@ -460,9 +460,7 @@ export default function BookDetailPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-slate-700">
-                    Publication month, year
-                  </label>
+                  <label className="text-sm font-medium text-slate-700">Publication month, year</label>
                   <div className="mt-1">
                     <input
                       type="month"
@@ -483,9 +481,7 @@ export default function BookDetailPage() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-slate-700">
-                      ISBN-10 (optional)
-                    </label>
+                    <label className="text-sm font-medium text-slate-700">ISBN-10 (optional)</label>
                     <div className="mt-1">
                       <Input value={isbn10} onChange={(e) => setIsbn10(e.target.value)} />
                     </div>
@@ -518,15 +514,10 @@ export default function BookDetailPage() {
 
         {/* Sales Records Section */}
         <Card className="mt-8">
-          <CardHeader
-            title="Sales Records"
-            subtitle="All sales records for this book."
-          />
+          <CardHeader title="Sales Records" subtitle="All sales records for this book." />
           <CardContent>
             <div className="mb-4 flex justify-end">
-              {!showSaleEntry ? (
-                <Button onClick={() => setShowSaleEntry(true)}>Add Sale</Button>
-              ) : null}
+              {!showSaleEntry ? <Button onClick={() => setShowSaleEntry(true)}>Add Sale</Button> : null}
             </div>
 
             {showSaleEntry && (
@@ -536,6 +527,7 @@ export default function BookDetailPage() {
                     {saleError}
                   </div>
                 )}
+
                 <SaleEntryRow
                   index={0}
                   data={saleRow}
@@ -544,6 +536,7 @@ export default function BookDetailPage() {
                   isFirst={true}
                   fixedBook={fixedBook}
                 />
+
                 <div className="mt-4 flex justify-end gap-2">
                   <Button variant="secondary" onClick={handleCancelSale} disabled={saleSubmitting}>
                     Cancel
@@ -554,49 +547,49 @@ export default function BookDetailPage() {
                 </div>
               </div>
             )}
-            {/* Sales Totals Summary */}
-            {!salesLoading && bookSales.length > 0 && (
-              <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <div className="text-xs font-semibold uppercase text-slate-500">
-                    Publisher Revenue
-                  </div>
-                  <div className="mt-1 text-lg font-semibold text-slate-900">
-                    ${bookSales.reduce((sum, s) => sum + Number(s.publisher_revenue || 0), 0).toFixed(2)}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <div className="text-xs font-semibold uppercase text-slate-500">
-                    Total Royalties
-                  </div>
-                  <div className="mt-1 text-lg font-semibold text-slate-900">
-                    ${bookSales.reduce((sum, s) => 
-                      sum + (s.author_details || []).reduce((a, auth) => a + Number(auth.royalty_amount || 0), 0), 0
-                    ).toFixed(2)}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-                  <div className="text-xs font-semibold uppercase text-green-600">
-                    Paid Royalties
-                  </div>
-                  <div className="mt-1 text-lg font-semibold text-green-700">
-                    ${bookSales.reduce((sum, s) => 
-                      sum + (s.author_details || []).filter(a => a.paid).reduce((a, auth) => a + Number(auth.royalty_amount || 0), 0), 0
-                    ).toFixed(2)}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-                  <div className="text-xs font-semibold uppercase text-red-600">
-                    Unpaid Royalties
-                  </div>
-                  <div className="mt-1 text-lg font-semibold text-red-700">
-                    ${bookSales.reduce((sum, s) => 
-                      sum + (s.author_details || []).filter(a => !a.paid).reduce((a, auth) => a + Number(auth.royalty_amount || 0), 0), 0
-                    ).toFixed(2)}
-                  </div>
+
+            {totalsErr ? (
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {totalsErr}
+              </div>
+            ) : null}
+
+            <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div className="text-xs font-semibold uppercase text-slate-500">Publisher Revenue</div>
+                <div className="mt-1 text-lg font-semibold text-slate-900">
+                  {totalsLoading ? "Loading…" : `$${Number(totals.publisher_revenue || 0).toFixed(2)}`}
                 </div>
               </div>
-            )}
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div className="text-xs font-semibold uppercase text-slate-500">Total Royalties</div>
+                <div className="mt-1 text-lg font-semibold text-slate-900">
+                  {totalsLoading ? "Loading…" : `$${Number(totals.total_royalties || 0).toFixed(2)}`}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                <div className="text-xs font-semibold uppercase text-green-600">Paid Royalties</div>
+                <div className="mt-1 text-lg font-semibold text-green-700">
+                  {totalsLoading ? "Loading…" : `$${Number(totals.paid_royalties || 0).toFixed(2)}`}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                <div className="text-xs font-semibold uppercase text-red-600">Unpaid Royalties</div>
+                <div className="mt-1 text-lg font-semibold text-red-700">
+                  {totalsLoading ? "Loading…" : `$${Number(totals.unpaid_royalties || 0).toFixed(2)}`}
+                </div>
+              </div>
+            </div>
+
+            {/* ✅ Show all / Paginate toggle for THIS book's sales */}
+            <div className="mb-3 flex items-center justify-end">
+              <Button variant="secondary" onClick={toggleSalesShowAll}>
+                {salesShowAll ? "Paginate" : "Show all"}
+              </Button>
+            </div>
 
             <BookSalesTable
               data={bookSales}
@@ -604,6 +597,29 @@ export default function BookDetailPage() {
               ordering={salesOrdering}
               onSort={handleSalesSort}
             />
+
+            {/* ✅ pagination controls only when paginating */}
+            {!salesShowAll ? (
+              <div className="mt-4">
+                <SalesPagination
+                  page={salesPage}
+                  totalPages={salesTotalPages}
+                  onPrev={() => setSalesPage((p) => Math.max(1, p - 1))}
+                  onNext={() => setSalesPage((p) => Math.min(salesTotalPages, p + 1))}
+                />
+              </div>
+            ) : null}
+
+            <div className="mt-2 text-sm text-slate-600">
+              {salesLoading ? (
+                "Loading…"
+              ) : (
+                <>
+                  <span className="font-semibold text-slate-900">{salesCount}</span>{" "}
+                  sale{salesCount === 1 ? "" : "s"} for this book
+                </>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>

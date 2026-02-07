@@ -49,7 +49,12 @@ export const isRowStarted = (row) => {
 };
 
 
-
+/**
+ * Checks if a row has all required fields filled
+ */
+export const isRowComplete = (row) => {
+    return row.book && row.quantity && row.publisher_revenue && row.date;
+};
 
 
 

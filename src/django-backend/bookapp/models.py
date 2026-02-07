@@ -1,4 +1,19 @@
 from django.db import models
+from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
+
+# -----------------------------
+# Shared validators (NEW)
+# -----------------------------
+isbn_13_digits = RegexValidator(
+    regex=r"^\d{13}$",
+    message="ISBN-13 must be exactly 13 digits.",
+)
+
+isbn_10_digits = RegexValidator(
+    regex=r"^\d{10}$",
+    message="ISBN-10 must be exactly 10 digits.",
+)
+
 
 # 1. AUTHOR Table
 class Author(models.Model):
@@ -8,18 +23,32 @@ class Author(models.Model):
     def __str__(self):
         return self.name
 
+
 # 2. BOOK Table
 class Book(models.Model):
     title = models.CharField(max_length=255)
     publication_date = models.DateField()
-    isbn_13 = models.CharField(max_length=13, unique=True)
-    isbn_10 = models.CharField(max_length=10, blank=True, null=True)
-    
+
+    # CHANGED: add validators to enforce digits-only + exact length
+    isbn_13 = models.CharField(
+        max_length=13,
+        unique=True,
+        validators=[isbn_13_digits],
+    )
+
+    # CHANGED: add validators to enforce digits-only + exact length when provided
+    isbn_10 = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        validators=[isbn_10_digits],
+    )
+
     # Financials
     total_sales_to_date = models.IntegerField(default=0)
-    
+
     # Relationships
-    authors = models.ManyToManyField(Author, through='AuthorBook', related_name='books')
+    authors = models.ManyToManyField(Author, through="AuthorBook", related_name="books")
 
     def __str__(self):
         return self.title
@@ -27,31 +56,40 @@ class Book(models.Model):
     def update_total_sales(self, quantity_delta):
         """Update total_sales_to_date by the given delta."""
         self.total_sales_to_date += quantity_delta
-        self.save(update_fields=['total_sales_to_date'])
+        self.save(update_fields=["total_sales_to_date"])
+
 
 # 3. AUTHOR_BOOK Table (Through Table)
 class AuthorBook(models.Model):
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
-    royalty_rate = models.DecimalField(max_digits=5, decimal_places=4, help_text="Royalty rate as a decimal (e.g. 0.15 for 15%)")
+
+    # CHANGED: add validators to enforce 0 <= royalty_rate <= 1
+    royalty_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        help_text="Royalty rate as a decimal (e.g. 0.15 for 15%)",
+        validators=[MinValueValidator(0), MaxValueValidator(1)],
+    )
 
     class Meta:
-        unique_together = ('author', 'book')
+        unique_together = ("author", "book")
 
     def __str__(self):
         return f"{self.author.name} - {self.book.title} ({self.royalty_rate})"
 
+
 # 4. SALE Table
 class Sale(models.Model):
-    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name='sales')
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="sales")
     date = models.DateField()
     quantity = models.IntegerField()
-    
+
     # Financial snapshots
     publisher_revenue = models.DecimalField(max_digits=10, decimal_places=2)
-    
+
     # Relationships
-    authors = models.ManyToManyField(Author, through='AuthorSale', related_name='sales')
+    authors = models.ManyToManyField(Author, through="AuthorSale", related_name="sales")
 
     def __str__(self):
         return f"{self.quantity} x {self.book.title} on {self.date.strftime('%Y-%m-%d')}"
@@ -69,13 +107,14 @@ class Sale(models.Model):
                 sale=self,
                 author=ab.author,
                 royalty_amount=royalty_amount,
-                author_paid=author_paid.get(str(ab.author.id), False)
+                author_paid=author_paid.get(str(ab.author.id), False),
             )
+
 
 # 5. AUTHOR_SALE Table
 class AuthorSale(models.Model):
-    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='author_sales')
-    author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name='sales_records')
+    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="author_sales")
+    author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name="sales_records")
     royalty_amount = models.DecimalField(max_digits=10, decimal_places=2)
     author_paid = models.BooleanField(default=False)
 

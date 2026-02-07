@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getAllSales } from "../api/salesApi";
-import { payUnpaidSalesForAuthor } from "../api/salesApi";
-
+import { getAllSales, payUnpaidSalesForAuthor } from "../api/salesApi";
 
 function moneyNumber(x) {
   const n = Number(x);
@@ -19,7 +17,12 @@ export function useAuthorPayments() {
     setLoading(true);
     try {
       const data = await getAllSales("");
-      setSales(data || []);
+
+      // ✅ after pagination: backend returns { results: [...] }
+      // ✅ keep backward compatibility if it ever returns a raw array
+      const results = Array.isArray(data) ? data : (data?.results ?? []);
+
+      setSales(results);
     } catch (e) {
       console.error("Error fetching sales:", e);
       setSales([]);
@@ -58,7 +61,6 @@ export function useAuthorPayments() {
     }
 
     const arr = Array.from(groups.values());
-
     arr.sort((g1, g2) => (g1.author.name || "").localeCompare(g2.author.name || ""));
 
     for (const g of arr) {

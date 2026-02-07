@@ -5,6 +5,7 @@ from .views.change_password import ChangePasswordView
 from .views.account import MeView
 from .views.csrf import csrf
 from .views.book import BookListCreateView, BookDetailView
+from .views.author_payments import AuthorPaymentsGroupedView
 
 from .views.sales import (
     SaleGetView,
@@ -45,4 +46,5 @@ urlpatterns = [
     path("author/<int:author_id>/unpaid/subtotal", AuthorUnpaidSubtotalView.as_view()),
     path("author/<int:author_id>/pay_unpaid_sales", AuthorPayUnpaidSalesView.as_view()),
     path("authors/", AuthorListCreateView.as_view()),
+    path("author/payments/grouped", AuthorPaymentsGroupedView.as_view()),
 ]

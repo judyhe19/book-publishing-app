@@ -1,76 +1,59 @@
-import { useEffect, useMemo, useState } from "react";
-import { getAllSales, payUnpaidSalesForAuthor } from "../api/salesApi";
-
-function moneyNumber(x) {
-  const n = Number(x);
-  return Number.isNaN(n) ? 0 : n;
-}
+import { useEffect, useState } from "react";
+import { getAuthorPaymentsGrouped, payUnpaidSalesForAuthor } from "../api/salesApi";
 
 export function useAuthorPayments() {
-  const [sales, setSales] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // ✅ backend pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
+
+  const [count, setCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // ✅ show-all toggle (only time we allow unbounded)
+  const [showAll, setShowAll] = useState(false);
 
   const [confirm, setConfirm] = useState({ open: false, author: null });
   const [paying, setPaying] = useState(false);
 
-  const fetchSales = async () => {
+  const fetchGroups = async () => {
     setLoading(true);
     try {
-      const data = await getAllSales("");
+      const params = new URLSearchParams();
 
-      // ✅ after pagination: backend returns { results: [...] }
-      // ✅ keep backward compatibility if it ever returns a raw array
-      const results = Array.isArray(data) ? data : (data?.results ?? []);
+      if (showAll) {
+        params.set("all", "1");
+      } else {
+        params.set("page", String(page));
+        params.set("page_size", String(pageSize));
+      }
 
-      setSales(results);
+      const data = await getAuthorPaymentsGrouped(params.toString());
+
+      setGroups(data?.results ?? []);
+      setCount(data?.count ?? 0);
+      setTotalPages(data?.total_pages ?? 1);
     } catch (e) {
-      console.error("Error fetching sales:", e);
-      setSales([]);
+      console.error("Error fetching author payment groups:", e);
+      setGroups([]);
+      setCount(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchSales();
-  }, []);
+    fetchGroups();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, showAll]);
 
-  const authorGroups = useMemo(() => {
-    const groups = new Map();
-
-    for (const sale of sales || []) {
-      const authors = sale.author_details || [];
-      for (const a of authors) {
-        if (a?.id == null) continue;
-
-        if (!groups.has(a.id)) {
-          groups.set(a.id, {
-            author: { id: a.id, name: a.name || `Author ${a.id}` },
-            rows: [],
-          });
-        }
-
-        groups.get(a.id).rows.push({
-          sale,
-          author: a,
-          dateKey: new Date(sale.date).getTime(),
-          royalty: moneyNumber(a.royalty_amount),
-          paid: Boolean(a.paid),
-        });
-      }
-    }
-
-    const arr = Array.from(groups.values());
-    arr.sort((g1, g2) => (g1.author.name || "").localeCompare(g2.author.name || ""));
-
-    for (const g of arr) {
-      g.rows.sort((r1, r2) => r2.dateKey - r1.dateKey);
-      g.unpaidTotal = g.rows.reduce((sum, r) => sum + (r.paid ? 0 : r.royalty), 0);
-      g.unpaidCount = g.rows.reduce((sum, r) => sum + (r.paid ? 0 : 1), 0);
-    }
-
-    return arr;
-  }, [sales]);
+  const toggleShowAll = () => {
+    setPage(1);
+    setShowAll((prev) => !prev);
+  };
 
   const openConfirm = (author) => setConfirm({ open: true, author });
   const closeConfirm = () => {
@@ -83,7 +66,7 @@ export function useAuthorPayments() {
     setPaying(true);
     try {
       await payUnpaidSalesForAuthor(confirm.author.id);
-      await fetchSales();
+      await fetchGroups();
       closeConfirm();
     } catch (e) {
       console.error(e);
@@ -95,8 +78,18 @@ export function useAuthorPayments() {
 
   return {
     loading,
-    authorGroups,
-    refresh: fetchSales,
+    authorGroups: groups,
+
+    page,
+    pageSize,
+    count,
+    totalPages,
+    setPage,
+
+    showAll,
+    toggleShowAll,
+
+    refresh: fetchGroups,
 
     confirm,
     paying,

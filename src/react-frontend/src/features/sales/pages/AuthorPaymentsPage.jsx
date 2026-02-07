@@ -6,12 +6,22 @@ import { Spinner } from "../../../shared/components/Spinner";
 import { useAuthorPayments } from "../hooks/useAuthorPayments";
 import ConfirmDialog from "../components/ConfirmDialog";
 import AuthorPaymentsGroupList from "../components/AuthorPaymentsGroupList";
+import SalesPagination from "../components/SalesPagination"; // adjust if path differs
 
 export default function AuthorPaymentsPage() {
   const navigate = useNavigate();
   const {
     loading,
     authorGroups,
+
+    // ✅ new pagination/show-all
+    page,
+    totalPages,
+    setPage,
+    count,
+    showAll,
+    toggleShowAll,
+
     confirm,
     paying,
     openConfirm,
@@ -37,7 +47,7 @@ export default function AuthorPaymentsPage() {
             Sales Records
           </Button>
 
-          <Button onClick={() => { navigate("/sales/input") }}>
+          <Button onClick={() => navigate("/sales/input")}>
             Sales Input Tool
           </Button>
         </div>
@@ -48,17 +58,43 @@ export default function AuthorPaymentsPage() {
           <Spinner />
           <span>Loading author payment data...</span>
         </div>
-      ) : authorGroups.length === 0 ? (
+      ) : count === 0 ? (
         <Card>
           <CardContent>No author payment rows found.</CardContent>
         </Card>
       ) : (
-        <AuthorPaymentsGroupList
-          groups={authorGroups}
-          onMarkAllPaid={openConfirm}
-          onGoBook={onGoBook}
-          onGoSale={onGoSale}
-        />
+        <Card>
+          <CardContent>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="text-sm text-slate-600">
+                <span className="font-semibold text-slate-900">{count}</span>{" "}
+                author{count === 1 ? "" : "s"}
+              </div>
+
+              <Button variant="secondary" onClick={toggleShowAll}>
+                {showAll ? "Paginate" : "Show all"}
+              </Button>
+            </div>
+
+            <AuthorPaymentsGroupList
+              groups={authorGroups}
+              onMarkAllPaid={openConfirm}
+              onGoBook={onGoBook}
+              onGoSale={onGoSale}
+            />
+
+            {!showAll ? (
+              <div className="mt-4">
+                <SalesPagination
+                  page={page}
+                  totalPages={totalPages}
+                  onPrev={() => setPage((p) => Math.max(1, p - 1))}
+                  onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+                />
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
       )}
 
       <ConfirmDialog

@@ -49,7 +49,18 @@ export const BookSelect = ({ date, value, loadOptions, onChange }) => (
 export const QuantityField = ({ value, onChange }) => (
     <div className="w-32">
         <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
-        <Input type="number" value={value || ''} onChange={(e) => onChange(e.target.value)} />
+        <Input
+            type="number"
+            min="1"
+            step="1"
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={(e) => {
+                if (e.key === '.' || e.key === 'e' || e.key === 'E') {
+                    e.preventDefault();
+                }
+            }}
+        />
     </div>
 );
 

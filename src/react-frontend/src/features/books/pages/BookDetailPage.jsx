@@ -32,8 +32,8 @@ function formatMonthYear(dateStr) {
   const year = m[1];
   const month = Number(m[2]);
   const monthNames = [
-    "January","February","March","April","May","June",
-    "July","August","September","October","November","December",
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
   ];
   return `${monthNames[month - 1]} ${year}`;
 }
@@ -522,11 +522,11 @@ export default function BookDetailPage() {
 
             {showSaleEntry && (
               <div className="mb-6">
-                {saleError ? (
-                  <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {saleError && (
+                  <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 whitespace-pre-wrap">
                     {saleError}
                   </div>
-                ) : null}
+                )}
 
                 <SaleEntryRow
                   index={0}

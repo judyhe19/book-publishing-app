@@ -16,7 +16,7 @@ export const EMPTY_ROW = {
  */
 export const transformRowToSaleData = (row) => {
     const sale = {
-        book: row.book.value,
+        book: row.book ? row.book.value : null,
         date: `${row.date}-01`,
         quantity: parseInt(row.quantity),
         publisher_revenue: parseFloat(row.publisher_revenue),
@@ -26,7 +26,7 @@ export const transformRowToSaleData = (row) => {
 
     const royaltyInput = row.author_royalties || {};
     const paidInput = row.author_paid || {};
-    const authors = row.book.authors || [];
+    const authors = row.book?.authors || [];
 
     authors.forEach(author => {
         const amount = royaltyInput[author.author_id];
@@ -48,9 +48,8 @@ export const isRowStarted = (row) => {
     return row.date || row.book || row.quantity || row.publisher_revenue;
 };
 
-/**
- * Checks if a row has all required fields filled
- */
-export const isRowComplete = (row) => {
-    return row.book && row.quantity && row.publisher_revenue && row.date;
-};
+
+
+
+
+

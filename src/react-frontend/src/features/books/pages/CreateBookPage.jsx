@@ -160,7 +160,9 @@ export default function CreateBookPage() {
               <div>
                 <label className="text-sm font-medium text-slate-700">Title</label>
                 <div className="mt-1">
-                  <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+                  <Input value={title} onChange={(e) => setTitle(e.target.value)} 
+                  required
+                  />
                 </div>
               </div>
 
@@ -191,6 +193,7 @@ export default function CreateBookPage() {
                       onChange={(e) => setIsbn13(e.target.value)}
                       placeholder="978..."
                       maxLength={13}
+                      required
                     />
                   </div>
                 </div>
@@ -349,7 +352,7 @@ export default function CreateBookPage() {
               </div>
 
               {err && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 whitespace-pre-wrap">
                   {err}
                 </div>
               )}

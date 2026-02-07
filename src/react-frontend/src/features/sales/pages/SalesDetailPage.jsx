@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../../shared/components/Button";
 import { Spinner } from "../../../shared/components/Spinner";
-import { Card, CardContent } from "../../../shared/components/Card";
 import SaleEntryRow from "../../../shared/components/SaleEntryRow";
 import { formatBookLabel } from "../../../shared/utils/bookUtils";
 
@@ -92,7 +91,10 @@ const payload = useMemo(() => {
     }, [row]);
 
   async function onSave() {
+    if (!row) return;
+
     if (!payload) return;
+
     console.log('Saving payload:', JSON.stringify(payload, null, 2));
     await save(payload);
     navigate(-1);
@@ -154,7 +156,7 @@ const payload = useMemo(() => {
 
       {error ? (
         <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4 rounded-md">
-          <p className="text-sm text-red-700">{error}</p>
+          <p className="text-sm text-red-700 whitespace-pre-wrap">{error}</p>
         </div>
       ) : null}
 

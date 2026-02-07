@@ -11,8 +11,18 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
 from decimal import Decimal
-from django.db.models import Sum, Count, Case, When, Value, IntegerField, Subquery, OuterRef, DecimalField
-from django.db.models.functions import Coalesce  # ✅ ADDED
+from django.db.models import (
+    Sum,
+    Count,
+    Case,
+    When,
+    Value,
+    IntegerField,
+    Subquery,
+    OuterRef,
+    DecimalField,
+)
+from django.db.models.functions import Coalesce
 
 from ..config.sort_config import SALES_SORT_FIELD_MAP, SALES_DEFAULT_SORT
 from ..utils import get_first_author_name_subquery
@@ -40,7 +50,7 @@ class SaleGetView(APIView):
         if book_id:
             queryset = queryset.filter(book_id=book_id)
 
-        # identifying sales by user's published books
+        # ✅ keep functional user scoping
         if user_id:
             queryset = queryset.filter(book__publisher_user_id=user_id)
 
@@ -50,13 +60,11 @@ class SaleGetView(APIView):
         end_date = request.query_params.get("end_date")
 
         if start_date:
-            # Use first day of the start date's month
             parts = start_date.split("-")
             first_of_month = f"{parts[0]}-{parts[1]}-01"
             queryset = queryset.filter(date__gte=first_of_month)
 
         if end_date:
-            # Use last day of the end date's month
             import calendar
 
             parts = end_date.split("-")
@@ -92,7 +100,6 @@ class SaleGetView(APIView):
 
         # server-side ordering
         ordering = request.query_params.get("ordering", SALES_DEFAULT_SORT)
-
         is_desc = ordering.startswith("-")
         field = ordering[1:] if is_desc else ordering
 
@@ -140,7 +147,7 @@ class SaleGetView(APIView):
         )
 
 
-# ✅ NEW: totals endpoint for a single book (for BookDetailPage summary cards)
+# ✅ totals endpoint for a single book (for BookDetailPage summary cards)
 class BookSalesTotalsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -148,8 +155,16 @@ class BookSalesTotalsView(APIView):
         qs = Sale.objects.filter(book_id=book_id)
 
         totals = qs.aggregate(
-            publisher_revenue=Coalesce(Sum("publisher_revenue"), Value(0), output_field=DecimalField()),
-            total_royalties=Coalesce(Sum("author_sales__royalty_amount"), Value(0), output_field=DecimalField()),
+            publisher_revenue=Coalesce(
+                Sum("publisher_revenue"),
+                Value(0),
+                output_field=DecimalField(),
+            ),
+            total_royalties=Coalesce(
+                Sum("author_sales__royalty_amount"),
+                Value(0),
+                output_field=DecimalField(),
+            ),
             paid_royalties=Coalesce(
                 Sum(
                     Case(
@@ -231,12 +246,12 @@ class SaleEditView(APIView):
         sale = get_object_or_404(Sale, id=sale_id)
         old_quantity = sale.quantity
 
-        fields_param = request.query_params.get('fields')
+        fields_param = request.query_params.get("fields")
         partial = True
 
         data = request.data
         if fields_param:
-            allowed_fields = fields_param.split(',')
+            allowed_fields = fields_param.split(",")
             data = {k: v for k, v in request.data.items() if k in allowed_fields}
 
         serializer = SaleCreateSerializer(sale, data=data, partial=partial)
@@ -271,8 +286,7 @@ class SalePayAuthorsView(APIView):
 
         with transaction.atomic():
             qs = (
-                AuthorSale.objects
-                .select_for_update()
+                AuthorSale.objects.select_for_update()
                 .filter(sale_id=sale.id, author_paid=False)
             )
 

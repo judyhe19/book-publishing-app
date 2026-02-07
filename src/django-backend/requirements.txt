@@ -9,3 +9,4 @@ pytest
 pytest-django
 pylint
 pylint-django
+requests

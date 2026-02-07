@@ -10,6 +10,10 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.db.models import Sum
+from django.db.models.functions import Coalesce
+from django.db.models import IntegerField
+
 
 from ..models import Book, AuthorBook
 from ..serializers.book import (
@@ -52,6 +56,17 @@ class BookListCreateView(APIView):
                     "authorbook_set",
                     queryset=AuthorBook.objects.select_related("author").order_by("author_id"),
                 )
+            )
+        )
+
+        # --------------------
+        # ✅ total_sales_to_date computed from Sale.quantity (no stored counter)
+        # --------------------
+        qs = qs.annotate(
+            total_sales_to_date=Coalesce(
+                Sum("sales__quantity"),
+                0,
+                output_field=IntegerField(),
             )
         )
 
@@ -183,6 +198,14 @@ class BookDetailView(APIView):
         book = (
             Book.objects
             .filter(id=book.id)
+            # ✅ total_sales_to_date computed from Sale.quantity (no stored counter)
+            .annotate(
+                total_sales_to_date=Coalesce(
+                    Sum("sales__quantity"),
+                    0,
+                    output_field=IntegerField(),
+                )
+            )
             .prefetch_related(
                 Prefetch(
                     "authorbook_set",
@@ -206,6 +229,14 @@ class BookDetailView(APIView):
         book = (
             Book.objects
             .filter(id=book.id)
+            # ✅ total_sales_to_date computed from Sale.quantity (no stored counter)
+            .annotate(
+                total_sales_to_date=Coalesce(
+                    Sum("sales__quantity"),
+                    0,
+                    output_field=IntegerField(),
+                )
+            )
             .prefetch_related(
                 Prefetch(
                     "authorbook_set",
@@ -221,4 +252,3 @@ class BookDetailView(APIView):
         book = get_object_or_404(Book, id=book_id)
         book.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-

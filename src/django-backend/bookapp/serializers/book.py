@@ -106,6 +106,9 @@ class AuthorBookSerializer(serializers.ModelSerializer):
 class BookListSerializer(serializers.ModelSerializer):
     authors = AuthorBookSerializer(source="authorbook_set", many=True, read_only=True)
 
+    # ✅ total_sales_to_date is no longer a model field; it comes from queryset annotation.
+    total_sales_to_date = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Book
         fields = [

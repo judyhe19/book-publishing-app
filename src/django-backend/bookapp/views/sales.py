@@ -211,7 +211,6 @@ class SaleCreateView(APIView):
         if serializer.is_valid():
             with transaction.atomic():
                 sale = serializer.save()
-                sale.book.update_total_sales(sale.quantity)
 
             full_serializer = SaleSerializer(sale)
             return Response(full_serializer.data, status=status.HTTP_201_CREATED)
@@ -231,7 +230,6 @@ class SaleCreateManyView(APIView):
                 serializer = SaleCreateSerializer(data=sale_data)
                 if serializer.is_valid():
                     sale = serializer.save()
-                    sale.book.update_total_sales(sale.quantity)
                     created_sales.append(sale)
                 else:
                     print(f"Validation Error at index {index}: {serializer.errors}")
@@ -264,9 +262,6 @@ class SaleEditView(APIView):
                 sale.author_sales.all().delete()
                 updated_sale = serializer.save()
 
-                quantity_diff = updated_sale.quantity - old_quantity
-                if quantity_diff != 0:
-                    updated_sale.book.update_total_sales(quantity_diff)
 
             full_serializer = SaleSerializer(updated_sale)
             return Response(full_serializer.data)
@@ -277,7 +272,6 @@ class SaleDeleteView(APIView):
     def delete(self, request, sale_id):
         sale = get_object_or_404(Sale, id=sale_id)
         with transaction.atomic():
-            sale.book.update_total_sales(-sale.quantity)
             sale.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 

@@ -45,19 +45,12 @@ class Book(models.Model):
         validators=[isbn_10_format],
     )
 
-    # Financials
-    total_sales_to_date = models.IntegerField(default=0)
-
     # Relationships
     authors = models.ManyToManyField(Author, through="AuthorBook", related_name="books")
 
     def __str__(self):
         return self.title
 
-    def update_total_sales(self, quantity_delta):
-        """Update total_sales_to_date by the given delta."""
-        self.total_sales_to_date += quantity_delta
-        self.save(update_fields=["total_sales_to_date"])
 
 
 # 3. AUTHOR_BOOK Table (Through Table)

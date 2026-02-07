@@ -109,7 +109,6 @@ erDiagram
     AUTHOR {
         int id PK
         string name
-        text bio
     }
 
     BOOK {

@@ -7,7 +7,6 @@ import { formatBookLabel } from "../../../shared/utils/bookUtils";
 
 import { useSalesDetails } from "../hooks/useSalesDetails";
 import DeleteSalesRecordDialog from "../components/DeleteSalesRecordDialog";
-import { validateSaleRow } from "../../../shared/utils/salesUtils";
 
 function saleToRow(sale, bookData) {
   // Use book data from the books API (same source as SalesInputPage)
@@ -63,7 +62,6 @@ export default function SalesDetailPage() {
 
   const [row, setRow] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [validationError, setValidationError] = useState(null);
 
   useEffect(() => {
     if (!sale || !book) return;
@@ -72,7 +70,6 @@ export default function SalesDetailPage() {
 
   const handleRowChange = (index, field, value) => {
     setRow((prev) => ({ ...prev, [field]: value }));
-    if (validationError) setValidationError(null);
   };
 
 const payload = useMemo(() => {
@@ -95,13 +92,6 @@ const payload = useMemo(() => {
 
   async function onSave() {
     if (!row) return;
-
-    // Validation
-    const errMsg = validateSaleRow(row);
-    if (errMsg) {
-        setValidationError(errMsg);
-        return;
-    }
 
     if (!payload) return;
 
@@ -164,9 +154,9 @@ const payload = useMemo(() => {
         </div>
       </div>
 
-      {error || validationError ? (
+      {error ? (
         <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4 rounded-md">
-          <p className="text-sm text-red-700">{error || validationError}</p>
+          <p className="text-sm text-red-700 whitespace-pre-wrap">{error}</p>
         </div>
       ) : null}
 

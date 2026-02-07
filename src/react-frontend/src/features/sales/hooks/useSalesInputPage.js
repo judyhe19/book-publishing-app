@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createManySales } from '../api/salesApi';
-import { EMPTY_ROW, transformRowToSaleData, isRowStarted, isRowComplete, validateSaleRow } from '../../../shared/utils/salesUtils';
+import { EMPTY_ROW, transformRowToSaleData, isRowStarted } from '../../../shared/utils/salesUtils';
 
 /**
  * Custom hook to manage sales input page state and logic
@@ -49,19 +49,6 @@ export const useSalesInputPage = () => {
             setError("Please fill in at least one sale record.");
             setIsSubmitting(false);
             return;
-        }
-
-        // Validate each row
-        for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
-            if (!isRowStarted(row)) continue;
-
-            const errMsg = validateSaleRow(row);
-            if (errMsg) {
-                setError(`Entry ${i + 1}: ${errMsg}`);
-                setIsSubmitting(false);
-                return;
-            }
         }
 
         try {

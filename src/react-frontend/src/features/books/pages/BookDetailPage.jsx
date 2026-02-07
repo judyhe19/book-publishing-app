@@ -10,7 +10,7 @@ import { AuthorsEditor } from "../components/AuthorsEditor";
 import { useBookSales } from "../hooks/useBookSales";
 import BookSalesTable from "../components/BookSalesTable";
 import SaleEntryRow from "../../../shared/components/SaleEntryRow";
-import { EMPTY_ROW, transformRowToSaleData, isRowComplete } from "../../../shared/utils/salesUtils";
+import { EMPTY_ROW, transformRowToSaleData } from "../../../shared/utils/salesUtils";
 import { createManySales } from "../../sales/api/salesApi";
 
 function normalizeName(s) {
@@ -118,13 +118,6 @@ export default function BookDetailPage() {
 
   const handleSubmitSale = async () => {
     setSaleError(null);
-    
-    if (!isRowComplete(saleRow)) {
-      setSaleError("Please fill in all fields.");
-      return;
-    }
-
-
 
     setSaleSubmitting(true);
     try {
@@ -539,7 +532,7 @@ export default function BookDetailPage() {
             {showSaleEntry && (
               <div className="mb-6">
                 {saleError && (
-                  <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 whitespace-pre-wrap">
                     {saleError}
                   </div>
                 )}

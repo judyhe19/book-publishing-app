@@ -1,3 +1,4 @@
+# serializers/book.py
 from rest_framework import serializers
 import re
 from decimal import Decimal
@@ -7,12 +8,17 @@ from ..models import Book, AuthorBook, Author
 
 def _normalize_isbn(value):
     """
-    Allow users to type ISBNs with hyphens/spaces, store digits-only.
-    Returns the original value if it's None/empty.
+    Allow users to type ISBNs with hyphens/spaces.
+    We store the normalized version (digits, and possibly trailing X for ISBN-10).
     """
     if value in (None, ""):
         return value
     return re.sub(r"[\s\-]", "", str(value)).strip()
+
+
+def _is_isbn10_format(v: str) -> bool:
+    # 9 digits + final digit or X/x
+    return bool(re.fullmatch(r"\d{9}[\dXx]$", v))
 
 
 # ------------------------------------
@@ -37,9 +43,7 @@ class AuthorBookSerializer(serializers.ModelSerializer):
         ]
 
     def validate_royalty_rate(self, value):
-        # Enforce 0 <= royalty_rate <= 1
         if value is None:
-            # This is required in create; update path uses partial logic higher up.
             raise serializers.ValidationError("Royalty rate is required.")
         if value < Decimal("0"):
             raise serializers.ValidationError("Royalty rate cannot be negative.")
@@ -49,8 +53,7 @@ class AuthorBookSerializer(serializers.ModelSerializer):
 
     def to_internal_value(self, data):
         """
-        Keep your custom royalty_rate error messages, but now also covers
-        negative/out-of-range errors via validate_royalty_rate().
+        Preserve your custom royalty_rate error messages.
         """
         try:
             return super().to_internal_value(data)
@@ -71,7 +74,6 @@ class AuthorBookSerializer(serializers.ModelSerializer):
                 for e in errors:
                     code = getattr(e, "code", None)
 
-                    # DRF DecimalField format issues
                     if code == "invalid":
                         new_errors.append(
                             f"Royalty rate for author {author_name} must be a valid decimal number."
@@ -81,7 +83,6 @@ class AuthorBookSerializer(serializers.ModelSerializer):
                             f"Royalty rate for author {author_name} must calculate to a valid percentage (e.g. 0.15)."
                         )
                     else:
-                        # Range errors raised by validate_royalty_rate or other validators
                         msg = str(e)
                         if "negative" in msg.lower():
                             new_errors.append(
@@ -103,10 +104,6 @@ class AuthorBookSerializer(serializers.ModelSerializer):
 # ------------------------------------
 
 class BookListSerializer(serializers.ModelSerializer):
-    """
-    Read-only serializer for book list views.
-    Returns one book with nested authors + royalty_rate.
-    """
     authors = AuthorBookSerializer(source="authorbook_set", many=True, read_only=True)
 
     class Meta:
@@ -131,10 +128,6 @@ class BookDetailSerializer(BookListSerializer):
 # ------------------------------------
 
 class BookCreateSerializer(serializers.ModelSerializer):
-    """
-    Serializer used ONLY for creating books.
-    Accepts nested authors with royalty_rate.
-    """
     authors = AuthorBookSerializer(source="authorbook_set", many=True)
 
     class Meta:
@@ -147,8 +140,6 @@ class BookCreateSerializer(serializers.ModelSerializer):
             "authors",
         ]
 
-    # --- Field-level ISBN validation (covers non-digit + exact length) ---
-
     def validate_isbn_13(self, value):
         v = _normalize_isbn(value)
         if not v:
@@ -159,15 +150,16 @@ class BookCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("ISBN-13 must be exactly 13 digits.")
         return v
 
+    # CHANGED: allow trailing X (and store as uppercase X)
     def validate_isbn_10(self, value):
         if value in (None, ""):
             return value
         v = _normalize_isbn(value)
-        if not v.isdigit():
-            raise serializers.ValidationError("ISBN-10 must contain only digits.")
         if len(v) != 10:
-            raise serializers.ValidationError("ISBN-10 must be exactly 10 digits.")
-        return v
+            raise serializers.ValidationError("ISBN-10 must be exactly 10 characters.")
+        if not _is_isbn10_format(v):
+            raise serializers.ValidationError("ISBN-10 must be 9 digits followed by a digit or X.")
+        return v.upper()
 
     def create(self, validated_data):
         authors_data = validated_data.pop("authorbook_set", [])
@@ -183,10 +175,6 @@ class BookCreateSerializer(serializers.ModelSerializer):
         return book
 
     def validate(self, attrs):
-        """
-        Keep your custom required-field + duplicate-author validations.
-        Royalty range is enforced by AuthorBookSerializer.validate_royalty_rate.
-        """
         error = {}
 
         if not attrs.get("title"):
@@ -195,7 +183,6 @@ class BookCreateSerializer(serializers.ModelSerializer):
         if not attrs.get("publication_date"):
             error["publication_date"] = "Publication date is required."
 
-        # isbn_13 required is already enforced in validate_isbn_13, but keep message consistency
         if not attrs.get("isbn_13"):
             error["isbn_13"] = "ISBN-13 is required."
 
@@ -220,12 +207,6 @@ class BookCreateSerializer(serializers.ModelSerializer):
 
 
 class BookUpdateSerializer(serializers.ModelSerializer):
-    """
-    Serializer used for PATCH/PUT.
-    Authors are OPTIONAL:
-      - omitted => authors unchanged
-      - provided => author list replaced
-    """
     authors = AuthorBookSerializer(
         source="authorbook_set",
         many=True,
@@ -250,15 +231,16 @@ class BookUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("ISBN-13 must be exactly 13 digits.")
         return v
 
+    # CHANGED: allow trailing X (and store as uppercase X)
     def validate_isbn_10(self, value):
         if value in (None, ""):
             return value
         v = _normalize_isbn(value)
-        if not v.isdigit():
-            raise serializers.ValidationError("ISBN-10 must contain only digits.")
         if len(v) != 10:
-            raise serializers.ValidationError("ISBN-10 must be exactly 10 digits.")
-        return v
+            raise serializers.ValidationError("ISBN-10 must be exactly 10 characters.")
+        if not _is_isbn10_format(v):
+            raise serializers.ValidationError("ISBN-10 must be 9 digits followed by a digit or X.")
+        return v.upper()
 
     def update(self, instance, validated_data):
         authors_data = validated_data.pop("authorbook_set", None)

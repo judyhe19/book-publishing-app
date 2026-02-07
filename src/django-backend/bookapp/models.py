@@ -1,17 +1,19 @@
+# models.py
 from django.db import models
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 
 # -----------------------------
-# Shared validators (NEW)
+# Shared validators
 # -----------------------------
 isbn_13_digits = RegexValidator(
     regex=r"^\d{13}$",
     message="ISBN-13 must be exactly 13 digits.",
 )
 
-isbn_10_digits = RegexValidator(
-    regex=r"^\d{10}$",
-    message="ISBN-10 must be exactly 10 digits.",
+# CHANGED: allow ISBN-10 check digit to be a digit OR X (upper/lower) in final position
+isbn_10_format = RegexValidator(
+    regex=r"^\d{9}[\dXx]$",
+    message="ISBN-10 must be 10 characters: 9 digits followed by a digit or X.",
 )
 
 
@@ -29,19 +31,18 @@ class Book(models.Model):
     title = models.CharField(max_length=255)
     publication_date = models.DateField()
 
-    # CHANGED: add validators to enforce digits-only + exact length
     isbn_13 = models.CharField(
         max_length=13,
         unique=True,
         validators=[isbn_13_digits],
     )
 
-    # CHANGED: add validators to enforce digits-only + exact length when provided
+    # CHANGED: validator now allows X/x as the last character
     isbn_10 = models.CharField(
         max_length=10,
         blank=True,
         null=True,
-        validators=[isbn_10_digits],
+        validators=[isbn_10_format],
     )
 
     # Financials
@@ -64,7 +65,6 @@ class AuthorBook(models.Model):
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
 
-    # CHANGED: add validators to enforce 0 <= royalty_rate <= 1
     royalty_rate = models.DecimalField(
         max_digits=5,
         decimal_places=4,

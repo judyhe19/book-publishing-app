@@ -136,12 +136,16 @@ class SaleGetView(APIView):
         page_qs = queryset[start:end]
 
         serializer = SaleSerializer(page_qs, many=True)
+
+        # ✅ FIX: never return total_pages = 0 (frontend assumes 1-based pages)
+        total_pages = max(1, ceil(total / page_size))  # total=0 => 1
+
         return Response(
             {
                 "count": total,
                 "page": page,
                 "page_size": page_size,
-                "total_pages": ceil(total / page_size) if page_size else 0,
+                "total_pages": total_pages,
                 "results": serializer.data,
             }
         )

@@ -54,9 +54,15 @@ class SaleCreateSerializer(serializers.ModelSerializer):
         Custom validation to ensure logical consistency.
         """
         error = {}
+        # Get values from data or instance (for partial updates)
         qty = data.get('quantity')
+        if qty is None and self.instance:
+            qty = self.instance.quantity
+            
         rev = data.get('publisher_revenue')
-        
+        if rev is None and self.instance:
+            rev = self.instance.publisher_revenue
+            
         # Handle date logic
         date = data.get('date')
         if date:
@@ -71,7 +77,10 @@ class SaleCreateSerializer(serializers.ModelSerializer):
         elif self.instance:
             date = self.instance.date
 
-        book = data.get('book') if data.get('book') else (self.instance.book if self.instance else None)
+        book = data.get('book') 
+        if not book and self.instance:
+            book = self.instance.book
+            
         author_royalties = data.get('author_royalties', {})
 
         # Required Field Checks
@@ -81,19 +90,16 @@ class SaleCreateSerializer(serializers.ModelSerializer):
             error['date'] = "Date is required."
         if not book:
             error['book'] = "Book is required."
-        if not author_royalties:
-            error['author_royalties'] = "Author royalties are required."
         if rev is None:
             error['publisher_revenue'] = "Publisher revenue is required."
 
         # Logic Checks (only run if value exists)
-        raw_qty = self.initial_data.get('quantity')
-        if raw_qty is not None:
-             if isinstance(raw_qty, float) and not raw_qty.is_integer():
+        if qty is not None:
+             # Check if it's a float that is an integer
+             if isinstance(qty, float) and not qty.is_integer():
                  error['quantity'] = "Quantity must be a valid integer."
-        
-        if qty is not None and qty <= 0:
-            error['quantity'] = "Quantity must be a positive integer."
+             elif isinstance(qty, (int, float)) and qty <= 0:
+                 error['quantity'] = "Quantity must be a positive integer."
 
         if rev is not None and rev < 0:
             error['publisher_revenue'] = "Publisher revenue cannot be negative."
@@ -139,5 +145,7 @@ class SaleCreateSerializer(serializers.ModelSerializer):
         author_royalties = validated_data.pop('author_royalties', {})
         author_paid = validated_data.pop('author_paid', {})
         sale = super().update(instance, validated_data)
+        # Only recreate author sales if we have new royalty/paid data OR if quantity/revenue changed
+        # We really should just always recreate them if we are editing the sale to trigger a recalc
         sale.create_author_sales(author_royalties, author_paid)
         return sale

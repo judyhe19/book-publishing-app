@@ -96,4 +96,5 @@ class BookValidationTest(TestCase):
         # errors['authors'] should be a list where the element at index 0 has the error for royalty_rate
         # OR if it's a field error, it might be in 'authors' key directly?
         # Let's check if 'Royalty rate must be a valid decimal number.' is present in the stringified errors to be safe
-        self.assertTrue("Royalty rate must be a valid decimal number." in str(serializer.errors))
+        # The actual error message is: "Royalty rate for author Test Author must be a valid decimal number."
+        self.assertTrue("Royalty rate for author Test Author must be a valid decimal number." in str(serializer.errors))

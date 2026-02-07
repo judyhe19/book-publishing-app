@@ -32,3 +32,8 @@ export function deleteSalesRecord(saleId) {
 export function getSalesRecord(saleId) {
     return apiFetch(`/api/sale/${saleId}/get`);
 }
+
+export function getAuthorPaymentsGrouped(queryParams = "") {
+  const qs = queryParams ? `?${queryParams}` : "";
+  return apiFetch(`/api/author/payments/grouped${qs}`);
+}

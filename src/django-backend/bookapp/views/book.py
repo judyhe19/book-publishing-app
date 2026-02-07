@@ -156,7 +156,7 @@ class BookListCreateView(APIView):
             "count": total,
             "page": page,
             "page_size": page_size,
-            "total_pages": ceil(total / page_size) if page_size else 0,
+            "total_pages": max(1, ceil(total / page_size)),
             "results": data,
         })
 

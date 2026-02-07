@@ -1,3 +1,4 @@
+// src/features/books/pages/CreateBookPage.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "../../../shared/components/Card";
@@ -28,7 +29,7 @@ export default function CreateBookPage() {
   // --- Author rows (name + royalty) ---
   const [authors, setAuthors] = useState([{ author_name: "", royalty_rate: "0.50" }]);
 
-  // Which author row dropdown is open (for "official" dropdown UI)
+  // Dropdown disabled: keep this always null
   const [openAuthorIdx, setOpenAuthorIdx] = useState(null);
 
   const [submitting, setSubmitting] = useState(false);
@@ -71,12 +72,14 @@ export default function CreateBookPage() {
 
   function addAuthorRow() {
     setAuthors((prev) => [...prev, { author_name: "", royalty_rate: "0.50" }]);
-    setOpenAuthorIdx((cur) => (cur == null ? 0 : cur));
+    // Ensure no dropdown is open
+    setOpenAuthorIdx(null);
   }
 
   function removeAuthorRow(idx) {
     setAuthors((prev) => prev.filter((_, i) => i !== idx));
-    setOpenAuthorIdx((cur) => (cur === idx ? null : cur));
+    // Ensure no dropdown is open (and avoid index-shift issues)
+    setOpenAuthorIdx(null);
   }
 
   async function onSubmit(e) {
@@ -160,15 +163,15 @@ export default function CreateBookPage() {
               <div>
                 <label className="text-sm font-medium text-slate-700">Title</label>
                 <div className="mt-1">
-                  <Input value={title} onChange={(e) => setTitle(e.target.value)} 
-                  required
-                  />
+                  <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
                 </div>
               </div>
 
               {/* Month/Year picker */}
               <div>
-                <label className="text-sm font-medium text-slate-700">Publication date (month, year)</label>
+                <label className="text-sm font-medium text-slate-700">
+                  Publication date (month, year)
+                </label>
                 <div className="mt-1">
                   <input
                     type="month"
@@ -217,7 +220,7 @@ export default function CreateBookPage() {
                   <div>
                     <div className="text-sm font-medium text-slate-700">Authors</div>
                     <div className="text-xs text-slate-500">
-                      Type to filter. New names will be created when you save.
+                      Type the author name(s). New names will be created when you save.
                     </div>
                   </div>
                   <Button type="button" variant="secondary" onClick={addAuthorRow}>
@@ -233,11 +236,13 @@ export default function CreateBookPage() {
 
                 <div className="mt-3 space-y-2">
                   {authors.map((row, idx) => {
+                    // Still compute these to preserve existing “duplicate elsewhere” behavior
+                    // (even though dropdown UI is disabled)
                     const typed = normalizeName(row.author_name);
                     const typedKey = typed.toLowerCase();
 
-                    // Suggestions: filter by substring + hide names selected in another row
-                    const suggestions = authorOptions
+                    // (unused now, but leaving minimal logic intact)
+                    authorOptions
                       .filter((a) => {
                         const key = normalizeName(a.name).toLowerCase();
                         const selectedElsewhere = selectedNames.has(key) && key !== typedKey;
@@ -245,66 +250,31 @@ export default function CreateBookPage() {
                       })
                       .slice(0, 20);
 
-                    const showDropdown = openAuthorIdx === idx && !authorsLoading;
+                    // Hard-disable dropdown: always false
+                    const showDropdown = false && openAuthorIdx === idx && !authorsLoading;
 
                     return (
                       <div key={idx} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                        {/* Author "official" dropdown */}
+                        {/* Author input (no dropdown) */}
                         <div className="sm:w-[28rem] w-full relative">
                           <input
                             className="w-full rounded-xl border border-slate-200 px-3 py-2"
                             value={row.author_name}
                             onChange={(e) => {
                               updateAuthorRow(idx, { author_name: e.target.value });
-                              setOpenAuthorIdx(idx);
+                              // Ensure dropdown never opens
+                              setOpenAuthorIdx(null);
                             }}
-                            onFocus={() => setOpenAuthorIdx(idx)}
-                            onBlur={() => {
-                              // Delay closing so clicks on options still register
-                              setTimeout(
-                                () => setOpenAuthorIdx((cur) => (cur === idx ? null : cur)),
-                                120
-                              );
-                            }}
+                            onFocus={() => setOpenAuthorIdx(null)}
+                            onBlur={() => setOpenAuthorIdx(null)}
                             placeholder={
-                              authorsLoading ? "Loading authors..." : "Start typing an author..."
+                              authorsLoading ? "Loading authors..." : "Enter an author name..."
                             }
                             required
                           />
 
                           {showDropdown ? (
-                            <div className="absolute z-20 mt-1 w-full rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
-                              {typed.length === 0 ? (
-                                <div className="px-3 py-2 text-sm text-slate-500">
-                                  Start typing to search authors…
-                                </div>
-                              ) : suggestions.length === 0 ? (
-                                <div className="px-3 py-2 text-sm text-slate-500">
-                                  No matches — will create “{typed}” on save
-                                </div>
-                              ) : (
-                                <ul className="max-h-56 overflow-auto">
-                                  {suggestions.map((a) => (
-                                    <li key={a.id}>
-                                      <button
-                                        type="button"
-                                        className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
-                                        onMouseDown={(ev) => {
-                                          // Prevent input blur from closing dropdown before click
-                                          ev.preventDefault();
-                                        }}
-                                        onClick={() => {
-                                          updateAuthorRow(idx, { author_name: a.name });
-                                          setOpenAuthorIdx(null);
-                                        }}
-                                      >
-                                        {a.name}
-                                      </button>
-                                    </li>
-                                  ))}
-                                </ul>
-                              )}
-                            </div>
+                            <div className="absolute z-20 mt-1 w-full rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden" />
                           ) : null}
                         </div>
 

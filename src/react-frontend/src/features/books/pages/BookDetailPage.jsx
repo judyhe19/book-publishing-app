@@ -434,20 +434,37 @@ export default function BookDetailPage() {
                   </div>
                 </div>
 
-                <div>
-                  <div className="text-xs font-semibold uppercase text-slate-500">Authors</div>
-                  {(book.authors || []).length === 0 ? (
-                    <div className="text-slate-500">—</div>
-                  ) : (
-                    <div className="mt-2 space-y-1">
-                      {book.authors.map((a) => (
-                        <div key={a.author_id} className="flex items-center justify-between gap-3">
-                          <div className="text-slate-900">{a.name}</div>
-                          <div className="text-slate-700">{pct(a.royalty_rate)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                {/* ✅ Authors + Royalty Rate aligned like other 2-col fields */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <div className="text-xs font-semibold uppercase text-slate-500">Authors</div>
+                    {(book.authors || []).length === 0 ? (
+                      <div className="text-slate-500">—</div>
+                    ) : (
+                      <div className="mt-2 space-y-1">
+                        {book.authors.map((a) => (
+                          <div key={a.author_id} className="text-slate-900">
+                            {a.name}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-semibold uppercase text-slate-500">Royalty Rate</div>
+                    {(book.authors || []).length === 0 ? (
+                      <div className="text-slate-500">—</div>
+                    ) : (
+                      <div className="mt-2 space-y-1">
+                        {book.authors.map((a) => (
+                          <div key={a.author_id} className="text-slate-900">
+                            {pct(a.royalty_rate)}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ) : (

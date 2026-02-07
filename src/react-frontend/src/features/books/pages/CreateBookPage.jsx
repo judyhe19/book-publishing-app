@@ -194,7 +194,6 @@ export default function CreateBookPage() {
                       value={isbn13}
                       onChange={(e) => setIsbn13(e.target.value)}
                       placeholder="978..."
-                      maxLength={13}
                       required
                     />
                   </div>
@@ -207,7 +206,6 @@ export default function CreateBookPage() {
                       value={isbn10}
                       onChange={(e) => setIsbn10(e.target.value)}
                       placeholder="0441172717"
-                      maxLength={10}
                     />
                   </div>
                 </div>

@@ -161,23 +161,30 @@ class BookSalesTotalsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, book_id):
-        qs = Sale.objects.filter(book_id=book_id)
-
-        totals = qs.aggregate(
-            publisher_revenue=Coalesce(
+        from ..models import AuthorSale
+        
+        # ✅ FIX: Calculate publisher_revenue separately to avoid duplication
+        # When we join Sale with author_sales, publisher_revenue gets duplicated
+        # for each author on the sale. So we calculate it in a separate query.
+        publisher_revenue = Sale.objects.filter(book_id=book_id).aggregate(
+            total=Coalesce(
                 Sum("publisher_revenue"),
                 Value(0),
                 output_field=DecimalField(),
-            ),
+            )
+        )["total"]
+
+        # Calculate royalty totals from AuthorSale directly (no join duplication)
+        royalty_totals = AuthorSale.objects.filter(sale__book_id=book_id).aggregate(
             total_royalties=Coalesce(
-                Sum("author_sales__royalty_amount"),
+                Sum("royalty_amount"),
                 Value(0),
                 output_field=DecimalField(),
             ),
             paid_royalties=Coalesce(
                 Sum(
                     Case(
-                        When(author_sales__author_paid=True, then="author_sales__royalty_amount"),
+                        When(author_paid=True, then="royalty_amount"),
                         default=Value(0),
                         output_field=DecimalField(),
                     )
@@ -188,7 +195,7 @@ class BookSalesTotalsView(APIView):
             unpaid_royalties=Coalesce(
                 Sum(
                     Case(
-                        When(author_sales__author_paid=False, then="author_sales__royalty_amount"),
+                        When(author_paid=False, then="royalty_amount"),
                         default=Value(0),
                         output_field=DecimalField(),
                     )
@@ -201,10 +208,10 @@ class BookSalesTotalsView(APIView):
         return Response(
             {
                 "book_id": book_id,
-                "publisher_revenue": str(totals["publisher_revenue"]),
-                "total_royalties": str(totals["total_royalties"]),
-                "paid_royalties": str(totals["paid_royalties"]),
-                "unpaid_royalties": str(totals["unpaid_royalties"]),
+                "publisher_revenue": str(publisher_revenue),
+                "total_royalties": str(royalty_totals["total_royalties"]),
+                "paid_royalties": str(royalty_totals["paid_royalties"]),
+                "unpaid_royalties": str(royalty_totals["unpaid_royalties"]),
             },
             status=status.HTTP_200_OK,
         )

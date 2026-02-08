@@ -29,13 +29,13 @@ export default function CreateBookPage() {
   // --- Author rows (name + royalty) ---
   const [authors, setAuthors] = useState([{ author_name: "", royalty_rate: "0.50" }]);
 
-  // Dropdown disabled: keep this always null
+  // Which author input dropdown is open (null = none)
   const [openAuthorIdx, setOpenAuthorIdx] = useState(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
 
-  // Prevent duplicates across rows
+  // Prevent duplicates across rows (for dropdown filtering only)
   const selectedNames = useMemo(() => {
     return new Set(
       authors
@@ -72,13 +72,13 @@ export default function CreateBookPage() {
 
   function addAuthorRow() {
     setAuthors((prev) => [...prev, { author_name: "", royalty_rate: "0.50" }]);
-    // Ensure no dropdown is open
+    // Prevent the “auto-open on add” bug
     setOpenAuthorIdx(null);
   }
 
   function removeAuthorRow(idx) {
     setAuthors((prev) => prev.filter((_, i) => i !== idx));
-    // Ensure no dropdown is open (and avoid index-shift issues)
+    // Avoid index-shift issues
     setOpenAuthorIdx(null);
   }
 
@@ -88,58 +88,19 @@ export default function CreateBookPage() {
     setSubmitting(true);
 
     try {
+      // No frontend validation beyond "required" inputs —
+      // backend is the source of truth and is now atomic.
       const cleanedAuthors = authors.map((r) => ({
         author_name: normalizeName(r.author_name),
         royalty_rate: String(r.royalty_rate).trim(),
       }));
-
-      if (!title.trim()) throw new Error("Title is required.");
-      if (!publicationMonth) throw new Error("Publication date (month, year) is required.");
-
-      for (const r of cleanedAuthors) {
-        if (!r.author_name) throw new Error("Each author must have a name.");
-        if (!r.royalty_rate) throw new Error("Each author must have a royalty rate.");
-      }
-
-      // duplicates by name
-      const nameSet = new Set(cleanedAuthors.map((r) => r.author_name.toLowerCase()));
-      if (nameSet.size !== cleanedAuthors.length) {
-        throw new Error("Please don’t enter the same author more than once.");
-      }
-
-      // map existing authors by name
-      const byName = new Map(authorOptions.map((a) => [normalizeName(a.name).toLowerCase(), a]));
-
-      // resolve IDs (create missing authors via POST /authors/)
-      const resolvedAuthors = [];
-      for (const r of cleanedAuthors) {
-        const key = r.author_name.toLowerCase();
-        let found = byName.get(key);
-
-        if (!found) {
-          found = await booksApi.createAuthor(r.author_name); // returns {id, name} (200 or 201)
-          byName.set(key, found);
-
-          // update options in UI
-          setAuthorOptions((prev) => {
-            const exists = prev.some((a) => a.id === found.id);
-            const next = exists ? prev : [...prev, found];
-            return next.sort((a, b) => a.name.localeCompare(b.name));
-          });
-        }
-
-        resolvedAuthors.push({
-          author_id: found.id,
-          royalty_rate: r.royalty_rate,
-        });
-      }
 
       const payload = {
         title: title.trim(),
         publication_date: `${publicationMonth}-01`, // default day = 1
         isbn_13: isbn13.replaceAll("-", "").trim(),
         isbn_10: isbn10.trim() === "" ? null : isbn10.replaceAll("-", "").trim(),
-        authors: resolvedAuthors,
+        authors: cleanedAuthors, // ✅ send names, backend creates missing authors atomically
       };
 
       await booksApi.createBook(payload);
@@ -152,7 +113,6 @@ export default function CreateBookPage() {
   }
 
   return (
-    // Centered page (like login)
     <div className="min-h-screen flex items-start justify-center p-6">
       <div className="w-full max-w-3xl">
         <Card>
@@ -195,7 +155,6 @@ export default function CreateBookPage() {
                       value={isbn13}
                       onChange={(e) => setIsbn13(e.target.value)}
                       placeholder="978..."
-                      maxLength={13}
                       required
                     />
                   </div>
@@ -208,7 +167,6 @@ export default function CreateBookPage() {
                       value={isbn10}
                       onChange={(e) => setIsbn10(e.target.value)}
                       placeholder="0441172717"
-                      maxLength={10}
                     />
                   </div>
                 </div>
@@ -220,7 +178,7 @@ export default function CreateBookPage() {
                   <div>
                     <div className="text-sm font-medium text-slate-700">Authors</div>
                     <div className="text-xs text-slate-500">
-                      Type the author name(s). New names will be created when you save.
+                      Type the author name(s). The backend will create missing names atomically when you save.
                     </div>
                   </div>
                   <Button type="button" variant="secondary" onClick={addAuthorRow}>
@@ -236,45 +194,58 @@ export default function CreateBookPage() {
 
                 <div className="mt-3 space-y-2">
                   {authors.map((row, idx) => {
-                    // Still compute these to preserve existing “duplicate elsewhere” behavior
-                    // (even though dropdown UI is disabled)
                     const typed = normalizeName(row.author_name);
                     const typedKey = typed.toLowerCase();
 
-                    // (unused now, but leaving minimal logic intact)
-                    authorOptions
-                      .filter((a) => {
-                        const key = normalizeName(a.name).toLowerCase();
-                        const selectedElsewhere = selectedNames.has(key) && key !== typedKey;
-                        return !selectedElsewhere && key.includes(typedKey);
-                      })
-                      .slice(0, 20);
+                    const matches = authorsLoading
+                      ? []
+                      : authorOptions
+                          .filter((a) => {
+                            const key = normalizeName(a.name).toLowerCase();
+                            const selectedElsewhere = selectedNames.has(key) && key !== typedKey;
+                            return !selectedElsewhere && (typedKey === "" || key.includes(typedKey));
+                          })
+                          .slice(0, 20);
 
-                    // Hard-disable dropdown: always false
-                    const showDropdown = false && openAuthorIdx === idx && !authorsLoading;
+                    const showDropdown =
+                      openAuthorIdx === idx && !authorsLoading && matches.length > 0;
 
                     return (
                       <div key={idx} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                        {/* Author input (no dropdown) */}
+                        {/* Author input + dropdown */}
                         <div className="sm:w-[28rem] w-full relative">
                           <input
                             className="w-full rounded-xl border border-slate-200 px-3 py-2"
                             value={row.author_name}
                             onChange={(e) => {
                               updateAuthorRow(idx, { author_name: e.target.value });
-                              // Ensure dropdown never opens
-                              setOpenAuthorIdx(null);
+                              setOpenAuthorIdx(idx);
                             }}
-                            onFocus={() => setOpenAuthorIdx(null)}
-                            onBlur={() => setOpenAuthorIdx(null)}
-                            placeholder={
-                              authorsLoading ? "Loading authors..." : "Enter an author name..."
-                            }
+                            onFocus={() => setOpenAuthorIdx(idx)}
+                            onBlur={() => {
+                              setTimeout(() => setOpenAuthorIdx(null), 120);
+                            }}
+                            placeholder={authorsLoading ? "Loading authors..." : "Enter an author name..."}
                             required
                           />
 
                           {showDropdown ? (
-                            <div className="absolute z-20 mt-1 w-full rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden" />
+                            <div className="absolute z-20 mt-1 w-full rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
+                              {matches.map((a) => (
+                                <button
+                                  key={a.id}
+                                  type="button"
+                                  className="block w-full text-left px-3 py-2 hover:bg-slate-50"
+                                  onMouseDown={(ev) => ev.preventDefault()}
+                                  onClick={() => {
+                                    updateAuthorRow(idx, { author_name: a.name });
+                                    setOpenAuthorIdx(null);
+                                  }}
+                                >
+                                  {a.name}
+                                </button>
+                              ))}
+                            </div>
                           ) : null}
                         </div>
 
@@ -283,9 +254,7 @@ export default function CreateBookPage() {
                           <input
                             className="w-full rounded-xl border border-slate-200 px-3 py-2"
                             value={row.royalty_rate}
-                            onChange={(e) =>
-                              updateAuthorRow(idx, { royalty_rate: e.target.value })
-                            }
+                            onChange={(e) => updateAuthorRow(idx, { royalty_rate: e.target.value })}
                             placeholder="0.50"
                             required
                           />
@@ -293,11 +262,7 @@ export default function CreateBookPage() {
 
                         {/* Remove row */}
                         {authors.length > 1 ? (
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={() => removeAuthorRow(idx)}
-                          >
+                          <Button type="button" variant="secondary" onClick={() => removeAuthorRow(idx)}>
                             Remove
                           </Button>
                         ) : null}

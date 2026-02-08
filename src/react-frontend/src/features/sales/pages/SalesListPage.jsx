@@ -77,7 +77,7 @@ export default function SalesListPage() {
             className="mt-4 overflow-x-auto"
             style={{ height: "20px" }}
           >
-            <div style={{ width: "1400px", height: "1px" }} />
+            <div style={{ width: "1800px", height: "1px" }} />
           </div>
 
           {/* Table with bottom scrollbar */}
@@ -86,7 +86,7 @@ export default function SalesListPage() {
             onScroll={handleBottomScroll}
             className="overflow-x-auto"
           >
-            <div style={{ minWidth: "1400px" }}>
+            <div style={{ minWidth: "1800px" }}>
               <SalesTable
                 data={sales}
                 loading={loading}

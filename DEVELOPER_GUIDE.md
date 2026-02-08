@@ -124,7 +124,7 @@ erDiagram
         int id PK
         int author_id FK
         int book_id FK
-        decimal royalty_rate "0.0 - 1.0"
+        decimal royalty_rate
     }
 
     SALE {

@@ -271,51 +271,29 @@ export default function BookDetailPage() {
         royalty_rate: String(r.royalty_rate).trim(),
       }));
 
-      if (!title.trim()) throw new Error("Title is required.");
-      if (!publicationMonth) throw new Error("Publication month/year is required.");
-
-      for (const r of cleanedAuthors) {
-        if (!r.author_name) throw new Error("Each author must have a name.");
-        if (!r.royalty_rate) throw new Error("Each author must have a royalty rate.");
-      }
-
-      const nameSet = new Set(cleanedAuthors.map((r) => r.author_name.toLowerCase()));
-      if (nameSet.size !== cleanedAuthors.length) {
-        throw new Error("Please don’t enter the same author more than once.");
-      }
-
-      const byName = new Map(authorOptions.map((a) => [normalizeName(a.name).toLowerCase(), a]));
-
-      const resolvedAuthors = [];
-      for (const r of cleanedAuthors) {
-        const key = r.author_name.toLowerCase();
-        let found = byName.get(key);
-
-        if (!found) {
-          found = await booksApi.createAuthor(r.author_name);
-          byName.set(key, found);
-          setAuthorOptions((prev) => {
-            const exists = prev.some((x) => x.id === found.id);
-            const next = exists ? prev : [...prev, found];
-            return next.sort((x, y) => x.name.localeCompare(y.name));
-          });
-        }
-
-        resolvedAuthors.push({ author_id: found.id, royalty_rate: r.royalty_rate });
-      }
-
+      // ✅ No frontend validation required for correctness.
+      // The backend is now atomic and will validate everything.
       const payload = {
         title: title.trim(),
         publication_date: `${publicationMonth}-01`,
         isbn_13: isbn13.replaceAll("-", "").trim(),
         isbn_10: isbn10.trim() === "" ? null : isbn10.replaceAll("-", "").trim(),
-        authors: resolvedAuthors,
+        authors: cleanedAuthors, // ✅ send names; backend creates missing authors atomically
       };
 
       const updated = await booksApi.updateBook(bookId, payload);
+
       setBook(updated);
       setEditing(false);
       resetFormToBook(updated);
+
+      // Optional: refresh dropdown suggestions (so newly created author names appear)
+      try {
+        const a = await booksApi.listAuthors();
+        setAuthorOptions(Array.isArray(a) ? a : []);
+      } catch {
+        // ignore
+      }
     } catch (e) {
       setErr(errorMessage(e));
     } finally {
@@ -434,7 +412,6 @@ export default function BookDetailPage() {
                   </div>
                 </div>
 
-                {/* ✅ Authors + Royalty Rate aligned like other 2-col fields */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <div className="text-xs font-semibold uppercase text-slate-500">Authors</div>
@@ -601,7 +578,6 @@ export default function BookDetailPage() {
               </div>
             </div>
 
-            {/* ✅ Show all / Paginate toggle for THIS book's sales */}
             <div className="mb-3 flex items-center justify-end">
               <Button variant="secondary" onClick={toggleSalesShowAll}>
                 {salesShowAll ? "Paginate" : "Show all"}
@@ -615,7 +591,6 @@ export default function BookDetailPage() {
               onSort={handleSalesSort}
             />
 
-            {/* ✅ pagination controls only when paginating */}
             {!salesShowAll ? (
               <div className="mt-4">
                 <SalesPagination

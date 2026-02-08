@@ -2,7 +2,7 @@ import pytest
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 
-from bookapp.models import Book, Author, AuthorBook
+from bookapp.models import Book, Author, AuthorBook, Sale
 
 pytestmark = pytest.mark.django_db
 
@@ -43,7 +43,7 @@ def make_book(*, isbn_13, title="T", authors=None):
         publication_date="2000-01-01",
         isbn_13=isbn_13,
         isbn_10=None,
-        total_sales_to_date=0,
+        # total_sales_to_date removed from model; do not set it
     )
 
     if authors:
@@ -63,7 +63,7 @@ def test_get_books_requires_auth(api_client):
     assert resp.status_code in (401, 403)
 
 
-def test_post_creates_book_and_total_sales_defaults_to_zero(authed_client):
+def test_post_creates_book_and_total_sales_is_zero_via_computation(authed_client):
     a1 = make_author()
 
     payload = {
@@ -84,8 +84,13 @@ def test_post_creates_book_and_total_sales_defaults_to_zero(authed_client):
     created_id = resp.data["id"]
     book = Book.objects.get(id=created_id)
 
-    # Field should default to 0 server-side
-    assert book.total_sales_to_date == 0
+    # ✅ total_sales_to_date is computed from Sale.quantity; with no sales, it should be 0.
+    assert (Sale.objects.filter(book=book).aggregate(total=pytest.importorskip("django").db.models.Sum("quantity"))["total"] or 0) == 0
+
+    # Also verify the API returns 0 for total_sales_to_date on a GET (annotated queryset)
+    resp_get = authed_client.get(f"/api/books/{book.id}/")
+    assert resp_get.status_code == 200, resp_get.content
+    assert resp_get.data["total_sales_to_date"] == 0
 
     # through table row created correctly
     through = AuthorBook.objects.get(book=book, author=a1)
@@ -255,6 +260,7 @@ def test_get_books_published_before_filter(authed_client):
     resp = authed_client.get("/api/books/?published_before=2025-01-01")
     assert resp.status_code == 200
     assert resp.data["count"] == 2
+
 
 def test_get_books_search_by_author_name(authed_client):
     a1 = make_author(name="Frank Herbert")

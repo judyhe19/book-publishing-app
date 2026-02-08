@@ -59,9 +59,23 @@ export function AppRoutes() {
         }
       />
 
-      <Route path="/sales/authors" element={<AuthorPaymentsPage />} />
+      <Route 
+        path="/sales/authors" 
+        element={
+          <RequireAuth>
+            <AuthorPaymentsPage />
+          </RequireAuth>
+        } 
+      />
 
-      <Route path="/sale/:saleId" element={<SalesDetailPage />} />
+      <Route 
+        path="/sale/:saleId" 
+        element={
+          <RequireAuth>
+            <SalesDetailPage />
+          </RequireAuth>
+        } 
+      />
 
       <Route
         path="/sales/input"

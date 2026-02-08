@@ -35,8 +35,7 @@ export function DeleteBookDialog({ open, book, deleting, onCancel, onConfirm }) 
         {hasSales ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
             <span className="font-semibold">Warning:</span> This book has existing sales
-            records (Total Sales: {book?.total_sales_to_date}). Deleting it may
-            impact reporting/history.
+            records (Total Sales: {book?.total_sales_to_date}). Deleting will delete all existing sales for this book.
           </div>
         ) : (
           <div className="text-sm text-slate-600">

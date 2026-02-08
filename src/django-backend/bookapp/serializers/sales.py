@@ -1,3 +1,5 @@
+# serializers (ONLY change: do NOT recreate AuthorSale rows on update; apply overrides to existing rows only if provided)
+
 from rest_framework import serializers
 import datetime
 from ..models import Sale, Book, Author, AuthorSale, AuthorBook
@@ -140,12 +142,23 @@ class SaleCreateSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         """
-        Update a Sale instance and recreate associated AuthorSales.
+        Update a Sale instance WITHOUT recreating associated AuthorSales.
+        (Past sales must not change authors/default royalties retroactively.)
         """
         author_royalties = validated_data.pop('author_royalties', {})
         author_paid = validated_data.pop('author_paid', {})
+
         sale = super().update(instance, validated_data)
-        # Only recreate author sales if we have new royalty/paid data OR if quantity/revenue changed
-        # We really should just always recreate them if we are editing the sale to trigger a recalc
-        sale.create_author_sales(author_royalties, author_paid)
+
+        # Apply explicit overrides ONLY to existing AuthorSale rows (no recreation).
+        if author_royalties or author_paid:
+            qs = sale.author_sales.all()
+            for ars in qs:
+                key = str(ars.author_id)
+                if key in author_royalties:
+                    ars.royalty_amount = author_royalties[key]
+                if key in author_paid:
+                    ars.author_paid = bool(author_paid[key])
+                ars.save()
+
         return sale

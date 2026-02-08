@@ -1,3 +1,5 @@
+# sales endpoints (ONLY change: do NOT delete author_sales on edit)
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -259,9 +261,8 @@ class SaleEditView(APIView):
         serializer = SaleCreateSerializer(sale, data=data, partial=partial)
         if serializer.is_valid():
             with transaction.atomic():
-                sale.author_sales.all().delete()
+                # ✅ IMPORTANT: do NOT delete author_sales on edit (historical snapshot)
                 updated_sale = serializer.save()
-
 
             full_serializer = SaleSerializer(updated_sale)
             return Response(full_serializer.data)

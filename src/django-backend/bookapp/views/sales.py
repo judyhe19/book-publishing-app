@@ -1,4 +1,7 @@
-# sales endpoints (ONLY change: do NOT delete author_sales on edit)
+# views/sales.py
+# ✅ ONLY functional change: in SaleEditView, if the sale's book changes during edit,
+#    rebuild AuthorSale rows from the *new* book's AuthorBook rows.
+#    Everything else is unchanged.
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -250,6 +253,9 @@ class SaleEditView(APIView):
         sale = get_object_or_404(Sale, id=sale_id)
         old_quantity = sale.quantity
 
+        # ✅ track old book to detect a book change during edit
+        old_book_id = sale.book_id
+
         fields_param = request.query_params.get("fields")
         partial = True
 
@@ -258,11 +264,45 @@ class SaleEditView(APIView):
             allowed_fields = fields_param.split(",")
             data = {k: v for k, v in request.data.items() if k in allowed_fields}
 
+        # ✅ capture possible overrides from the incoming request (if provided)
+        #    (keys in these dicts are typically strings)
+        incoming_author_royalties = data.get("author_royalties") or {}
+        incoming_author_paid = data.get("author_paid") or {}
+
         serializer = SaleCreateSerializer(sale, data=data, partial=partial)
         if serializer.is_valid():
             with transaction.atomic():
                 # ✅ IMPORTANT: do NOT delete author_sales on edit (historical snapshot)
+                #    ...EXCEPT when the sale's *book* itself changes: then rebuild AuthorSale rows for the new book.
                 updated_sale = serializer.save()
+
+                # ✅ ONLY NEW BEHAVIOR:
+                # If the user changed the sale's associated book, reset author_sales
+                # to match the current AuthorBook rows for the newly selected book.
+                if updated_sale.book_id != old_book_id:
+                    # Remove old author allocations (they belong to the previous book)
+                    AuthorSale.objects.filter(sale=updated_sale).delete()
+
+                    # Recreate allocations using the new book's current author set
+                    author_books = AuthorBook.objects.select_related("author").filter(book=updated_sale.book)
+
+                    for ab in author_books:
+                        key = str(ab.author_id)
+
+                        # Override royalty if provided; otherwise compute from current revenue snapshot
+                        if key in incoming_author_royalties:
+                            royalty_amount = incoming_author_royalties[key]
+                        else:
+                            royalty_amount = updated_sale.publisher_revenue * ab.royalty_rate
+
+                        author_paid = bool(incoming_author_paid.get(key, False))
+
+                        AuthorSale.objects.create(
+                            sale=updated_sale,
+                            author=ab.author,
+                            royalty_amount=royalty_amount,
+                            author_paid=author_paid,
+                        )
 
             full_serializer = SaleSerializer(updated_sale)
             return Response(full_serializer.data)

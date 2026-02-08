@@ -1,5 +1,5 @@
 // src/features/books/pages/BooksListPage.jsx
-import React from "react";
+import React, { useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useBooksList } from "../hooks/useBooksList";
@@ -28,6 +28,22 @@ export default function BooksListPage() {
     setShowAll,
   } = useBooksList({ pageSize: 50, ordering: "title" });
 
+  // Synchronized scroll refs for top and bottom scrollbars
+  const topScrollRef = useRef(null);
+  const bottomScrollRef = useRef(null);
+
+  const handleTopScroll = useCallback(() => {
+    if (bottomScrollRef.current && topScrollRef.current) {
+      bottomScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+    }
+  }, []);
+
+  const handleBottomScroll = useCallback(() => {
+    if (topScrollRef.current && bottomScrollRef.current) {
+      topScrollRef.current.scrollLeft = bottomScrollRef.current.scrollLeft;
+    }
+  }, []);
+
   const onCreateBook = () => {
     navigate("/books/input");
   };
@@ -37,7 +53,7 @@ export default function BooksListPage() {
   };
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-4 max-w-full">
       <BooksToolbar q={q} onChangeQ={setQ} onCreateBook={onCreateBook} />
 
       <div className="flex items-center justify-between">
@@ -59,12 +75,31 @@ export default function BooksListPage() {
 
       {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
-      <BooksTable
-        books={books}
-        ordering={ordering}
-        onToggleOrdering={toggleOrdering}
-        onGoBook={onGoBook}
-      />
+      {/* Top scrollbar */}
+      <div
+        ref={topScrollRef}
+        onScroll={handleTopScroll}
+        className="overflow-x-auto"
+        style={{ height: "20px" }}
+      >
+        <div style={{ width: "1400px", height: "1px" }} />
+      </div>
+
+      {/* Table with bottom scrollbar */}
+      <div
+        ref={bottomScrollRef}
+        onScroll={handleBottomScroll}
+        className="overflow-x-auto"
+      >
+        <div style={{ minWidth: "1400px" }}>
+          <BooksTable
+            books={books}
+            ordering={ordering}
+            onToggleOrdering={toggleOrdering}
+            onGoBook={onGoBook}
+          />
+        </div>
+      </div>
 
       {!showAll && (
         <BooksPagination

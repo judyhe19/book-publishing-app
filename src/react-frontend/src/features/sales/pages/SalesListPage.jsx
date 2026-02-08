@@ -1,12 +1,12 @@
 import { useNavigate } from "react-router-dom";
-import React from "react";
+import React, { useRef, useCallback } from "react";
 import { useSalesList } from "../hooks/useSalesList";
 import { Button } from "../../../shared/components/Button";
 import { Card, CardContent } from "../../../shared/components/Card";
 
 import SalesFilters from "../components/SalesFilters";
 import SalesTable from "../components/SalesTable";
-import SalesPagination from "../components/SalesPagination"; // ✅ ADDED
+import SalesPagination from "../components/SalesPagination";
 
 export default function SalesListPage() {
   const navigate = useNavigate();
@@ -17,19 +17,35 @@ export default function SalesListPage() {
     handleSort,
     handleDateChange,
 
-    // ✅ pagination + count
+    // pagination + count
     page,
     totalPages,
     setPage,
     count,
 
-    // ✅ show-all toggle
+    // show-all toggle
     showAll,
     toggleShowAll,
   } = useSalesList();
 
+  // Synchronized scroll refs for top and bottom scrollbars
+  const topScrollRef = useRef(null);
+  const bottomScrollRef = useRef(null);
+
+  const handleTopScroll = useCallback(() => {
+    if (bottomScrollRef.current && topScrollRef.current) {
+      bottomScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+    }
+  }, []);
+
+  const handleBottomScroll = useCallback(() => {
+    if (topScrollRef.current && bottomScrollRef.current) {
+      topScrollRef.current.scrollLeft = bottomScrollRef.current.scrollLeft;
+    }
+  }, []);
+
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-full mx-auto">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Sales Records</h1>
@@ -54,26 +70,42 @@ export default function SalesListPage() {
             </Button>
           </div>
 
-          {/* Table */}
-          <div className="mt-4">
-            <SalesTable
-              data={sales}
-              loading={loading}
-              ordering={filters.ordering}
-              onSort={handleSort}
-            />
+          {/* Top scrollbar */}
+          <div
+            ref={topScrollRef}
+            onScroll={handleTopScroll}
+            className="mt-4 overflow-x-auto"
+            style={{ height: "20px" }}
+          >
+            <div style={{ width: "1400px", height: "1px" }} />
+          </div>
+
+          {/* Table with bottom scrollbar */}
+          <div
+            ref={bottomScrollRef}
+            onScroll={handleBottomScroll}
+            className="overflow-x-auto"
+          >
+            <div style={{ minWidth: "1400px" }}>
+              <SalesTable
+                data={sales}
+                loading={loading}
+                ordering={filters.ordering}
+                onSort={handleSort}
+              />
+            </div>
           </div>
 
           {/* Count + Pagination */}
           <div className="mt-4">
-          {!showAll ? (
-             <SalesPagination
-             page={page}
-             totalPages={totalPages}
-             onPrev={() => setPage((p) => Math.max(1, p - 1))}
-             onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+            {!showAll ? (
+              <SalesPagination
+                page={page}
+                totalPages={totalPages}
+                onPrev={() => setPage((p) => Math.max(1, p - 1))}
+                onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
               />
-          ) : null}
+            ) : null}
           </div>
 
         </CardContent>

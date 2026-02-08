@@ -14,7 +14,7 @@ from .views.sales import (
     SaleEditView,
     SaleDeleteView,
     SalePayAuthorsView,
-    BookSalesTotalsView,  # ✅ ADDED
+    BookSalesTotalsView,
 )
 
 from .views.author import AuthorUnpaidSubtotalView, AuthorPayUnpaidSalesView
@@ -40,7 +40,6 @@ urlpatterns = [
     path("sale/<int:sale_id>", SaleDeleteView.as_view()),
     path("sale/<int:sale_id>/pay_authors", SalePayAuthorsView.as_view()),
 
-    # ✅ NEW totals endpoint for Book Detail page
     path("sale/book/<int:book_id>/totals", BookSalesTotalsView.as_view()),
 
     path("author/<int:author_id>/unpaid/subtotal", AuthorUnpaidSubtotalView.as_view()),

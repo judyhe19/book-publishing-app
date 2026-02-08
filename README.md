@@ -1,19 +1,23 @@
 # Book Publishing App
 
 # Rules
-* Only run `./deploy.sh` on `main` branch to deploy to VM (production)
-* Only run `./dev.sh` on `dev` branch to deploy to local (development)
+
+- Only run `./deploy.sh` on `prod` branch to deploy to VM (production)
+- Only run `./dev.sh` on `main` branch to deploy to local (development)
 
 # Setup Guide
 
 ## 1. Local Development Setup
+
 Use this workflow to run the application on your own machine (Mac/Windows/Linux) for testing and development.
 
 ### Prerequisites
-* **Docker Desktop** installed and running.
-* **Git** installed.
+
+- **Docker Desktop** installed and running.
+- **Git** installed.
 
 ### Step 1: Configuration
+
 Create a `.env` file in the project root directory. This file holds your secrets and configuration.
 
 ```bash
@@ -49,8 +53,8 @@ chmod +x dev.sh
 
 ```
 
-* **Frontend:** [http://localhost](https://www.google.com/search?q=http://localhost) (Updates instantly when you save files)
-* **Backend Admin:** [http://localhost:8000/admin/](https://www.google.com/search?q=http://localhost:8000/admin/)
+- **Frontend:** [http://localhost](https://www.google.com/search?q=http://localhost) (Updates instantly when you save files)
+- **Backend Admin:** [http://localhost:8000/admin/](https://www.google.com/search?q=http://localhost:8000/admin/)
 
 ### Step 3: Database Management (Local)
 
@@ -92,12 +96,15 @@ docker compose -f docker-compose.dev.yml exec backend python manage.py createsup
 ```
 
 ### Troubleshooting Local Dev
-* **Database connection errors?** If you changed the DB name or user recently, you may need to wipe the old volume:
+
+- **Database connection errors?** If you changed the DB name or user recently, you may need to wipe the old volume:
+
 ```bash
 docker compose -f docker-compose.dev.yml down -v
 
 ```
-* **Docker command not found?** Ensure Docker Desktop is running.
+
+- **Docker command not found?** Ensure Docker Desktop is running.
 
 ---
 
@@ -107,9 +114,9 @@ Use this workflow to deploy your application to the Duke VM with HTTPS enabled.
 
 ### Prerequisites
 
-* **SSH Access** to your Duke VM (`vcm-xxxxx.vm.duke.edu`).
-* **Docker Hub Account** (to store your images).
-* **Docker** installed on the VM and your user added to the `docker` group.
+- **SSH Access** to your Duke VM (`vcm-xxxxx.vm.duke.edu`).
+- **Docker Hub Account** (to store your images).
+- **Docker** installed on the VM and your user added to the `docker` group.
 
 ### Step 1: Configure Deployment Script
 
@@ -127,16 +134,17 @@ VM_HOST="vcm-51984.vm.duke.edu"  # Your VM Address
 You must perform this setup **once** to generate the initial certificates.
 
 1. **Create the Init Script:**
-Create a file named `init-letsencrypt.sh` in your project root (content provided in the implementation guide).
+   Create a file named `init-letsencrypt.sh` in your project root (content provided in the implementation guide).
 2. **Copy Script to Server:**
+
 ```bash
 scp init-letsencrypt.sh yh381@vcm-51984.vm.duke.edu:~/book-app-deployment/
 
 ```
 
-
 3. **Run Initialization on Server:**
-SSH into the VM and run the script. This will start Nginx, request certificates from Let's Encrypt, and reload the server.
+   SSH into the VM and run the script. This will start Nginx, request certificates from Let's Encrypt, and reload the server.
+
 ```bash
 ssh yh381@vcm-51984.vm.duke.edu
 cd ~/book-app-deployment
@@ -193,27 +201,29 @@ docker exec -it book-app-deployment-backend-1 python manage.py createsuperuser
 ```
 
 ### View DB
+
 Local: `docker compose -f docker-compose.dev.yml exec backend python manage.py inspectdb`
 Remote: `docker exec -it book-app-deployment-backend-1 python manage.py inspectdb`
+
 ### View Logs
+
 Local: `docker compose -f docker-compose.dev.yml logs -f backend` (can also view frontend)
 Remote: `docker logs -f book-app-deployment-backend-1` (can also view frontend)
 
 ### Verification
 
-* **Public URL:** `https://vcm-51984.vm.duke.edu`
-* **Admin Panel:** `https://vcm-51984.vm.duke.edu/admin/`
+- **Public URL:** `https://vcm-51984.vm.duke.edu`
+- **Admin Panel:** `https://vcm-51984.vm.duke.edu/admin/`
 
-* **Secure URL:** [https://vcm-51984.vm.duke.edu](https://www.google.com/search?q=https://vcm-51984.vm.duke.edu)
-* You should see the padlock icon 🔒.
+- **Secure URL:** [https://vcm-51984.vm.duke.edu](https://www.google.com/search?q=https://vcm-51984.vm.duke.edu)
+- You should see the padlock icon 🔒.
 
-* **HTTP Redirect:** Visiting `http://vcm-51984.vm.duke.edu` should automatically redirect you to HTTPS.
+- **HTTP Redirect:** Visiting `http://vcm-51984.vm.duke.edu` should automatically redirect you to HTTPS.
 
 ### Key Differences in Production
 
-* **Static Files:** In production (`docker-compose.yml`), Django uses `collectstatic` and WhiteNoise to serve CSS/JS files efficiently, whereas local dev serves them on the fly.
-* **Volumes:** Code changes in production require a re-deploy (running `./deploy.sh`) to take effect. They do not hot-reload.
-
+- **Static Files:** In production (`docker-compose.yml`), Django uses `collectstatic` and WhiteNoise to serve CSS/JS files efficiently, whereas local dev serves them on the fly.
+- **Volumes:** Code changes in production require a re-deploy (running `./deploy.sh`) to take effect. They do not hot-reload.
 
 ## 3. Running Tests (Backend)
 
@@ -306,4 +316,3 @@ When tests pass, you should see:
 8 passed in 2.8s
 
 ---
-    

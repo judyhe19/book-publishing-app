@@ -3,6 +3,7 @@
 
 from math import ceil
 
+from django.db import transaction
 from django.db.models import Q, Prefetch, OuterRef, Subquery, F
 from django.shortcuts import get_object_or_404
 
@@ -14,7 +15,6 @@ from django.db.models import Sum
 from django.db.models.functions import Coalesce
 from django.db.models import IntegerField
 
-
 from ..models import Book, AuthorBook
 from ..serializers.book import (
     BookListSerializer,
@@ -23,8 +23,8 @@ from ..serializers.book import (
     BookUpdateSerializer,
 )
 
-
 from ..utils import get_first_author_name_subquery
+
 
 class BookListCreateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -82,7 +82,6 @@ class BookListCreateView(APIView):
 
         qs = qs.annotate(
             first_author_name=get_first_author_name_subquery("pk"),
-            # CHANGE THIS FIELD NAME IF NEEDED:
             first_author_royalty_rate=Subquery(first_ab.values("royalty_rate")[:1]),
         )
 
@@ -178,10 +177,10 @@ class BookListCreateView(APIView):
     def post(self, request):
         serializer = BookCreateSerializer(data=request.data)
 
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-
-        book = serializer.save()
+        # ✅ Atomic: if anything fails (validation or DB), nothing is written (including new Authors)
+        with transaction.atomic():
+            serializer.is_valid(raise_exception=True)
+            book = serializer.save()
 
         return Response(
             BookDetailSerializer(book).data,
@@ -198,7 +197,6 @@ class BookDetailView(APIView):
         book = (
             Book.objects
             .filter(id=book.id)
-            # ✅ total_sales_to_date computed from Sale.quantity (no stored counter)
             .annotate(
                 total_sales_to_date=Coalesce(
                     Sum("sales__quantity"),
@@ -221,15 +219,15 @@ class BookDetailView(APIView):
         book = get_object_or_404(Book, id=book_id)
 
         serializer = BookUpdateSerializer(book, data=request.data, partial=True)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
 
-        book = serializer.save()
+        # ✅ Atomic: if PATCH includes new authors (by name) and anything fails, no new Authors persist.
+        with transaction.atomic():
+            serializer.is_valid(raise_exception=True)
+            book = serializer.save()
 
         book = (
             Book.objects
             .filter(id=book.id)
-            # ✅ total_sales_to_date computed from Sale.quantity (no stored counter)
             .annotate(
                 total_sales_to_date=Coalesce(
                     Sum("sales__quantity"),

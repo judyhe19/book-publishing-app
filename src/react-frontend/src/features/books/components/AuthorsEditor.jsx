@@ -1,3 +1,4 @@
+// src/features/books/components/AuthorsEditor.jsx
 import React, { useMemo } from "react";
 import { Button } from "../../../shared/components/Button";
 
@@ -42,7 +43,7 @@ export function AuthorsEditor({
         <div>
           <div className="text-sm font-medium text-slate-700">Authors</div>
           <div className="text-xs text-slate-500">
-            Type to filter. New names will be created when you save.
+            Type to filter. Missing names will be created when you save.
           </div>
         </div>
 

@@ -35,7 +35,7 @@ export default function CreateBookPage() {
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
 
-  // Prevent duplicates across rows
+  // Prevent duplicates across rows (for dropdown filtering only)
   const selectedNames = useMemo(() => {
     return new Set(
       authors
@@ -88,58 +88,19 @@ export default function CreateBookPage() {
     setSubmitting(true);
 
     try {
+      // No frontend validation beyond "required" inputs —
+      // backend is the source of truth and is now atomic.
       const cleanedAuthors = authors.map((r) => ({
         author_name: normalizeName(r.author_name),
         royalty_rate: String(r.royalty_rate).trim(),
       }));
-
-      if (!title.trim()) throw new Error("Title is required.");
-      if (!publicationMonth) throw new Error("Publication date (month, year) is required.");
-
-      for (const r of cleanedAuthors) {
-        if (!r.author_name) throw new Error("Each author must have a name.");
-        if (!r.royalty_rate) throw new Error("Each author must have a royalty rate.");
-      }
-
-      // duplicates by name
-      const nameSet = new Set(cleanedAuthors.map((r) => r.author_name.toLowerCase()));
-      if (nameSet.size !== cleanedAuthors.length) {
-        throw new Error("Please don’t enter the same author more than once.");
-      }
-
-      // map existing authors by name
-      const byName = new Map(authorOptions.map((a) => [normalizeName(a.name).toLowerCase(), a]));
-
-      // resolve IDs (create missing authors via POST /authors/)
-      const resolvedAuthors = [];
-      for (const r of cleanedAuthors) {
-        const key = r.author_name.toLowerCase();
-        let found = byName.get(key);
-
-        if (!found) {
-          found = await booksApi.createAuthor(r.author_name); // returns {id, name} (200 or 201)
-          byName.set(key, found);
-
-          // update options in UI
-          setAuthorOptions((prev) => {
-            const exists = prev.some((a) => a.id === found.id);
-            const next = exists ? prev : [...prev, found];
-            return next.sort((a, b) => a.name.localeCompare(b.name));
-          });
-        }
-
-        resolvedAuthors.push({
-          author_id: found.id,
-          royalty_rate: r.royalty_rate,
-        });
-      }
 
       const payload = {
         title: title.trim(),
         publication_date: `${publicationMonth}-01`, // default day = 1
         isbn_13: isbn13.replaceAll("-", "").trim(),
         isbn_10: isbn10.trim() === "" ? null : isbn10.replaceAll("-", "").trim(),
-        authors: resolvedAuthors,
+        authors: cleanedAuthors, // ✅ send names, backend creates missing authors atomically
       };
 
       await booksApi.createBook(payload);
@@ -217,7 +178,7 @@ export default function CreateBookPage() {
                   <div>
                     <div className="text-sm font-medium text-slate-700">Authors</div>
                     <div className="text-xs text-slate-500">
-                      Type the author name(s). New names will be created when you save.
+                      Type the author name(s). The backend will create missing names atomically when you save.
                     </div>
                   </div>
                   <Button type="button" variant="secondary" onClick={addAuthorRow}>
@@ -258,15 +219,10 @@ export default function CreateBookPage() {
                             value={row.author_name}
                             onChange={(e) => {
                               updateAuthorRow(idx, { author_name: e.target.value });
-                              // Open only for the row the user is interacting with
                               setOpenAuthorIdx(idx);
                             }}
-                            onFocus={() => {
-                              // Open on focus (won't happen automatically on add unless something focuses it)
-                              setOpenAuthorIdx(idx);
-                            }}
+                            onFocus={() => setOpenAuthorIdx(idx)}
                             onBlur={() => {
-                              // Delay so option click can register before closing
                               setTimeout(() => setOpenAuthorIdx(null), 120);
                             }}
                             placeholder={authorsLoading ? "Loading authors..." : "Enter an author name..."}
@@ -280,10 +236,7 @@ export default function CreateBookPage() {
                                   key={a.id}
                                   type="button"
                                   className="block w-full text-left px-3 py-2 hover:bg-slate-50"
-                                  onMouseDown={(ev) => {
-                                    // Prevent blur firing before we set value
-                                    ev.preventDefault();
-                                  }}
+                                  onMouseDown={(ev) => ev.preventDefault()}
                                   onClick={() => {
                                     updateAuthorRow(idx, { author_name: a.name });
                                     setOpenAuthorIdx(null);

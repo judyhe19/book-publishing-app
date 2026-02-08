@@ -88,7 +88,7 @@ export default function BooksTable({
   return (
     <Card>
       <CardContent>
-        <div className="overflow-x-auto">
+        <div>
           <table className="min-w-full border-separate border-spacing-0">
             <thead>
               <tr className="bg-slate-50">

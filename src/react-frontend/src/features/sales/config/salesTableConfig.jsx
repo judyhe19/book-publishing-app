@@ -1,5 +1,6 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import React from "react";
+import { Button } from "../../../shared/components/Button";
 
 // Sort configuration
 // IMPORTANT: Keep sortKeys in sync with backend: bookapp/views/sales.py (FIELD_MAP)
@@ -131,11 +132,8 @@ export const TABLE_COLUMNS = [
     {
         label: 'Actions',
         render: (sale) => (
-            <Link
-                to={`/sale/${sale.id}`}
-                className="text-indigo-600 hover:text-indigo-900 font-medium"
-            >
-                Modify
+            <Link to={`/sale/${sale.id}`}>
+                <Button variant="secondary">Modify</Button>
             </Link>
         ),
     },

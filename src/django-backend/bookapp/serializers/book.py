@@ -76,7 +76,7 @@ class AuthorBookSerializer(serializers.ModelSerializer):
 
                     if code == "invalid":
                         new_errors.append(
-                            f"Royalty rate for author {author_name} must be a valid decimal number."
+                            f"Royalty rate for author {author_name} must be a positive valid decimal number."
                         )
                     elif code in ("max_digits", "max_whole_digits"):
                         new_errors.append(

@@ -76,8 +76,17 @@ docker compose -f docker-compose.dev.yml exec backend python manage.py migrate
 
 **Wipe Database:**
 
+Local:
+
 ```bash
 docker compose -f docker-compose.dev.yml down -v
+
+```
+
+Remote (run on VM):
+
+```bash
+docker compose -f docker-compose.yml down -v
 
 ```
 

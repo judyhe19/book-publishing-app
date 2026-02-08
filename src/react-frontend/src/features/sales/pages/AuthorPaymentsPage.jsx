@@ -14,7 +14,6 @@ export default function AuthorPaymentsPage() {
     loading,
     authorGroups,
 
-    // ✅ new pagination/show-all
     page,
     totalPages,
     setPage,

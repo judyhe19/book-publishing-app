@@ -11,11 +11,12 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 from django.db.models import IntegerField
 
-from ..models import Book, AuthorBook
+from ..models import Book, AuthorBook, Sale  # ✅ CHANGED: import Sale for subquery totals
 from ..serializers.book import (
     BookListSerializer,
     BookDetailSerializer,
@@ -61,10 +62,21 @@ class BookListCreateView(APIView):
 
         # --------------------
         # ✅ total_sales_to_date computed from Sale.quantity (no stored counter)
+        #
+        # IMPORTANT: compute via Subquery to avoid JOIN-multiplication when search joins authors
+        # (this prevents "doubling" totals when q matches author name)
         # --------------------
+        sales_total_sq = (
+            Sale.objects
+            .filter(book_id=OuterRef("pk"))
+            .values("book_id")
+            .annotate(total=Coalesce(Sum("quantity"), 0))
+            .values("total")[:1]
+        )
+
         qs = qs.annotate(
             total_sales_to_date=Coalesce(
-                Sum("sales__quantity"),
+                Subquery(sales_total_sq, output_field=IntegerField()),
                 0,
                 output_field=IntegerField(),
             )

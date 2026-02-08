@@ -4,111 +4,147 @@ from rest_framework import serializers
 import datetime
 from ..models import Sale, Book, Author, AuthorSale, AuthorBook
 
+
 class SaleSerializer(serializers.ModelSerializer):
-    book_title = serializers.CharField(source='book.title', read_only=True)
+    book_title = serializers.CharField(source="book.title", read_only=True)
     author_details = serializers.SerializerMethodField()
+
     class Meta:
         model = Sale
-        fields = ['id', 'book', 'book_title', 'date', 'quantity', 'publisher_revenue', 'author_details']
+        fields = ["id", "book", "book_title", "date", "quantity", "publisher_revenue", "author_details"]
 
     def get_author_details(self, obj):
         """Get author details for the sale - royalty amounts and paid status."""
         details = []
-        for ars in obj.author_sales.select_related('author').all():
-            details.append({
-                "id": ars.author.id,
-                "name": ars.author.name,
-                "royalty_amount": ars.royalty_amount,
-                "paid": ars.author_paid
-            })
+        for ars in obj.author_sales.select_related("author").all():
+            details.append(
+                {
+                    "id": ars.author.id,
+                    "name": ars.author.name,
+                    "royalty_amount": ars.royalty_amount,
+                    "paid": ars.author_paid,
+                }
+            )
         return details
 
-# TODO: need to get all authors (id, name) of the book to display the authors to allow the user the option to put a royalty amount for each author (instead of using the default amount) 
+
+class PlaceholderDecimalField(serializers.DecimalField):
+    """
+    Allow the UI placeholder '--' (and blank '') to come through as None,
+    so we can raise a consistent friendly error message instead of a 500 DB IntegrityError.
+    """
+    def to_internal_value(self, data):
+        if isinstance(data, str) and data.strip() in ("", "--"):
+            return None
+        return super().to_internal_value(data)
+
+
+# TODO: need to get all authors (id, name) of the book to display the authors to allow the user the option to put a royalty amount for each author (instead of using the default amount)
 class SaleCreateSerializer(serializers.ModelSerializer):
     author_royalties = serializers.DictField(
         child=serializers.DecimalField(max_digits=10, decimal_places=2),
         required=False,
-        write_only=True
+        write_only=True,
     )
     author_paid = serializers.DictField(
         child=serializers.BooleanField(),
         required=False,
-        write_only=True
+        write_only=True,
     )
-   
+
     # Override fields to allow custom validation messages
     quantity = serializers.IntegerField(required=False, allow_null=True)
-    publisher_revenue = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
+
+    # ✅ CHANGED: use PlaceholderDecimalField and disallow null so we never write NULL to a NOT NULL column
+    publisher_revenue = PlaceholderDecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        allow_null=False,
+    )
+
     date = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     book = serializers.PrimaryKeyRelatedField(queryset=Book.objects.all(), required=False, allow_null=True)
-    
+
     class Meta:
         model = Sale
-        fields = ['book', 'quantity', 'publisher_revenue', 'author_royalties', 'author_paid', 'date']
+        fields = ["book", "quantity", "publisher_revenue", "author_royalties", "author_paid", "date"]
         # author_royalties is a dictionary of author_id: royalty_amount
         # author_id is the id of the author in the Author table
         # royalty_amount is the amount of royalty for that author to be stored in the AuthorSale table
-        # author_paid is a dictionary of author_id: paid 
+        # author_paid is a dictionary of author_id: paid
         # paid is a boolean that indicates whether the author has been paid for this sale
+
+    # ✅ ADDED: force a consistent, frontend-friendly error on both create and edit when '--' or '' was entered
+    def validate_publisher_revenue(self, value):
+        if value is None:
+            raise serializers.ValidationError("Publisher revenue is required.")
+        if value < 0:
+            raise serializers.ValidationError("Publisher revenue cannot be negative.")
+        return value
 
     def validate(self, data):
         """
         Custom validation to ensure logical consistency.
         """
         error = {}
+
         # Get values from data or instance (for partial updates)
-        qty = data.get('quantity')
+        qty = data.get("quantity")
         if qty is None and self.instance:
             qty = self.instance.quantity
-            
-        rev = data.get('publisher_revenue')
+
+        rev = data.get("publisher_revenue")
         if rev is None and self.instance:
             rev = self.instance.publisher_revenue
-            
+
         # Handle date logic
-        date = data.get('date')
+        date = data.get("date")
         if date:
             if isinstance(date, str):
                 try:
-                    parsed_date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
-                    data['date'] = parsed_date # Use lowercase 'date' -> matches model field
+                    parsed_date = datetime.datetime.strptime(date, "%Y-%m-%d").date()
+                    data["date"] = parsed_date  # Use lowercase 'date' -> matches model field
                     date = parsed_date
                 except ValueError:
-                    error['date'] = "Please provide sale date in month, year format."
-                    date = None # Invalid date
+                    error["date"] = "Please provide sale date in month, year format."
+                    date = None  # Invalid date
         elif self.instance:
             date = self.instance.date
 
-        book = data.get('book') 
+        book = data.get("book")
         if not book and self.instance:
             book = self.instance.book
-            
-        author_royalties = data.get('author_royalties', {})
+
+        author_royalties = data.get("author_royalties", {})
 
         # Required Field Checks
         if qty is None:
-            error['quantity'] = "Quantity is required."
-        if not date and 'date' not in error:
-            error['date'] = "Date is required."
+            error["quantity"] = "Quantity is required."
+        if not date and "date" not in error:
+            error["date"] = "Date is required."
         if not book:
-            error['book'] = "Book is required."
+            error["book"] = "Book is required."
         if rev is None:
-            error['publisher_revenue'] = "Publisher revenue is required."
+            # Note: for create this catches missing revenue;
+            # for edit this only triggers if the backend somehow ended up with None.
+            error["publisher_revenue"] = "Publisher revenue is required."
 
         # Logic Checks (only run if value exists)
         if qty is not None:
-             # Check if it's a float that is an integer
-             if isinstance(qty, float) and not qty.is_integer():
-                 error['quantity'] = "Quantity must be a valid integer."
-             elif isinstance(qty, (int, float)) and qty <= 0:
-                 error['quantity'] = "Quantity must be a positive integer."
+            # Check if it's a float that is an integer
+            if isinstance(qty, float) and not qty.is_integer():
+                error["quantity"] = "Quantity must be a valid integer."
+            elif isinstance(qty, (int, float)) and qty <= 0:
+                error["quantity"] = "Quantity must be a positive integer."
 
+        # (rev < 0 handled in validate_publisher_revenue now, but leaving this doesn't hurt)
         if rev is not None and rev < 0:
-            error['publisher_revenue'] = "Publisher revenue cannot be negative."
+            error["publisher_revenue"] = "Publisher revenue cannot be negative."
 
         # Date vs Book Check (needs both to be valid)
         if date and book and date < book.publication_date:
-            error['date'] = f"Sale date ({date}) cannot be before book publication date ({book.publication_date})."
+            error["date"] = f"Sale date ({date}) cannot be before book publication date ({book.publication_date})."
 
         # Author Royalties
         error_author_royalties = []
@@ -119,23 +155,23 @@ class SaleCreateSerializer(serializers.ModelSerializer):
                     author = Author.objects.get(id=author_id)
                     author_name = author.name
                 except Author.DoesNotExist:
-                     pass 
+                    pass
                 error_author_royalties.append(f"Royalty amount for author {author_name} cannot be negative.")
-        
+
         if error_author_royalties:
-            error['author_royalties'] = "\n".join(error_author_royalties)
-        
+            error["author_royalties"] = "\n".join(error_author_royalties)
+
         if error:
             raise serializers.ValidationError(error)
-        
+
         return data
 
     def create(self, validated_data):
         """
         Create a Sale instance and associated AuthorSales based on the validated data.
         """
-        author_royalties = validated_data.pop('author_royalties', {})
-        author_paid = validated_data.pop('author_paid', {})
+        author_royalties = validated_data.pop("author_royalties", {})
+        author_paid = validated_data.pop("author_paid", {})
         sale = super().create(validated_data)
         sale.create_author_sales(author_royalties, author_paid)
         return sale
@@ -145,8 +181,8 @@ class SaleCreateSerializer(serializers.ModelSerializer):
         Update a Sale instance WITHOUT recreating associated AuthorSales.
         (Past sales must not change authors/default royalties retroactively.)
         """
-        author_royalties = validated_data.pop('author_royalties', {})
-        author_paid = validated_data.pop('author_paid', {})
+        author_royalties = validated_data.pop("author_royalties", {})
+        author_paid = validated_data.pop("author_paid", {})
 
         sale = super().update(instance, validated_data)
 

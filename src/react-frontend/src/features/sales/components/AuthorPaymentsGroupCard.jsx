@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import { Card, CardContent } from "../../../shared/components/Card";
 import { Button } from "../../../shared/components/Button";
 import AuthorPaymentsTable from "./AuthorPaymentsTable";
@@ -10,6 +11,26 @@ function money(x) {
 
 export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid, onGoBook, onGoSale }) {
   const { author, rows, unpaidTotal, unpaidCount } = group;
+  
+  // Per-author pagination state
+  const [page, setPage] = useState(1);
+  const [showAllRows, setShowAllRows] = useState(false);
+  const pageSize = 10;
+  
+  const totalRows = rows.length;
+  const totalPages = Math.ceil(totalRows / pageSize);
+  
+  // Get paginated rows
+  const paginatedRows = showAllRows
+    ? rows
+    : rows.slice((page - 1) * pageSize, page * pageSize);
+
+  const handlePrev = () => setPage((p) => Math.max(1, p - 1));
+  const handleNext = () => setPage((p) => Math.min(totalPages, p + 1));
+  const toggleShowAll = () => {
+    setShowAllRows((prev) => !prev);
+    setPage(1);
+  };
 
   return (
     <Card>
@@ -31,10 +52,55 @@ export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid, onGoBook
 
         <div className="mt-4">
           <AuthorPaymentsTable
-            rows={rows}
+            rows={paginatedRows}
             onGoBook={onGoBook}
             onGoSale={onGoSale}
           />
+          
+          {/* Per-author pagination controls */}
+          {totalRows > pageSize && (
+            <div className="mt-3 flex items-center justify-between text-sm">
+              <span className="text-slate-600">
+                {showAllRows
+                  ? `Showing all ${totalRows} records`
+                  : `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, totalRows)} of ${totalRows} records`}
+              </span>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={toggleShowAll}
+                >
+                  {showAllRows ? "Paginate" : "Show all"}
+                </Button>
+                
+                {!showAllRows && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handlePrev}
+                      disabled={page <= 1}
+                    >
+                      ← Prev
+                    </Button>
+                    <span className="text-slate-600">
+                      Page {page} of {totalPages}
+                    </span>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleNext}
+                      disabled={page >= totalPages}
+                    >
+                      Next →
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

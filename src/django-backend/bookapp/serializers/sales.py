@@ -55,12 +55,11 @@ class SaleCreateSerializer(serializers.ModelSerializer):
     # Override fields to allow custom validation messages
     quantity = serializers.IntegerField(required=False, allow_null=True)
 
-    # ✅ CHANGED: use PlaceholderDecimalField and disallow null so we never write NULL to a NOT NULL column
     publisher_revenue = PlaceholderDecimalField(
         max_digits=10,
         decimal_places=2,
         required=False,
-        allow_null=False,
+        allow_null=True,
     )
 
     date = serializers.CharField(required=False, allow_null=True, allow_blank=True)
@@ -75,13 +74,12 @@ class SaleCreateSerializer(serializers.ModelSerializer):
         # author_paid is a dictionary of author_id: paid
         # paid is a boolean that indicates whether the author has been paid for this sale
 
-    # ✅ ADDED: force a consistent, frontend-friendly error on both create and edit when '--' or '' was entered
-    def validate_publisher_revenue(self, value):
-        if value is None:
-            raise serializers.ValidationError("Publisher revenue is required.")
-        if value < 0:
-            raise serializers.ValidationError("Publisher revenue cannot be negative.")
-        return value
+    # def validate_publisher_revenue(self, value):
+    #     if value is None:
+    #         raise serializers.ValidationError("Publisher revenue is required.")
+    #     if value < 0:
+    #         raise serializers.ValidationError("Publisher revenue cannot be negative.")
+    #     return value
 
     def validate(self, data):
         """
@@ -91,12 +89,18 @@ class SaleCreateSerializer(serializers.ModelSerializer):
 
         # Get values from data or instance (for partial updates)
         qty = data.get("quantity")
-        if qty is None and self.instance:
-            qty = self.instance.quantity
+        if qty is None:
+            # Remove None from data to avoid DB crash on NOT NULL column
+            if "quantity" in data:
+                data.pop("quantity")
+            # Do NOT fall back to instance value - user cleared it, so validation should fail
 
         rev = data.get("publisher_revenue")
-        if rev is None and self.instance:
-            rev = self.instance.publisher_revenue
+        if rev is None:
+            # Remove None from data to avoid DB crash on NOT NULL column
+            if "publisher_revenue" in data:
+                data.pop("publisher_revenue")
+            # Do NOT fall back to instance value - user cleared it, so validation should fail
 
         # Handle date logic
         date = data.get("date")
@@ -107,14 +111,21 @@ class SaleCreateSerializer(serializers.ModelSerializer):
                     data["date"] = parsed_date  # Use lowercase 'date' -> matches model field
                     date = parsed_date
                 except ValueError:
-                    error["date"] = "Please provide sale date in month, year format."
+                    error["date"] = "Please provide sale date in Month, Year format."
                     date = None  # Invalid date
-        elif self.instance:
-            date = self.instance.date
+        else:
+            # Date is empty/None - remove from data to avoid Django DateField error on empty string
+            if "date" in data:
+                data.pop("date")
+            # Do NOT fall back to instance date - the user explicitly cleared it, so validation should fail
+            date = None
 
         book = data.get("book")
-        if not book and self.instance:
-            book = self.instance.book
+        if not book:
+            # Remove None/empty from data to avoid DB crash on NOT NULL column
+            if "book" in data:
+                data.pop("book")
+            # Do NOT fall back to instance value - user cleared it, so validation should fail
 
         author_royalties = data.get("author_royalties", {})
 

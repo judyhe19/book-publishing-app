@@ -65,7 +65,7 @@ export async function apiFetch(path, { method = "GET", headers, body } = {}) {
               if (data.length > 1) {
                 msg = data.map(item => {
                     const details = formatSimpleErrors(item.errors);
-                    return `Entry ${item.index + 1}\n: ${details}`;
+                    return `Entry ${item.index + 1}:\n${details}`;
                 }).join("\n");
               } else {
                 // dont group by entry, just show the error if only one entry

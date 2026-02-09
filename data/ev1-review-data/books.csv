@@ -1,0 +1,13 @@
+title,author,isbn13,isbn10,publication_date,royalty_percent
+The Hobbit,J.R.R. Tolkien,9780547928227,054792822X,09/1937,0.5
+Fahrenheit 451,Ray Bradbury,9781451673319,1451673310,10/1953,0.0
+The Fellowship of the Ring,J.R.R. Tolkien,9780547928210,0547928211,07/1954,0.5
+Dune,Frank Herbert,9780441172719,0441172717,08/1965,0.5
+The Hitchhiker's Guide to the Galaxy,Douglas Adams,9780345391803,0345391802,10/1979,0.25
+The Color of Magic,Terry Pratchett,9780062225672,0062225677,11/1983,0.5
+Ender's Game,Orson Scott Card,9780812550702,0812550706,01/1985,0.5
+Good Omens,"Neil Gaiman, Terry Pratchett",9780060853983,0060853980,05/1990,0.5
+A Game of Thrones,George R.R. Martin,9780553103540,0553103547,08/1996,0.5
+A Clash of Kings,George R.R. Martin,9780553108033,0553108034,11/1998,0.5
+The Hunger Games,Suzanne Collins,9780439023481,0439023483,09/2008,0.5
+Ready Player One,Ernest Cline,9780307887436,030788743X,08/2011,0.5

@@ -229,14 +229,6 @@ export default function SalesDetailPage() {
     return (
       <div className="p-6 max-w-7xl mx-auto">
         <p className="text-red-600">{error || "Sale not found."}</p>
-        <Button
-          variant="secondary"
-          onClick={() => {
-            navigate(-1);
-          }}
-        >
-          Back
-        </Button>
       </div>
     );
   }
@@ -251,9 +243,7 @@ export default function SalesDetailPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => navigate(-1)}>
-            Back
-          </Button>
+          
           <Button
             variant="danger"
             onClick={() => setDeleteOpen(true)}

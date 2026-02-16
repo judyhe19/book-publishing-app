@@ -47,7 +47,7 @@ export default function AuthorPaymentsPage() {
           </Button>
 
           <Button onClick={() => navigate("/sales/input")}>
-            Sales Input Tool
+            Input New Sales
           </Button>
         </div>
       </div>

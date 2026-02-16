@@ -13,6 +13,7 @@ export default function ChangePasswordPage() {
 
   const [old_password, setOld] = useState("");
   const [new_password, setNew] = useState("");
+  const [confirm_new_password, setConfirm] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
 
@@ -20,21 +21,26 @@ export default function ChangePasswordPage() {
     e.preventDefault();
     setErr(null);
     setSubmitting(true);
-
-    try {
-      await authApi.changePassword({ old_password, new_password });
-
-      await logout();
-
-      navigate("/login", {
-        replace: true,
-        state: { success: "Password changed successfully. Please log in again." },
-      });
-    } catch (e) {
-      setErr(errorMessage(e));
-    } finally {
+    if (confirm_new_password !== new_password) {
+      setErr("Your new password and confirmation password do not match.");
       setSubmitting(false);
     }
+    else {
+      try {
+        await authApi.changePassword({ old_password, new_password });
+
+        await logout();
+
+        navigate("/login", {
+          replace: true,
+          state: { success: "Password changed successfully. Please log in again." },
+        });
+      } catch (e) {
+        setErr(errorMessage(e));
+      } finally {
+        setSubmitting(false);
+      }
+  }
   }
 
   return (
@@ -62,6 +68,15 @@ export default function ChangePasswordPage() {
                   type="password"
                   value={new_password}
                   onChange={(e) => setNew(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-700">Confirm new password</label>
+                <Input
+                  type="password"
+                  value={confirm_new_password}
+                  onChange={(e) => setConfirm(e.target.value)}
                 />
               </div>
 

@@ -15,7 +15,7 @@ from ..serializers.sales import SaleSerializer, SaleCreateSerializer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from django.db.models import (
     Sum,
     Count,
@@ -35,7 +35,11 @@ from ..utils import get_first_author_name_subquery
 from math import ceil
 
 
+def money(x):
+        return Decimal(x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
 class SaleGetView(APIView):
+
     def get(self, request, sale_id=None):
         # If sale_id is provided, return a single sale
         if sale_id is not None:
@@ -170,7 +174,7 @@ class BookSalesTotalsView(APIView):
             total=Coalesce(
                 Sum("publisher_revenue"),
                 Value(0),
-                output_field=DecimalField(),
+                output_field=DecimalField(max_digits=12, decimal_places=2)
             )
         )["total"]
 
@@ -179,29 +183,29 @@ class BookSalesTotalsView(APIView):
             total_royalties=Coalesce(
                 Sum("royalty_amount"),
                 Value(0),
-                output_field=DecimalField(),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
             ),
             paid_royalties=Coalesce(
                 Sum(
                     Case(
                         When(author_paid=True, then="royalty_amount"),
                         default=Value(0),
-                        output_field=DecimalField(),
+                        output_field=DecimalField(max_digits=12, decimal_places=2),
                     )
                 ),
                 Value(0),
-                output_field=DecimalField(),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
             ),
             unpaid_royalties=Coalesce(
                 Sum(
                     Case(
                         When(author_paid=False, then="royalty_amount"),
                         default=Value(0),
-                        output_field=DecimalField(),
+                        output_field=DecimalField(max_digits=12, decimal_places=2),
                     )
                 ),
                 Value(0),
-                output_field=DecimalField(),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
             ),
         )
 
@@ -298,9 +302,9 @@ class SaleEditView(APIView):
 
                         # Override royalty if provided; otherwise compute from current revenue snapshot
                         if key in incoming_author_royalties:
-                            royalty_amount = incoming_author_royalties[key]
+                            royalty_amount = money(incoming_author_royalties[key])
                         else:
-                            royalty_amount = updated_sale.publisher_revenue * ab.royalty_rate
+                            royalty_amount = money(updated_sale.publisher_revenue * ab.royalty_rate)
 
                         author_paid = bool(incoming_author_paid.get(key, False))
 

@@ -255,7 +255,7 @@ export default function SalesDetailPage() {
             Back
           </Button>
           <Button
-            variant="secondary"
+            variant="danger"
             onClick={() => setDeleteOpen(true)}
             disabled={saving}
           >

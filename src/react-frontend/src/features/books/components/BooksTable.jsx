@@ -4,7 +4,7 @@ import { Card, CardContent } from "../../../shared/components/Card";
 import { Button } from "../../../shared/components/Button";
 
 /**
- * Helpers
+ * HelpersD
  */
 function formatMonthYear(dateStr) {
   if (!dateStr) return "";
@@ -99,7 +99,6 @@ export default function BooksTable({
                 {headerCell("Publication", "publication_date")}
                 {headerCell("Royalty Rate", "first_author_royalty_rate")}
                 {headerCell("Total Sales", "total_sales_to_date")}
-                <th className={thBase}>Actions</th>
               </tr>
             </thead>
 

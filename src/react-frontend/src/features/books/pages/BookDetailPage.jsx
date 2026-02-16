@@ -356,7 +356,7 @@ export default function BookDetailPage() {
                 {!editing ? (
                   <>
                     <Button variant="secondary" onClick={() => setEditing(true)}>Edit</Button>
-                    <Button onClick={onDeleteClick}>Delete</Button>
+                    <Button variant="danger" onClick={onDeleteClick}>Delete</Button>
                   </>
                 ) : (
                   <>

@@ -333,9 +333,6 @@ export default function BookDetailPage() {
       <div className="p-6">
         <div className="text-slate-700">Book not found.</div>
         {err ? <div className="mt-2 text-sm text-red-600">{err}</div> : null}
-        <div className="mt-4">
-          <Button variant="secondary" onClick={() => nav(-1)}>Back</Button>
-        </div>
       </div>
     );
   }
@@ -350,7 +347,6 @@ export default function BookDetailPage() {
           />
           <CardContent>
             <div className="flex items-center justify-between gap-2">
-              <Button variant="secondary" onClick={() => nav(-1)}>Back</Button>
 
               <div className="flex items-center gap-2">
                 {!editing ? (

@@ -85,10 +85,7 @@ class BookViewSet(ModelViewSet):
         )
         return qs
 
-    # ------------------------------------------------------------------
     # get_queryset (used by list / retrieve)
-    # ------------------------------------------------------------------
-
     def get_queryset(self):
         qs = self._base_queryset()
 

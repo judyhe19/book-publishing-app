@@ -354,7 +354,7 @@ def generate_sales(session, base_url, count=60):
         sales_data.append(sale_obj)
     
     # Bulk create sales
-    url = f"{base_url}/api/sale/createmany"
+    url = f"{base_url}/api/sales/create-many/"
     print(f"Posting {len(sales_data)} sales...")
     
     try:

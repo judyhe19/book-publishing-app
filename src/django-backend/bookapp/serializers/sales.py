@@ -130,15 +130,18 @@ class SaleCreateSerializer(serializers.ModelSerializer):
         author_royalties = data.get("author_royalties", {})
 
         # Required Field Checks
-        if qty is None:
+        # For partial updates (self.instance exists), only enforce required-ness
+        # if the field was explicitly included in the incoming payload.
+        is_create = self.instance is None
+        initial = self.initial_data if hasattr(self, "initial_data") else {}
+
+        if qty is None and (is_create or "quantity" in initial):
             error["quantity"] = "Quantity is required."
-        if not date and "date" not in error:
+        if not date and "date" not in error and (is_create or "date" in initial):
             error["date"] = "Date is required."
-        if not book:
+        if not book and (is_create or "book" in initial):
             error["book"] = "Book is required."
-        if rev is None:
-            # Note: for create this catches missing revenue;
-            # for edit this only triggers if the backend somehow ended up with None.
+        if rev is None and (is_create or "publisher_revenue" in initial):
             error["publisher_revenue"] = "Publisher revenue is required."
 
         # Logic Checks (only run if value exists)

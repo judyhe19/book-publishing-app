@@ -14,7 +14,7 @@ class BookValidationTest(TestCase):
             'publication_date': '2023-01-01',
             'isbn_13': '1234567890123',
             'isbn_10': '1234567890',
-            'authors': [{'author_id': self.author.id, 'royalty_rate': 0.5}]
+            'authors': [{'author_name': self.author.name, 'royalty_rate': 0.5}]
         }
         serializer = BookCreateSerializer(data=data)
         self.assertTrue(serializer.is_valid(), serializer.errors)
@@ -25,7 +25,7 @@ class BookValidationTest(TestCase):
         data = {
             'publication_date': '2023-01-01',
             'isbn_13': '1234567890123',
-            'authors': [{'author_id': self.author.id, 'royalty_rate': 0.5}]
+            'authors': [{'author_name': self.author.name, 'royalty_rate': 0.5}]
         }
         serializer = BookCreateSerializer(data=data)
         self.assertFalse(serializer.is_valid())
@@ -47,7 +47,7 @@ class BookValidationTest(TestCase):
             'title': 'Bad ISBN Book',
             'publication_date': '2023-01-01',
             'isbn_13': '123', # Too short
-            'authors': [{'author_id': self.author.id, 'royalty_rate': 0.5}]
+            'authors': [{'author_name': self.author.name, 'royalty_rate': 0.5}]
         }
         serializer = BookCreateSerializer(data=data)
         self.assertFalse(serializer.is_valid())
@@ -58,13 +58,13 @@ class BookValidationTest(TestCase):
             'title': 'Negative Royalty Book',
             'publication_date': '2023-01-01',
             'isbn_13': '1234567890123',
-            'authors': [{'author_id': self.author.id, 'royalty_rate': -0.5}]
+            'authors': [{'author_name': self.author.name, 'royalty_rate': -0.5}]
         }
         serializer = BookCreateSerializer(data=data)
         self.assertFalse(serializer.is_valid())
-        # Check that error is in errors, key format might depend on DRF version/nested serializer
-        # My code sets error[f'authors[{i}].royalty_rate']
-        self.assertTrue(any('royalty_rate' in k for k in serializer.errors.keys()))
+        # Errors are nested: {'authors': [{'royalty_rate': [...]}]}
+        self.assertIn('authors', serializer.errors)
+        self.assertIn('royalty_rate', serializer.errors['authors'][0])
 
     def test_duplicate_authors(self):
         data = {
@@ -72,8 +72,8 @@ class BookValidationTest(TestCase):
             'publication_date': '2023-01-01',
             'isbn_13': '1234567890123',
             'authors': [
-                {'author_id': self.author.id, 'royalty_rate': 0.1},
-                {'author_id': self.author.id, 'royalty_rate': 0.1}
+                {'author_name': self.author.name, 'royalty_rate': 0.1},
+                {'author_name': self.author.name, 'royalty_rate': 0.1}
             ]
         }
         serializer = BookCreateSerializer(data=data)
@@ -86,15 +86,11 @@ class BookValidationTest(TestCase):
             'publication_date': '2023-01-01',
             'isbn_13': '1234567890123',
             'authors': [
-                {'author_id': self.author.id, 'royalty_rate': "not-a-number"}
+                {'author_name': self.author.name, 'royalty_rate': "not-a-number"}
             ]
         }
         serializer = BookCreateSerializer(data=data)
         self.assertFalse(serializer.is_valid())
-        # The error structure for nested serializers with many=True is usually a list of errors
-        # corresponding to the input list.
-        # errors['authors'] should be a list where the element at index 0 has the error for royalty_rate
-        # OR if it's a field error, it might be in 'authors' key directly?
-        # Let's check if 'Royalty rate must be a valid decimal number.' is present in the stringified errors to be safe
-        # The actual error message is: "Royalty rate for author Test Author must be a valid decimal number."
-        self.assertTrue("Royalty rate for author Test Author must be a valid decimal number." in str(serializer.errors))
+        # Errors are nested: {'authors': [{'royalty_rate': [...]}]}
+        self.assertIn('authors', serializer.errors)
+        self.assertIn('royalty_rate', serializer.errors['authors'][0])

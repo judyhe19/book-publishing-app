@@ -36,7 +36,7 @@ def test_create_sale_negative_quantity(authed_client, sample_book):
         "publisher_revenue": "100.00",
         "date": "2023-01-01"
     }
-    resp = authed_client.post("/api/sale/create", payload, format="json")
+    resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
     assert "quantity" in resp.data
 
@@ -47,7 +47,7 @@ def test_create_sale_zero_quantity(authed_client, sample_book):
         "publisher_revenue": "100.00",
         "date": "2023-01-01"
     }
-    resp = authed_client.post("/api/sale/create", payload, format="json")
+    resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
     assert "quantity" in resp.data
 
@@ -58,14 +58,11 @@ def test_create_sale_negative_revenue(authed_client, sample_book):
         "publisher_revenue": "-50.00",
         "date": "2023-01-01"
     }
-    resp = authed_client.post("/api/sale/create", payload, format="json")
+    resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
     assert "publisher_revenue" in resp.data
 
 def test_create_sale_negative_royalties(authed_client, sample_book):
-    # Need to know author ID (but we didn't attach author in fixture explicitly via AuthorBook... 
-    # wait, book.authors needs AuthorBook potentially, or just use the ID even if not linked?
-    # The serializer iterates specifically over what's passed in author_royalties check)
     a1 = Author.objects.first()
     
     payload = {
@@ -77,7 +74,7 @@ def test_create_sale_negative_royalties(authed_client, sample_book):
             str(a1.id): "-10.00"
         }
     }
-    resp = authed_client.post("/api/sale/create", payload, format="json")
+    resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
     assert "author_royalties" in resp.data
 
@@ -89,7 +86,7 @@ def test_create_sale_date_before_publication(authed_client, sample_book):
         "publisher_revenue": "100.00",
         "date": "2019-12-31" # Before publication
     }
-    resp = authed_client.post("/api/sale/create", payload, format="json")
+    resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
     assert "date" in resp.data
 
@@ -100,7 +97,7 @@ def test_create_sale_valid(authed_client, sample_book):
         "publisher_revenue": "100.00",
         "date": "2023-01-01"
     }
-    resp = authed_client.post("/api/sale/create", payload, format="json")
+    resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 201
 
 def test_edit_sale_negative_quantity(authed_client, sample_book):
@@ -111,7 +108,7 @@ def test_edit_sale_negative_quantity(authed_client, sample_book):
         "publisher_revenue": "100.00",
         "date": "2023-01-01"
     }
-    create_resp = authed_client.post("/api/sale/create", payload, format="json")
+    create_resp = authed_client.post("/api/sales/", payload, format="json")
     assert create_resp.status_code == 201
     sale_id = create_resp.data['id']
     
@@ -119,8 +116,6 @@ def test_edit_sale_negative_quantity(authed_client, sample_book):
     edit_payload = {
         "quantity": -5
     }
-    resp = authed_client.post(f"/api/sale/{sale_id}/edit", edit_payload, format="json")
+    resp = authed_client.patch(f"/api/sales/{sale_id}/", edit_payload, format="json")
     assert resp.status_code == 400
     assert "quantity" in resp.data
-
-

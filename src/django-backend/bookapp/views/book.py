@@ -1,57 +1,49 @@
-# views/books.py
-# User-agnostic: removes all dependencies on request.user and publisher_user
-
-from math import ceil
+# views/book.py
+# Refactored to use ModelViewSet
 
 from django.db import transaction
-from django.db.models import Q, Prefetch, OuterRef, Subquery, F
-from django.shortcuts import get_object_or_404
+from django.db.models import Q, Prefetch, OuterRef, Subquery, F, Sum
+from django.db.models.functions import Coalesce
+from django.db.models import IntegerField
 
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
 
-from django.db.models import Sum
-from django.db.models.functions import Coalesce
-from django.db.models import IntegerField
-
-from ..models import Book, AuthorBook, Sale  # ✅ CHANGED: import Sale for subquery totals
+from ..models import Book, AuthorBook, Sale
 from ..serializers.book import (
     BookListSerializer,
     BookDetailSerializer,
     BookCreateSerializer,
     BookUpdateSerializer,
 )
-
+from ..pagination import StandardPagination
 from ..utils import get_first_author_name_subquery
 
 
-class BookListCreateView(APIView):
+class BookViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated]
+    pagination_class = StandardPagination
+    lookup_field = "pk"
 
-    def get(self, request):
-        # --------------------
-        # Query params
-        # --------------------
-        fields = request.query_params.get("fields")
-        page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("page_size", 50))
-        show_all = request.query_params.get("all") in ("1", "true", "True", "yes")
-        ordering = request.query_params.get("ordering", "title")
-        q = request.query_params.get("q")
-        published_before = request.query_params.get("published_before")
+    def get_serializer_class(self):
+        if self.action == "create":
+            return BookCreateSerializer
+        if self.action in ("update", "partial_update"):
+            return BookUpdateSerializer
+        if self.action == "retrieve":
+            return BookDetailSerializer
+        return BookListSerializer
 
-        page = max(page, 1)
-        page_size = min(max(page_size, 1), 100)
+    # ------------------------------------------------------------------
+    # Shared queryset building
+    # ------------------------------------------------------------------
 
-        # --------------------
-        # Base queryset (NO user scoping)
-        # Prefetch through table + author for efficient nested output
-        # --------------------
+    def _base_queryset(self):
+        """Prefetch authors + annotate computed fields."""
         qs = (
-            Book.objects
-            .all()
+            Book.objects.all()
             .prefetch_related(
                 Prefetch(
                     "authorbook_set",
@@ -60,12 +52,7 @@ class BookListCreateView(APIView):
             )
         )
 
-        # --------------------
-        # ✅ total_sales_to_date computed from Sale.quantity (no stored counter)
-        #
-        # IMPORTANT: compute via Subquery to avoid JOIN-multiplication when search joins authors
-        # (this prevents "doubling" totals when q matches author name)
-        # --------------------
+        # total_sales_to_date via Subquery (avoids JOIN-multiplication)
         sales_total_sq = (
             Sale.objects
             .filter(book_id=OuterRef("pk"))
@@ -82,183 +69,137 @@ class BookListCreateView(APIView):
             )
         )
 
-        # --------------------
-        # Annotations for sorting by "first author" and "first royalty rate"
-        # First author is defined as the AuthorBook row with the smallest author_id.
-        # --------------------
+        return qs
+
+    def _annotate_for_sorting(self, qs):
+        """Add first-author annotations used for sorting."""
         first_ab = (
             AuthorBook.objects
-            .filter(book_id=OuterRef("pk"))
+            .filter(book_id=OuterRef("pk")) # pk = primary key of the book (outer query primary key)
             .order_by("author_id")
         )
 
         qs = qs.annotate(
-            first_author_name=get_first_author_name_subquery("pk"),
+            first_author_name=get_first_author_name_subquery("pk"), 
             first_author_royalty_rate=Subquery(first_ab.values("royalty_rate")[:1]),
         )
+        return qs
 
-        # --------------------
-        # Search (title, author name, ISBN-13, ISBN-10)
-        # --------------------
-        if q:
-            c_q = q.replace("-", "").strip()
-            qs = qs.filter(
-                Q(title__icontains=q) |
-                Q(isbn_13__icontains=c_q) |
-                Q(isbn_10__icontains=c_q) |
-                Q(authors__name__icontains=q)
-            ).distinct()
+    # ------------------------------------------------------------------
+    # get_queryset (used by list / retrieve)
+    # ------------------------------------------------------------------
 
-        # --------------------
-        # Optional filter: published_before
-        # --------------------
-        if published_before:
-            qs = qs.filter(publication_date__lte=published_before)
+    def get_queryset(self):
+        qs = self._base_queryset()
 
-        # --------------------
-        # Sorting (backend)
-        # --------------------
-        allowed_order_fields = {
-            "title",
-            "isbn_13",
-            "isbn_10",
-            "publication_date",
-            "total_sales_to_date",
-            "id",
-            "first_author_name",
-            "first_author_royalty_rate",
-        }
+        # Only add sorting annotations and filters for list action
+        if self.action == "list":
+            qs = self._annotate_for_sorting(qs)
 
-        sort_field = ordering
-        desc = False
-        if sort_field.startswith("-"):
-            desc = True
-            sort_field = sort_field[1:]
+            # Search (title, author name, ISBN-13, ISBN-10)
+            q = self.request.query_params.get("q")
+            if q:
+                c_q = q.replace("-", "").strip()
+                qs = qs.filter(
+                    Q(title__icontains=q)
+                    | Q(isbn_13__icontains=c_q)
+                    | Q(isbn_10__icontains=c_q)
+                    | Q(authors__name__icontains=q)
+                ).distinct()
 
-        if sort_field not in allowed_order_fields:
-            sort_field = "title"
+            # Optional filter: published_before
+            published_before = self.request.query_params.get("published_before")
+            if published_before:
+                qs = qs.filter(publication_date__lte=published_before)
+
+            # Sorting
+            ordering = self.request.query_params.get("ordering", "title")
+            allowed_order_fields = {
+                "title", "isbn_13", "isbn_10", "publication_date",
+                "total_sales_to_date", "id",
+                "first_author_name", "first_author_royalty_rate",
+            }
+
+            sort_field = ordering
             desc = False
+            if sort_field.startswith("-"):
+                desc = True
+                sort_field = sort_field[1:]
 
-        # Postgres: put NULLs last for the annotated fields (books with no authors)
-        if sort_field in {"first_author_name", "first_author_royalty_rate"}:
-            sort_expr = F(sort_field).desc(nulls_last=True) if desc else F(sort_field).asc(nulls_last=True)
-            qs = qs.order_by(sort_expr, "id")
-        else:
-            order_by = f"-{sort_field}" if desc else sort_field
-            qs = qs.order_by(order_by, "id")
+            if sort_field not in allowed_order_fields:
+                sort_field = "title"
+                desc = False
 
-        # --------------------
-        # Pagination
-        # --------------------
-        total = qs.count()
+            if sort_field in {"first_author_name", "first_author_royalty_rate"}:
+                sort_expr = F(sort_field).desc(nulls_last=True) if desc else F(sort_field).asc(nulls_last=True)
+                qs = qs.order_by(sort_expr, "id")
+            else:
+                order_by = f"-{sort_field}" if desc else sort_field
+                qs = qs.order_by(order_by, "id")
 
-        if show_all:
-            books = qs
-            data = BookListSerializer(books, many=True).data
+        return qs
 
-            if fields:
-                wanted = {f.strip() for f in fields.split(",")}
-                data = [{k: v for k, v in item.items() if k in wanted} for item in data]
+    # ------------------------------------------------------------------
+    # LIST  — override to support ?fields= sparse fieldsets
+    # ------------------------------------------------------------------
 
-            return Response({
-                "count": total,
-                "page": 1,
-                "page_size": total,
-                "total_pages": 1,
-                "results": data,
-            })
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
 
-        start = (page - 1) * page_size
-        end = start + page_size
-        books = qs[start:end]
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            data = self._apply_fields_filter(request, serializer.data)
+            return self.get_paginated_response(data)
 
-        data = BookListSerializer(books, many=True).data
+        serializer = self.get_serializer(queryset, many=True)
+        data = self._apply_fields_filter(request, serializer.data)
+        return Response(data)
 
+    def _apply_fields_filter(self, request, data):
+        """Support ?fields=title,isbn_13 sparse fieldsets."""
+        fields = request.query_params.get("fields")
         if fields:
             wanted = {f.strip() for f in fields.split(",")}
             data = [{k: v for k, v in item.items() if k in wanted} for item in data]
+        return data
 
-        return Response({
-            "count": total,
-            "page": page,
-            "page_size": page_size,
-            "total_pages": max(1, ceil(total / page_size)),
-            "results": data,
-        })
+    # ------------------------------------------------------------------
+    # CREATE — wrap in transaction
+    # ------------------------------------------------------------------
 
-    def post(self, request):
-        serializer = BookCreateSerializer(data=request.data)
-
-        # ✅ Atomic: if anything fails (validation or DB), nothing is written (including new Authors)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
         with transaction.atomic():
             serializer.is_valid(raise_exception=True)
             book = serializer.save()
 
+        # Return detail representation (with annotations)
+        book = self._base_queryset().get(pk=book.pk)
         return Response(
             BookDetailSerializer(book).data,
-            status=status.HTTP_201_CREATED
+            status=status.HTTP_201_CREATED,
         )
 
+    # ------------------------------------------------------------------
+    # RETRIEVE — use annotated queryset
+    # ------------------------------------------------------------------
 
-class BookDetailView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, book_id):
-        book = get_object_or_404(Book, id=book_id)
-
-        book = (
-            Book.objects
-            .filter(id=book.id)
-            .annotate(
-                total_sales_to_date=Coalesce(
-                    Sum("sales__quantity"),
-                    0,
-                    output_field=IntegerField(),
-                )
-            )
-            .prefetch_related(
-                Prefetch(
-                    "authorbook_set",
-                    queryset=AuthorBook.objects.select_related("author").order_by("author_id"),
-                )
-            )
-            .first()
-        )
-
+    def retrieve(self, request, *args, **kwargs):
+        book = self._base_queryset().get(pk=self.get_object().pk)
         return Response(BookDetailSerializer(book).data)
 
-    def patch(self, request, book_id):
-        book = get_object_or_404(Book, id=book_id)
+    # ------------------------------------------------------------------
+    # UPDATE (PATCH) — wrap in transaction, return annotated detail
+    # ------------------------------------------------------------------
 
+    def partial_update(self, request, *args, **kwargs):
+        book = self.get_object()
         serializer = BookUpdateSerializer(book, data=request.data, partial=True)
 
-        # ✅ Atomic: if PATCH includes new authors (by name) and anything fails, no new Authors persist.
         with transaction.atomic():
             serializer.is_valid(raise_exception=True)
             book = serializer.save()
 
-        book = (
-            Book.objects
-            .filter(id=book.id)
-            .annotate(
-                total_sales_to_date=Coalesce(
-                    Sum("sales__quantity"),
-                    0,
-                    output_field=IntegerField(),
-                )
-            )
-            .prefetch_related(
-                Prefetch(
-                    "authorbook_set",
-                    queryset=AuthorBook.objects.select_related("author").order_by("author_id"),
-                )
-            )
-            .first()
-        )
-
+        book = self._base_queryset().get(pk=book.pk)
         return Response(BookDetailSerializer(book).data)
-
-    def delete(self, request, book_id):
-        book = get_object_or_404(Book, id=book_id)
-        book.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)

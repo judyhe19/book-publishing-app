@@ -1,184 +1,268 @@
 # views/sales.py
-# ✅ ONLY functional change: in SaleEditView, if the sale's book changes during edit,
-#    rebuild AuthorSale rows from the *new* book's AuthorBook rows.
-#    Everything else is unchanged.
+# Refactored to use ModelViewSet
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import get_object_or_404
+import calendar
+
+from decimal import Decimal, ROUND_HALF_UP
+from math import ceil
+
 from django.db import transaction
+from django.db.models import (
+    Sum, Count, Case, When, Value,
+    IntegerField, DecimalField,
+)
+from django.db.models.functions import Coalesce
+from django.shortcuts import get_object_or_404
+
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet
 
 from ..models import Sale, Book, AuthorSale, AuthorBook, Author
 from ..serializers.sales import SaleSerializer, SaleCreateSerializer
-
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
-
-from decimal import Decimal, ROUND_HALF_UP
-from django.db.models import (
-    Sum,
-    Count,
-    Case,
-    When,
-    Value,
-    IntegerField,
-    Subquery,
-    OuterRef,
-    DecimalField,
-)
-from django.db.models.functions import Coalesce
-
 from ..config.sort_config import SALES_SORT_FIELD_MAP, SALES_DEFAULT_SORT
+from ..pagination import StandardPagination
 from ..utils import get_first_author_name_subquery
-
-from math import ceil
 
 
 def money(x):
-        return Decimal(x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return Decimal(x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-class SaleGetView(APIView):
 
-    def get(self, request, sale_id=None):
-        # If sale_id is provided, return a single sale
-        if sale_id is not None:
-            sale = get_object_or_404(
-                Sale.objects.select_related("book").prefetch_related("author_sales__author"),
-                id=sale_id,
-            )
-            serializer = SaleSerializer(sale)
-            return Response(serializer.data)
+class SaleViewSet(ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    pagination_class = StandardPagination
 
-        book_id = request.query_params.get("book_id")
-        user_id = request.query_params.get("user_id")
+    def get_serializer_class(self):
+        if self.action in ("create", "update", "partial_update", "create_many"):
+            return SaleCreateSerializer
+        return SaleSerializer
 
-        queryset = Sale.objects.all()
-        queryset = queryset.select_related("book").prefetch_related("author_sales__author")
+    # ------------------------------------------------------------------
+    # Queryset
+    # ------------------------------------------------------------------
 
-        if book_id:
-            queryset = queryset.filter(book_id=book_id)
+    def get_queryset(self):
+        qs = Sale.objects.all()
+        qs = qs.select_related("book").prefetch_related("author_sales__author")
 
-        # ✅ keep functional user scoping
-        if user_id:
-            queryset = queryset.filter(book__publisher_user_id=user_id)
+        # Filtering (only on list)
+        if self.action == "list":
+            book_id = self.request.query_params.get("book_id")
+            user_id = self.request.query_params.get("user_id")
 
-        # Date filtering at month/year granularity
-        # Sales are stored by month, so we normalize filter dates to include the whole month
-        start_date = request.query_params.get("start_date")
-        end_date = request.query_params.get("end_date")
+            if book_id:
+                qs = qs.filter(book_id=book_id)
+            if user_id:
+                qs = qs.filter(book__publisher_user_id=user_id)
 
-        if start_date:
-            parts = start_date.split("-")
-            first_of_month = f"{parts[0]}-{parts[1]}-01"
-            queryset = queryset.filter(date__gte=first_of_month)
+            # Date filtering at month/year granularity
+            start_date = self.request.query_params.get("start_date")
+            end_date = self.request.query_params.get("end_date")
 
-        if end_date:
-            import calendar
+            if start_date:
+                parts = start_date.split("-")
+                first_of_month = f"{parts[0]}-{parts[1]}-01"
+                qs = qs.filter(date__gte=first_of_month)
 
-            parts = end_date.split("-")
-            year, month = int(parts[0]), int(parts[1])
-            last_day = calendar.monthrange(year, month)[1]
-            last_of_month = f"{year}-{month:02d}-{last_day:02d}"
-            queryset = queryset.filter(date__lte=last_of_month)
+            if end_date:
+                parts = end_date.split("-")
+                year, month = int(parts[0]), int(parts[1])
+                last_day = calendar.monthrange(year, month)[1]
+                last_of_month = f"{year}-{month:02d}-{last_day:02d}"
+                qs = qs.filter(date__lte=last_of_month)
 
-        # annotate with computed fields for sorting
-        queryset = queryset.annotate(
-            first_author_name=get_first_author_name_subquery("book"),
-            total_royalties=Sum("author_sales__royalty_amount"),
-            unpaid_count=Count(
-                Case(
-                    When(author_sales__author_paid=False, then=1),
+            # Annotations for sorting
+            qs = qs.annotate(
+                first_author_name=get_first_author_name_subquery("book"),
+                total_royalties=Sum("author_sales__royalty_amount"),
+                unpaid_count=Count(
+                    Case(
+                        When(author_sales__author_paid=False, then=1),
+                        output_field=IntegerField(),
+                    )
+                ),
+                paid_count=Count(
+                    Case(
+                        When(author_sales__author_paid=True, then=1),
+                        output_field=IntegerField(),
+                    )
+                ),
+                total_author_count=Count("author_sales"),
+                paid_status_order=Case(
+                    When(unpaid_count=0, total_author_count__gt=0, then=Value(0)),
+                    When(paid_count__gt=0, unpaid_count__gt=0, then=Value(1)),
+                    default=Value(2),
                     output_field=IntegerField(),
-                )
-            ),
-            paid_count=Count(
-                Case(
-                    When(author_sales__author_paid=True, then=1),
-                    output_field=IntegerField(),
-                )
-            ),
-            total_author_count=Count("author_sales"),
-            paid_status_order=Case(
-                When(unpaid_count=0, total_author_count__gt=0, then=Value(0)),
-                When(paid_count__gt=0, unpaid_count__gt=0, then=Value(1)),
-                default=Value(2),
-                output_field=IntegerField(),
-            ),
-        )
-
-        # server-side ordering
-        ordering = request.query_params.get("ordering", SALES_DEFAULT_SORT)
-        is_desc = ordering.startswith("-")
-        field = ordering[1:] if is_desc else ordering
-
-        if field in SALES_SORT_FIELD_MAP:
-            order_field = ("-" if is_desc else "") + SALES_SORT_FIELD_MAP[field]
-            queryset = queryset.order_by(order_field)
-        else:
-            queryset = queryset.order_by("-date")
-
-        # show-all support
-        show_all = request.query_params.get("all") in ("1", "true", "True", "yes")
-        if show_all:
-            total = queryset.count()
-            serializer = SaleSerializer(queryset, many=True)
-            return Response(
-                {
-                    "count": total,
-                    "page": 1,
-                    "page_size": total,
-                    "total_pages": 1,
-                    "results": serializer.data,
-                }
+                ),
             )
 
-        # pagination params
-        page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("page_size", 50))
-        page = max(page, 1)
-        page_size = min(max(page_size, 1), 100)
+            # Ordering
+            ordering = self.request.query_params.get("ordering", SALES_DEFAULT_SORT)
+            is_desc = ordering.startswith("-")
+            field = ordering[1:] if is_desc else ordering
 
-        total = queryset.count()
-        start = (page - 1) * page_size
-        end = start + page_size
-        page_qs = queryset[start:end]
+            if field in SALES_SORT_FIELD_MAP:
+                order_field = ("-" if is_desc else "") + SALES_SORT_FIELD_MAP[field]
+                qs = qs.order_by(order_field)
+            else:
+                qs = qs.order_by("-date")
 
-        serializer = SaleSerializer(page_qs, many=True)
+        return qs
 
-        # ✅ FIX: never return total_pages = 0 (frontend assumes 1-based pages)
-        total_pages = max(1, ceil(total / page_size))  # total=0 => 1
+    # ------------------------------------------------------------------
+    # LIST — uses standard pagination
+    # ------------------------------------------------------------------
+    # Default ModelViewSet.list() handles pagination via StandardPagination
+
+    # ------------------------------------------------------------------
+    # RETRIEVE — single sale by pk
+    # ------------------------------------------------------------------
+    # Default ModelViewSet.retrieve() handles this
+
+    # ------------------------------------------------------------------
+    # CREATE — single sale
+    # ------------------------------------------------------------------
+
+    def create(self, request, *args, **kwargs):
+        serializer = SaleCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            with transaction.atomic():
+                sale = serializer.save()
+            full_serializer = SaleSerializer(sale)
+            return Response(full_serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # ------------------------------------------------------------------
+    # CREATE MANY — bulk create (custom action)
+    # ------------------------------------------------------------------
+
+    @action(detail=False, methods=["post"], url_path="create-many")
+    def create_many(self, request):
+        if not isinstance(request.data, list):
+            return Response({"error": "Expected a list of sales"}, status=status.HTTP_400_BAD_REQUEST)
+
+        created_sales = []
+        errors = []
+
+        with transaction.atomic():
+            for index, sale_data in enumerate(request.data):
+                serializer = SaleCreateSerializer(data=sale_data)
+                if serializer.is_valid():
+                    sale = serializer.save()
+                    created_sales.append(sale)
+                else:
+                    errors.append({"index": index, "errors": serializer.errors})
+
+            if errors:
+                transaction.set_rollback(True)
+                return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
+        full_serializer = SaleSerializer(created_sales, many=True)
+        return Response(full_serializer.data, status=status.HTTP_201_CREATED)
+
+    # ------------------------------------------------------------------
+    # UPDATE (PATCH) — edit a sale
+    # ------------------------------------------------------------------
+
+    def partial_update(self, request, *args, **kwargs):
+        sale = self.get_object()
+        old_book_id = sale.book_id
+
+        fields_param = request.query_params.get("fields")
+        data = request.data
+        if fields_param:
+            allowed_fields = fields_param.split(",")
+            data = {k: v for k, v in request.data.items() if k in allowed_fields}
+
+        incoming_author_royalties = data.get("author_royalties") or {}
+        incoming_author_paid = data.get("author_paid") or {}
+
+        serializer = SaleCreateSerializer(sale, data=data, partial=True)
+        if serializer.is_valid():
+            with transaction.atomic():
+                updated_sale = serializer.save()
+
+                # If book changed, rebuild AuthorSale rows
+                if updated_sale.book_id != old_book_id:
+                    AuthorSale.objects.filter(sale=updated_sale).delete()
+                    author_books = AuthorBook.objects.select_related("author").filter(book=updated_sale.book)
+
+                    for ab in author_books:
+                        key = str(ab.author_id)
+                        if key in incoming_author_royalties:
+                            royalty_amount = money(incoming_author_royalties[key])
+                        else:
+                            royalty_amount = money(updated_sale.publisher_revenue * ab.royalty_rate)
+
+                        author_paid = bool(incoming_author_paid.get(key, False))
+
+                        AuthorSale.objects.create(
+                            sale=updated_sale,
+                            author=ab.author,
+                            royalty_amount=royalty_amount,
+                            author_paid=author_paid,
+                        )
+
+            full_serializer = SaleSerializer(updated_sale)
+            return Response(full_serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # Also support PUT as same behavior as PATCH
+    def update(self, request, *args, **kwargs):
+        kwargs["partial"] = True
+        return self.partial_update(request, *args, **kwargs)
+
+    # ------------------------------------------------------------------
+    # PAY AUTHORS — custom action
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["post"], url_path="pay-authors")
+    def pay_authors(self, request, pk=None):
+        sale = self.get_object()
+
+        with transaction.atomic():
+            qs = (
+                AuthorSale.objects.select_for_update()
+                .filter(sale_id=sale.id, author_paid=False)
+            )
+            total_to_pay = qs.aggregate(total=Sum("royalty_amount")).get("total") or Decimal("0.00")
+            updated_count = qs.update(author_paid=True)
 
         return Response(
             {
-                "count": total,
-                "page": page,
-                "page_size": page_size,
-                "total_pages": total_pages,
-                "results": serializer.data,
-            }
+                "sale_id": sale.id,
+                "authors_marked_paid": updated_count,
+                "total_royalties_paid": str(total_to_pay),
+            },
+            status=status.HTTP_200_OK,
         )
 
+    # ------------------------------------------------------------------
+    # BOOK SALES TOTALS — custom action on books (routed separately)
+    # ------------------------------------------------------------------
 
-# ✅ totals endpoint for a single book (for BookDetailPage summary cards)
-class BookSalesTotalsView(APIView):
+
+class BookSalesTotalsView(ModelViewSet):
+    """
+    Totals endpoint for a single book's sales (for BookDetailPage summary cards).
+    Kept as a separate ViewSet since it's book-scoped, not sale-scoped.
+    """
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, book_id):
-        from ..models import AuthorSale
-        
-        # ✅ FIX: Calculate publisher_revenue separately to avoid duplication
-        # When we join Sale with author_sales, publisher_revenue gets duplicated
-        # for each author on the sale. So we calculate it in a separate query.
+    def retrieve(self, request, *args, **kwargs):
+        book_id = kwargs.get("book_pk")
+
         publisher_revenue = Sale.objects.filter(book_id=book_id).aggregate(
             total=Coalesce(
                 Sum("publisher_revenue"),
                 Value(0),
-                output_field=DecimalField(max_digits=12, decimal_places=2)
+                output_field=DecimalField(max_digits=12, decimal_places=2),
             )
         )["total"]
 
-        # Calculate royalty totals from AuthorSale directly (no join duplication)
         royalty_totals = AuthorSale.objects.filter(sale__book_id=book_id).aggregate(
             total_royalties=Coalesce(
                 Sum("royalty_amount"),
@@ -211,143 +295,11 @@ class BookSalesTotalsView(APIView):
 
         return Response(
             {
-                "book_id": book_id,
+                "book_id": int(book_id),
                 "publisher_revenue": str(publisher_revenue),
                 "total_royalties": str(royalty_totals["total_royalties"]),
                 "paid_royalties": str(royalty_totals["paid_royalties"]),
                 "unpaid_royalties": str(royalty_totals["unpaid_royalties"]),
-            },
-            status=status.HTTP_200_OK,
-        )
-
-
-class SaleCreateView(APIView):
-    def post(self, request):
-        serializer = SaleCreateSerializer(data=request.data)
-        if serializer.is_valid():
-            with transaction.atomic():
-                sale = serializer.save()
-
-            full_serializer = SaleSerializer(sale)
-            return Response(full_serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class SaleCreateManyView(APIView):
-    def post(self, request):
-        if not isinstance(request.data, list):
-            return Response({"error": "Expected a list of sales"}, status=status.HTTP_400_BAD_REQUEST)
-
-        created_sales = []
-        errors = []
-
-        with transaction.atomic():
-            for index, sale_data in enumerate(request.data):
-                serializer = SaleCreateSerializer(data=sale_data)
-                if serializer.is_valid():
-                    sale = serializer.save()
-                    created_sales.append(sale)
-                else:
-                    print(f"Validation Error at index {index}: {serializer.errors}")
-                    errors.append({"index": index, "errors": serializer.errors})
-
-            if errors:
-                transaction.set_rollback(True)
-                return Response(errors, status=status.HTTP_400_BAD_REQUEST)
-
-        full_serializer = SaleSerializer(created_sales, many=True)
-        return Response(full_serializer.data, status=status.HTTP_201_CREATED)
-
-
-class SaleEditView(APIView):
-    def post(self, request, sale_id):
-        sale = get_object_or_404(Sale, id=sale_id)
-        old_quantity = sale.quantity
-
-        # ✅ track old book to detect a book change during edit
-        old_book_id = sale.book_id
-
-        fields_param = request.query_params.get("fields")
-        partial = True
-
-        data = request.data
-        if fields_param:
-            allowed_fields = fields_param.split(",")
-            data = {k: v for k, v in request.data.items() if k in allowed_fields}
-
-        # ✅ capture possible overrides from the incoming request (if provided)
-        #    (keys in these dicts are typically strings)
-        incoming_author_royalties = data.get("author_royalties") or {}
-        incoming_author_paid = data.get("author_paid") or {}
-
-        serializer = SaleCreateSerializer(sale, data=data, partial=partial)
-        if serializer.is_valid():
-            with transaction.atomic():
-                # ✅ IMPORTANT: do NOT delete author_sales on edit (historical snapshot)
-                #    ...EXCEPT when the sale's *book* itself changes: then rebuild AuthorSale rows for the new book.
-                updated_sale = serializer.save()
-
-                # ✅ ONLY NEW BEHAVIOR:
-                # If the user changed the sale's associated book, reset author_sales
-                # to match the current AuthorBook rows for the newly selected book.
-                if updated_sale.book_id != old_book_id:
-                    # Remove old author allocations (they belong to the previous book)
-                    AuthorSale.objects.filter(sale=updated_sale).delete()
-
-                    # Recreate allocations using the new book's current author set
-                    author_books = AuthorBook.objects.select_related("author").filter(book=updated_sale.book)
-
-                    for ab in author_books:
-                        key = str(ab.author_id)
-
-                        # Override royalty if provided; otherwise compute from current revenue snapshot
-                        if key in incoming_author_royalties:
-                            royalty_amount = money(incoming_author_royalties[key])
-                        else:
-                            royalty_amount = money(updated_sale.publisher_revenue * ab.royalty_rate)
-
-                        author_paid = bool(incoming_author_paid.get(key, False))
-
-                        AuthorSale.objects.create(
-                            sale=updated_sale,
-                            author=ab.author,
-                            royalty_amount=royalty_amount,
-                            author_paid=author_paid,
-                        )
-
-            full_serializer = SaleSerializer(updated_sale)
-            return Response(full_serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class SaleDeleteView(APIView):
-    def delete(self, request, sale_id):
-        sale = get_object_or_404(Sale, id=sale_id)
-        with transaction.atomic():
-            sale.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class SalePayAuthorsView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, sale_id):
-        sale = get_object_or_404(Sale, id=sale_id)
-
-        with transaction.atomic():
-            qs = (
-                AuthorSale.objects.select_for_update()
-                .filter(sale_id=sale.id, author_paid=False)
-            )
-
-            total_to_pay = qs.aggregate(total=Sum("royalty_amount")).get("total") or Decimal("0.00")
-            updated_count = qs.update(author_paid=True)
-
-        return Response(
-            {
-                "sale_id": sale.id,
-                "authors_marked_paid": updated_count,
-                "total_royalties_paid": str(total_to_pay),
             },
             status=status.HTTP_200_OK,
         )

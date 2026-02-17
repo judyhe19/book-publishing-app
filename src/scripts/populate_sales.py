@@ -110,7 +110,7 @@ def generate_sales(session, books, count=100):
         sales_data.append(sale_obj)
         
     # Bulk create
-    url = f"{BASE_URL}/api/sale/createmany"
+    url = f"{BASE_URL}/api/sales/create-many/"
     print(f"Posting {len(sales_data)} sales to {url}...")
     
     resp = session.post(url, json=sales_data)

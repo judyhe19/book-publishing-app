@@ -287,7 +287,7 @@ def import_sales(session, base_url, records_csv_path):
     print(f"Importing {len(sales_data)} sales records...")
     
     # Bulk create sales
-    url = f"{base_url}/api/sale/createmany"
+    url = f"{base_url}/api/sales/create-many/"
     
     resp = session.post(url, json=sales_data)
     

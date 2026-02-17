@@ -52,7 +52,6 @@ export function createBook(payload) {
   });
 }
 
-// ✅ NEW: totals for Book Detail page sales summary cards
 export function getBookSalesTotals(bookId) {
-  return apiFetch(`/api/sale/book/${bookId}/totals`);
+  return apiFetch(`/api/sales/book/${bookId}/totals`);
 }

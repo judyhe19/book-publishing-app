@@ -1,27 +1,25 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+
 from .views.auth import LoginView, LogoutView
 from .views.registration import RegisterView
 from .views.change_password import ChangePasswordView
 from .views.account import MeView
 from .views.csrf import csrf
-from .views.book import BookListCreateView, BookDetailView
-from .views.author_payments import AuthorPaymentsGroupedView
 
-from .views.sales import (
-    SaleGetView,
-    SaleCreateView,
-    SaleCreateManyView,
-    SaleEditView,
-    SaleDeleteView,
-    SalePayAuthorsView,
-    BookSalesTotalsView,
-)
+from .views.book import BookViewSet
+from .views.sales import SaleViewSet, BookSalesTotalsView
+from .views.author import AuthorViewSet
+from .views.author_payments import AuthorPaymentsViewSet
 
-from .views.author import AuthorUnpaidSubtotalView, AuthorPayUnpaidSalesView
-from .views.author import AuthorListCreateView
-
+# ----- DRF Router -----
+router = DefaultRouter(trailing_slash=True)
+router.register(r"books", BookViewSet, basename="book")
+router.register(r"sales", SaleViewSet, basename="sale")
+router.register(r"authors", AuthorViewSet, basename="author")
 
 urlpatterns = [
+    # Auth / user endpoints (not model-backed, keep as plain paths)
     path("csrf", csrf),
     path("user/login", LoginView.as_view()),
     path("user/logout", LogoutView.as_view()),
@@ -29,21 +27,20 @@ urlpatterns = [
     path("user/changepassword", ChangePasswordView.as_view()),
     path("user/me", MeView.as_view()),
 
-    path("books/", BookListCreateView.as_view()),
-    path("books/<int:book_id>/", BookDetailView.as_view()),
+    # Author payments (custom ViewSet, manually routed)
+    path(
+        "author/payments/grouped",
+        AuthorPaymentsViewSet.as_view({"get": "list"}),
+        name="author-payments-grouped",
+    ),
 
-    path("sale/get_all", SaleGetView.as_view()),
-    path("sale/<int:sale_id>/get", SaleGetView.as_view()),
-    path("sale/create", SaleCreateView.as_view()),
-    path("sale/createmany", SaleCreateManyView.as_view()),
-    path("sale/<int:sale_id>/edit", SaleEditView.as_view()),
-    path("sale/<int:sale_id>", SaleDeleteView.as_view()),
-    path("sale/<int:sale_id>/pay_authors", SalePayAuthorsView.as_view()),
+    # Book sales totals (book-scoped, not sale-scoped)
+    path(
+        "sales/book/<int:book_pk>/totals",
+        BookSalesTotalsView.as_view({"get": "retrieve"}),
+        name="book-sales-totals",
+    ),
 
-    path("sale/book/<int:book_id>/totals", BookSalesTotalsView.as_view()),
-
-    path("author/<int:author_id>/unpaid/subtotal", AuthorUnpaidSubtotalView.as_view()),
-    path("author/<int:author_id>/pay_unpaid_sales", AuthorPayUnpaidSalesView.as_view()),
-    path("authors/", AuthorListCreateView.as_view()),
-    path("author/payments/grouped", AuthorPaymentsGroupedView.as_view()),
+    # Router-generated URLs for books, sales, authors
+    path("", include(router.urls)),
 ]

@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from ..models import Author, AuthorSale
-from ..serializers.author import AuthorListSerializer, AuthorCreateSerializer
+from ..serializers.author import AuthorListSerializer, AuthorCreateSerializer, AuthorUpdateSerializer
 
 
 class AuthorViewSet(ModelViewSet):
@@ -23,34 +23,63 @@ class AuthorViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.action == "create":
             return AuthorCreateSerializer
+        if self.action in ["update", "partial_update"]:
+            return AuthorUpdateSerializer
         return AuthorListSerializer
 
     def create(self, request, *args, **kwargs):
         serializer = AuthorCreateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+        serializer.is_valid(raise_exception=True)
 
         name = serializer.validated_data["name"]
         email = serializer.validated_data["email"]
 
-        # "Create if not exists" behavior
         existing = Author.objects.filter(name__iexact=name).first()
         if existing:
-            return Response(
-                AuthorListSerializer(existing).data,
-                status=status.HTTP_200_OK,
-            )
+            return Response(AuthorListSerializer(existing).data, status=status.HTTP_200_OK)
 
         try:
             author = Author.objects.create(name=name, email=email)
         except IntegrityError:
-            # Race condition fallback
             author = Author.objects.filter(name__iexact=name).first()
             if author:
                 return Response(AuthorListSerializer(author).data, status=status.HTTP_200_OK)
             raise
 
         return Response(AuthorListSerializer(author).data, status=status.HTTP_201_CREATED)
+
+    
+    def update(self, request, *args, **kwargs):
+        # Handles PUT
+        author = self.get_object()
+        serializer = AuthorUpdateSerializer(author, data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            author = serializer.save()
+        except IntegrityError:
+            return Response(
+                {"detail": "Author with that name or email already exists."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(AuthorListSerializer(author).data, status=status.HTTP_200_OK)
+
+    def partial_update(self, request, *args, **kwargs):
+        # Handles PATCH
+        author = self.get_object()
+        serializer = AuthorUpdateSerializer(author, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            author = serializer.save()
+        except IntegrityError:
+            return Response(
+                {"detail": "Author with that name or email already exists."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(AuthorListSerializer(author).data, status=status.HTTP_200_OK)
 
     # custom actions
     @action(detail=True, methods=["get"], url_path="unpaid/subtotal")

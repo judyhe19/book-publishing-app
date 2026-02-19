@@ -31,6 +31,7 @@ class AuthorViewSet(ModelViewSet):
             return Response(serializer.errors, status=400)
 
         name = serializer.validated_data["name"]
+        email = serializer.validated_data["email"]
 
         # "Create if not exists" behavior
         existing = Author.objects.filter(name__iexact=name).first()
@@ -41,7 +42,7 @@ class AuthorViewSet(ModelViewSet):
             )
 
         try:
-            author = Author.objects.create(name=name)
+            author = Author.objects.create(name=name, email=email)
         except IntegrityError:
             # Race condition fallback
             author = Author.objects.filter(name__iexact=name).first()

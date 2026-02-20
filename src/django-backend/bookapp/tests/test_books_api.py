@@ -68,13 +68,13 @@ def test_post_creates_book_and_total_sales_is_zero_via_computation(authed_client
 
     payload = {
         "title": "Dune",
-        "publication_date": "1965-08-01",
+        "publication_date": "1965-08",
         "isbn_13": "9780441172719",
         "isbn_10": "0441172717",
         # IMPORTANT: BookCreateSerializer does NOT accept total_sales_to_date,
         # so do NOT include it in payload.
         "authors": [
-            {"author_id": a1.id, "royalty_rate": "0.15"},
+            {"author_name": a1.name, "royalty_rate": "0.15"},
         ],
     }
 
@@ -179,11 +179,11 @@ def test_post_duplicate_isbn_13_returns_400(authed_client):
 
     payload = {
         "title": "Dune",
-        "publication_date": "1965-08-01",
+        "publication_date": "1965-08",
         "isbn_13": "9780441172719",
         "isbn_10": "0441172717",
         "authors": [
-            {"author_id": a1.id, "royalty_rate": "0.15"},
+            {"author_name": a1.name, "royalty_rate": "0.15"},
         ],
     }
 

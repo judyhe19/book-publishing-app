@@ -30,9 +30,9 @@ def test_missing_quantity_message(authed_client, sample_book):
     payload = {
         "book": sample_book.id,
         "publisher_revenue": "100.00",
-        "date": "2023-01-01"
+        "date": "2023-01"
     }
-    resp = authed_client.post("/api/sale/create", payload, format="json")
+    resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
     # verify specifically for the custom error message
     assert resp.data["quantity"] == ["Quantity is required."]
@@ -42,9 +42,9 @@ def test_negative_quantity_message(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": -5,
         "publisher_revenue": "100.00",
-        "date": "2023-01-01"
+        "date": "2023-01"
     }
-    resp = authed_client.post("/api/sale/create", payload, format="json")
+    resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
     assert resp.data["quantity"] == ["Quantity must be a positive integer."]
 
@@ -53,9 +53,9 @@ def test_missing_revenue_message(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 10,
         # "publisher_revenue": "100.00", # Missing
-        "date": "2023-01-01"
+        "date": "2023-01"
     }
-    resp = authed_client.post("/api/sale/create", payload, format="json")
+    resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
     assert resp.data["publisher_revenue"] == ["Publisher revenue is required."]
 
@@ -66,7 +66,7 @@ def test_missing_date_message(authed_client, sample_book):
         "publisher_revenue": "100.00",
         # "date": "2023-01-01" # Missing
     }
-    resp = authed_client.post("/api/sale/create", payload, format="json")
+    resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
     assert resp.data["date"] == ["Date is required."]
 
@@ -78,7 +78,7 @@ def test_null_value_message(authed_client, sample_book):
         "publisher_revenue": None,
         "date": None
     }
-    resp = authed_client.post("/api/sale/create", payload, format="json")
+    resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
     assert resp.data["quantity"] == ["Quantity is required."]
     assert resp.data["publisher_revenue"] == ["Publisher revenue is required."]

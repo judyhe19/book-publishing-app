@@ -14,28 +14,15 @@ import SaleEntryRow from "../../../shared/components/SaleEntryRow";
 import { EMPTY_ROW, transformRowToSaleData, isRowComplete } from "../../../shared/utils/salesUtils";
 import { createManySales } from "../../sales/api/salesApi";
 import SalesPagination from "../../sales/components/SalesPagination";
+import { formatMonthYear } from "../../../shared/utils/dateUtils";
+import MonthPicker from "../../../shared/components/MonthPicker";
 
 function normalizeName(s) {
   return (s || "").trim().replace(/\s+/g, " ");
 }
 
 function monthInputFromDate(dateStr) {
-  if (!dateStr) return "";
-  const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(dateStr);
-  return m ? `${m[1]}-${m[2]}` : "";
-}
-
-function formatMonthYear(dateStr) {
-  if (!dateStr) return "—";
-  const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(dateStr);
-  if (!m) return dateStr;
-  const year = m[1];
-  const month = Number(m[2]);
-  const monthNames = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
-  ];
-  return `${monthNames[month - 1]} ${year}`;
+  return dateStr || "";
 }
 
 function pct(x) {
@@ -275,7 +262,7 @@ export default function BookDetailPage() {
       // The backend is now atomic and will validate everything.
       const payload = {
         title: title.trim(),
-        publication_date: `${publicationMonth}-01`,
+        publication_date: publicationMonth,
         isbn_13: isbn13.replaceAll("-", "").trim(),
         isbn_10: isbn10.trim() === "" ? null : isbn10.replaceAll("-", "").trim(),
         authors: cleanedAuthors, // ✅ send names; backend creates missing authors atomically
@@ -449,18 +436,12 @@ export default function BookDetailPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium text-slate-700">Publication month, year</label>
-                  <div className="mt-1">
-                    <input
-                      type="month"
-                      className="w-full rounded-xl border border-slate-200 px-3 py-2"
-                      value={publicationMonth}
-                      onChange={(e) => setPublicationMonth(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
+                <MonthPicker
+                  label="Publication month, year"
+                  value={publicationMonth}
+                  onChange={setPublicationMonth}
+                  required
+                />
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>

@@ -1,25 +1,28 @@
+# views/author_payments.py
+# Refactored to use ViewSet
+
 from math import ceil
 from decimal import Decimal
 
 from django.db.models import (
-    Sum, Count, Case, When, Value, IntegerField, DecimalField
+    Sum, Count, Case, When, Value, IntegerField, DecimalField,
 )
 from django.db.models.functions import Coalesce
-from django.shortcuts import get_object_or_404
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.viewsets import ViewSet
 
 from ..models import Author, AuthorSale
 
+# cannot use StandardPagination here because it does not support pagination by author groups (only by individual Sales or Book records)
 
-class AuthorPaymentsGroupedView(APIView):
+class AuthorPaymentsViewSet(ViewSet):
     """
     Returns author-grouped payment rows, paginated by AUTHOR.
 
-    Response shape mirrors what your frontend expects:
+    Response shape:
     {
       count, page, page_size, total_pages,
       results: [
@@ -27,17 +30,15 @@ class AuthorPaymentsGroupedView(APIView):
           author: { id, name },
           unpaidTotal: number,
           unpaidCount: number,
-          rows: [
-            { sale: <SaleSerializer-like fields>, author: <author_details row>, paid, royalty, dateKey }
-          ]
+          rows: [...]
         }
       ]
     }
     """
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        # pagination params
+    def list(self, request):
+        # Pagination params
         show_all = request.query_params.get("all") in ("1", "true", "True", "yes")
         page = int(request.query_params.get("page", 1))
         page_size = int(request.query_params.get("page_size", 10))
@@ -45,17 +46,13 @@ class AuthorPaymentsGroupedView(APIView):
         page = max(page, 1)
         page_size = min(max(page_size, 1), 100)
 
-        # default (and only) ordering per your spec: author name asc
-        # (keeping ordering param out for now intentionally)
         author_qs = (
-            Author.objects
-            .all()
+            Author.objects.all()
             .order_by("name", "id")
             .annotate(
                 unpaid_total=Coalesce(
                     Sum(
                         Case(
-                            # FIX: authorsale__... -> sales_records__...
                             When(sales_records__author_paid=False, then="sales_records__royalty_amount"),
                             default=Value(0),
                             output_field=DecimalField(),
@@ -66,7 +63,6 @@ class AuthorPaymentsGroupedView(APIView):
                 ),
                 unpaid_count=Count(
                     Case(
-                        # FIX: authorsale__... -> sales_records__...
                         When(sales_records__author_paid=False, then=1),
                         output_field=IntegerField(),
                     )
@@ -101,8 +97,6 @@ class AuthorPaymentsGroupedView(APIView):
                 status=status.HTTP_200_OK,
             )
 
-        # Fetch all AuthorSale rows for authors on THIS page.
-        # This bounds queries unless user hits "Show all".
         rows_qs = (
             AuthorSale.objects
             .filter(author_id__in=author_ids)
@@ -110,24 +104,24 @@ class AuthorPaymentsGroupedView(APIView):
             .order_by("author__name", "-sale__date", "-sale__id")
         )
 
-        # Build groups in the same order as author_qs pagination returned
-        author_by_id = {a.id: a for a in page_authors}
-        groups = {a.id: {
-            "author": {"id": a.id, "name": a.name},
-            "unpaidTotal": float(a.unpaid_total or Decimal("0.00")),
-            "unpaidCount": int(a.unpaid_count or 0),
-            "rows": [],
-        } for a in page_authors}
+        groups = {
+            a.id: {
+                "author": {"id": a.id, "name": a.name},
+                "unpaidTotal": float(a.unpaid_total or Decimal("0.00")),
+                "unpaidCount": int(a.unpaid_count or 0),
+                "rows": [],
+            }
+            for a in page_authors
+        }
 
         for ars in rows_qs:
             sale = ars.sale
-            # shape matches your frontend rows: { sale, author, paid, royalty, dateKey }
             groups[ars.author_id]["rows"].append({
                 "sale": {
                     "id": sale.id,
                     "book": sale.book_id,
                     "book_title": sale.book.title if sale.book else "",
-                    "date": str(sale.date),
+                    "date": sale.date.strftime("%Y-%m") if sale.date else "",
                     "quantity": sale.quantity,
                     "publisher_revenue": str(sale.publisher_revenue),
                 },
@@ -139,10 +133,9 @@ class AuthorPaymentsGroupedView(APIView):
                 },
                 "paid": bool(ars.author_paid),
                 "royalty": float(ars.royalty_amount or Decimal("0.00")),
-                "dateKey": int(sale.date.strftime("%s")) if sale and sale.date else 0,
+                "dateKey": sale.date.year * 100 + sale.date.month if sale and sale.date else 0,
             })
 
-        # Ensure author order is preserved
         results = [groups[a.id] for a in page_authors]
 
         return Response(

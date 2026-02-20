@@ -1,24 +1,17 @@
 import React from 'react';
 import AsyncSelect from 'react-select/async';
 import { Input } from './Input';
+import MonthPicker from './MonthPicker';
 
-export const DateField = ({ value, onChange, minDate }) => {
-    // Convert YYYY-MM-DD to YYYY-MM for the min attribute
-    const minMonth = minDate ? minDate.substring(0, 7) : undefined;
-    
-    return (
-        <div className="w-48">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Month/Year</label>
-            <input
-                type="month"
-                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent bg-white"
-                value={value || ''}
-                onChange={(e) => onChange(e.target.value)}
-                min={minMonth}
-            />
-        </div>
-    );
-};
+export const DateField = ({ value, onChange, minDate }) => (
+    <MonthPicker
+        label="Month/Year"
+        value={value}
+        onChange={onChange}
+        min={minDate}
+        className="w-48"
+    />
+);
 
 export const BookSelect = ({ date, value, loadOptions, onChange }) => (
     <div className="flex-1 min-w-[200px]">

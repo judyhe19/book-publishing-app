@@ -29,7 +29,6 @@ def make_book(*, isbn_13, title="T", author=None, royalty_rate="0.10"):
         publication_date="2000-01-01",
         isbn_13=isbn_13,
         isbn_10=None,
-        total_sales_to_date=0,
     )
     if author is not None:
         # Create AuthorBook with specific rate
@@ -44,10 +43,10 @@ def test_create_sale_creates_author_sale_records(authed_client, user):
         "book": b1.id,
         "quantity": 100,
         "publisher_revenue": "1000.00",
-        "date": "2023-01-01"
+        "date": "2023-01"
     }
 
-    resp = authed_client.post("/api/sale/create", payload, format="json")
+    resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 201, resp.content
 
     assert Sale.objects.count() == 1
@@ -72,7 +71,7 @@ def test_create_sale_with_royalty_override(authed_client, user):
         "book": b1.id,
         "quantity": 100,
         "publisher_revenue": "1000.00",
-        "date": "2023-01-01",
+        "date": "2023-01",
         "author_royalties": {
             str(a1.id): "500.00"
         },
@@ -81,7 +80,7 @@ def test_create_sale_with_royalty_override(authed_client, user):
         }
     }
 
-    resp = authed_client.post("/api/sale/create", payload, format="json")
+    resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 201, resp.content
 
     as_record = AuthorSale.objects.first()
@@ -97,17 +96,17 @@ def test_create_many_sales(authed_client, user):
             "book": b1.id,
             "quantity": 10,
             "publisher_revenue": "100.00",
-            "date": "2023-01-01"
+            "date": "2023-01"
         },
         {
             "book": b1.id,
             "quantity": 20,
             "publisher_revenue": "200.00",
-            "date": "2023-01-02"
+            "date": "2023-02"
         }
     ]
 
-    resp = authed_client.post("/api/sale/createmany", payload, format="json")
+    resp = authed_client.post("/api/sales/create-many/", payload, format="json")
     assert resp.status_code == 201, resp.content
     
     assert Sale.objects.count() == 2
@@ -129,10 +128,10 @@ def test_get_all_sales_filtering(authed_client, user):
     s2.create_author_sales()
 
     # Test Filter by Book
-    resp = authed_client.get(f"/api/sale/get_all?book_id={b1.id}")
+    resp = authed_client.get(f"/api/sales/?book_id={b1.id}")
     assert resp.status_code == 200
-    assert len(resp.data) == 1
-    assert resp.data[0]['book'] == b1.id
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["book"] == b1.id
 
 
 
@@ -152,7 +151,7 @@ def test_edit_sale_updates_fields_and_royalties(authed_client, user):
         }
     }
     
-    resp = authed_client.post(f"/api/sale/{sale.id}/edit", payload, format="json")
+    resp = authed_client.patch(f"/api/sales/{sale.id}/", payload, format="json")
     assert resp.status_code == 200
     
     sale.refresh_from_db()
@@ -180,7 +179,7 @@ def test_edit_sale_updates_author_paid(authed_client, user):
         }
     }
     
-    resp = authed_client.post(f"/api/sale/{sale.id}/edit", payload, format="json")
+    resp = authed_client.patch(f"/api/sales/{sale.id}/", payload, format="json")
     assert resp.status_code == 200
     
     # Verify updated
@@ -193,7 +192,7 @@ def test_edit_sale_updates_author_paid(authed_client, user):
             str(a1.id): False
         }
     }
-    resp2 = authed_client.post(f"/api/sale/{sale.id}/edit", payload2, format="json")
+    resp2 = authed_client.patch(f"/api/sales/{sale.id}/", payload2, format="json")
     assert resp2.status_code == 200
     
     # Re-fetch new object
@@ -205,7 +204,7 @@ def test_delete_sale(authed_client, user):
     b1 = make_book(isbn_13="9780000000007", author=a1)
     sale = Sale.objects.create(book=b1, quantity=10, publisher_revenue=100, date="2023-01-01")
     
-    resp = authed_client.delete(f"/api/sale/{sale.id}")
+    resp = authed_client.delete(f"/api/sales/{sale.id}/")
     assert resp.status_code == 204
     
     assert Sale.objects.count() == 0
@@ -219,7 +218,7 @@ def test_get_sale_by_id(authed_client, user):
     sale = Sale.objects.create(book=b1, quantity=15, publisher_revenue=Decimal("150.00"), date="2023-05-01")
     sale.create_author_sales()
     
-    resp = authed_client.get(f"/api/sale/{sale.id}/get")
+    resp = authed_client.get(f"/api/sales/{sale.id}/")
     assert resp.status_code == 200
     
     data = resp.data
@@ -227,7 +226,7 @@ def test_get_sale_by_id(authed_client, user):
     assert data['book'] == b1.id
     assert data['quantity'] == 15
     assert Decimal(data['publisher_revenue']) == Decimal("150.00")
-    assert data['date'] == "2023-05-01"
+    assert data['date'] == "2023-05"
     
     # Verify author_details are included
     assert 'author_details' in data
@@ -238,7 +237,7 @@ def test_get_sale_by_id(authed_client, user):
 
 def test_get_sale_by_id_not_found(authed_client, user):
     """Test that requesting a non-existent sale returns 404."""
-    resp = authed_client.get("/api/sale/99999/get")
+    resp = authed_client.get("/api/sales/99999/")
     assert resp.status_code == 404
 
 def test_get_all_sales_sorting_and_date_filtering_and_details(authed_client, user):
@@ -263,22 +262,22 @@ def test_get_all_sales_sorting_and_date_filtering_and_details(authed_client, use
 
     # 1. Test Date Range Filtering
     # Filter for Feb only
-    resp = authed_client.get(f"/api/sale/get_all?start_date=2023-02-15&end_date=2023-02-15")
+    resp = authed_client.get(f"/api/sales/?start_date=2023-02-15&end_date=2023-02-15")
     assert resp.status_code == 200
-    assert len(resp.data) == 1
-    assert resp.data[0]['id'] == s2.id
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["id"] == s2.id
 
     # 2. Test Sorting (sorting is client-side)
     # Default sort is date desc
-    resp = authed_client.get(f"/api/sale/get_all")
+    resp = authed_client.get(f"/api/sales/")
     assert resp.status_code == 200
     # s3 (Mar), s2 (Feb), s1 (Jan) -> Descending date
-    assert resp.data[0]['id'] == s3.id
-    assert resp.data[1]['id'] == s2.id
-    assert resp.data[2]['id'] == s1.id
+    assert resp.data["results"][0]["id"] == s3.id
+    assert resp.data["results"][1]["id"] == s2.id
+    assert resp.data["results"][2]["id"] == s1.id
 
     # 3. Verify author_details structure
-    sale_data = resp.data[0]
+    sale_data = resp.data["results"][0]
     assert 'author_details' in sale_data
     details = sale_data['author_details']
     assert isinstance(details, list)
@@ -298,19 +297,19 @@ def test_get_all_sales_ordering_by_date(authed_client, user):
     s3 = Sale.objects.create(book=b1, quantity=20, publisher_revenue=200, date="2023-03-01")
 
     # Default ordering (should be -date, descending)
-    resp = authed_client.get("/api/sale/get_all")
+    resp = authed_client.get("/api/sales/")
     assert resp.status_code == 200
-    assert [s['id'] for s in resp.data] == [s3.id, s2.id, s1.id]
+    assert [s['id'] for s in resp.data["results"]] == [s3.id, s2.id, s1.id]
 
     # Explicit descending date
-    resp = authed_client.get("/api/sale/get_all?ordering=-date")
+    resp = authed_client.get("/api/sales/?ordering=-date")
     assert resp.status_code == 200
-    assert [s['id'] for s in resp.data] == [s3.id, s2.id, s1.id]
+    assert [s['id'] for s in resp.data["results"]] == [s3.id, s2.id, s1.id]
 
     # Ascending date
-    resp = authed_client.get("/api/sale/get_all?ordering=date")
+    resp = authed_client.get("/api/sales/?ordering=date")
     assert resp.status_code == 200
-    assert [s['id'] for s in resp.data] == [s1.id, s2.id, s3.id]
+    assert [s['id'] for s in resp.data["results"]] == [s1.id, s2.id, s3.id]
 
 
 def test_get_all_sales_ordering_by_quantity(authed_client, user):
@@ -323,14 +322,14 @@ def test_get_all_sales_ordering_by_quantity(authed_client, user):
     s3 = Sale.objects.create(book=b1, quantity=20, publisher_revenue=200, date="2023-03-01")
 
     # Ascending quantity: 5, 10, 20
-    resp = authed_client.get("/api/sale/get_all?ordering=quantity")
+    resp = authed_client.get("/api/sales/?ordering=quantity")
     assert resp.status_code == 200
-    assert [s['id'] for s in resp.data] == [s2.id, s1.id, s3.id]
+    assert [s['id'] for s in resp.data["results"]] == [s2.id, s1.id, s3.id]
 
     # Descending quantity: 20, 10, 5
-    resp = authed_client.get("/api/sale/get_all?ordering=-quantity")
+    resp = authed_client.get("/api/sales/?ordering=-quantity")
     assert resp.status_code == 200
-    assert [s['id'] for s in resp.data] == [s3.id, s1.id, s2.id]
+    assert [s['id'] for s in resp.data["results"]] == [s3.id, s1.id, s2.id]
 
 
 def test_get_all_sales_ordering_by_publisher_revenue(authed_client, user):
@@ -343,14 +342,14 @@ def test_get_all_sales_ordering_by_publisher_revenue(authed_client, user):
     s3 = Sale.objects.create(book=b1, quantity=20, publisher_revenue=200, date="2023-03-01")
 
     # Ascending revenue: 50, 100, 200
-    resp = authed_client.get("/api/sale/get_all?ordering=publisher_revenue")
+    resp = authed_client.get("/api/sales/?ordering=publisher_revenue")
     assert resp.status_code == 200
-    assert [s['id'] for s in resp.data] == [s2.id, s1.id, s3.id]
+    assert [s['id'] for s in resp.data["results"]] == [s2.id, s1.id, s3.id]
 
     # Descending revenue: 200, 100, 50
-    resp = authed_client.get("/api/sale/get_all?ordering=-publisher_revenue")
+    resp = authed_client.get("/api/sales/?ordering=-publisher_revenue")
     assert resp.status_code == 200
-    assert [s['id'] for s in resp.data] == [s3.id, s1.id, s2.id]
+    assert [s['id'] for s in resp.data["results"]] == [s3.id, s1.id, s2.id]
 
 
 def test_get_all_sales_ordering_by_book_title(authed_client, user):
@@ -365,14 +364,14 @@ def test_get_all_sales_ordering_by_book_title(authed_client, user):
     s3 = Sale.objects.create(book=b3, quantity=20, publisher_revenue=200, date="2023-03-01")
 
     # Ascending book_title: Alpha, Beta, Zeta
-    resp = authed_client.get("/api/sale/get_all?ordering=book_title")
+    resp = authed_client.get("/api/sales/?ordering=book_title")
     assert resp.status_code == 200
-    assert [s['id'] for s in resp.data] == [s1.id, s3.id, s2.id]
+    assert [s['id'] for s in resp.data["results"]] == [s1.id, s3.id, s2.id]
 
     # Descending book_title: Zeta, Beta, Alpha
-    resp = authed_client.get("/api/sale/get_all?ordering=-book_title")
+    resp = authed_client.get("/api/sales/?ordering=-book_title")
     assert resp.status_code == 200
-    assert [s['id'] for s in resp.data] == [s2.id, s3.id, s1.id]
+    assert [s['id'] for s in resp.data["results"]] == [s2.id, s3.id, s1.id]
 
 
 def test_get_all_sales_ordering_invalid_field_falls_back_to_date(authed_client, user):
@@ -385,13 +384,13 @@ def test_get_all_sales_ordering_invalid_field_falls_back_to_date(authed_client, 
     s3 = Sale.objects.create(book=b1, quantity=20, publisher_revenue=200, date="2023-03-01")
 
     # Invalid field should fallback to -date (descending)
-    resp = authed_client.get("/api/sale/get_all?ordering=invalid_field")
+    resp = authed_client.get("/api/sales/?ordering=invalid_field")
     assert resp.status_code == 200
-    assert [s['id'] for s in resp.data] == [s3.id, s2.id, s1.id]
+    assert [s['id'] for s in resp.data["results"]] == [s3.id, s2.id, s1.id]
 
-    resp = authed_client.get("/api/sale/get_all?ordering=-bogus")
+    resp = authed_client.get("/api/sales/?ordering=-bogus")
     assert resp.status_code == 200
-    assert [s['id'] for s in resp.data] == [s3.id, s2.id, s1.id]
+    assert [s['id'] for s in resp.data["results"]] == [s3.id, s2.id, s1.id]
 
 
 def test_get_all_sales_ordering_by_total_royalties(authed_client, user):
@@ -413,14 +412,14 @@ def test_get_all_sales_ordering_by_total_royalties(authed_client, user):
     s3.create_author_sales()
 
     # Ascending total_royalties: 5, 15, 30
-    resp = authed_client.get("/api/sale/get_all?ordering=total_royalties")
+    resp = authed_client.get("/api/sales/?ordering=total_royalties")
     assert resp.status_code == 200
-    assert [s['id'] for s in resp.data] == [s1.id, s3.id, s2.id]
+    assert [s['id'] for s in resp.data["results"]] == [s1.id, s3.id, s2.id]
 
     # Descending total_royalties: 30, 15, 5
-    resp = authed_client.get("/api/sale/get_all?ordering=-total_royalties")
+    resp = authed_client.get("/api/sales/?ordering=-total_royalties")
     assert resp.status_code == 200
-    assert [s['id'] for s in resp.data] == [s2.id, s3.id, s1.id]
+    assert [s['id'] for s in resp.data["results"]] == [s2.id, s3.id, s1.id]
 
 
 def test_get_all_sales_ordering_by_paid_status(authed_client, user):
@@ -443,13 +442,13 @@ def test_get_all_sales_ordering_by_paid_status(authed_client, user):
     s3.create_author_sales(author_paid={str(a1.id): False})
 
     # Ascending paid_status (by unpaid_count): 0 first (all paid), then 1s
-    resp = authed_client.get("/api/sale/get_all?ordering=paid_status")
+    resp = authed_client.get("/api/sales/?ordering=paid_status")
     assert resp.status_code == 200
     # s1 has 0 unpaid, s2 and s3 have 1 unpaid each (order between s2/s3 undefined but both after s1)
-    assert resp.data[0]['id'] == s1.id
+    assert resp.data["results"][0]['id'] == s1.id
 
     # Descending paid_status (by unpaid_count): 1s first (unpaid), then 0
-    resp = authed_client.get("/api/sale/get_all?ordering=-paid_status")
+    resp = authed_client.get("/api/sales/?ordering=-paid_status")
     assert resp.status_code == 200
     # s1 should be last (0 unpaid)
-    assert resp.data[-1]['id'] == s1.id
+    assert resp.data["results"][-1]['id'] == s1.id

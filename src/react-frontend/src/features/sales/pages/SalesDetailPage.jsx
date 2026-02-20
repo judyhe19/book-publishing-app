@@ -5,15 +5,13 @@ import { Button } from "../../../shared/components/Button";
 import { Spinner } from "../../../shared/components/Spinner";
 import SaleEntryRow from "../../../shared/components/SaleEntryRow";
 import { formatBookLabel } from "../../../shared/utils/bookUtils";
+import { formatMonthYear } from "../../../shared/utils/dateUtils";
 
 import { useSalesDetails } from "../hooks/useSalesDetails";
 import DeleteSalesRecordDialog from "../components/DeleteSalesRecordDialog";
 
 function toMonthValue(value) {
-  if (!value) return "";
-  const s = String(value);
-  const yyyyMmDd = s.length >= 10 ? s.slice(0, 10) : s; // handles ISO datetime too
-  return yyyyMmDd.split("-").length >= 2 ? yyyyMmDd.slice(0, 7) : yyyyMmDd;
+  return value ? String(value) : "";
 }
 
 function moneyNumber(x) {
@@ -116,20 +114,6 @@ function saleToRow(sale, bookData) {
   };
 }
 
-function formatMonthYear(isoDate) {
-  if (!isoDate) return "";
-
-  const [y, m] = isoDate.split("-").map(Number);
-  if (!y || !m) return isoDate;
-
-  const d = new Date(Date.UTC(y, m - 1, 1));
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(d);
-}
-
 export default function SalesDetailPage() {
   const { saleId } = useParams();
   const navigate = useNavigate();
@@ -186,12 +170,8 @@ export default function SalesDetailPage() {
   const payload = useMemo(() => {
     if (!row || !row.book) return null;
 
-    // ensure date is in full date format (YYYY-MM-DD), appending -01 if it's just YYYY-MM
-    const dateStr =
-      row.date && row.date.split("-").length === 2 ? `${row.date}-01` : row.date;
-
     return {
-      date: dateStr,
+      date: row.date,
       book: row.book.value,
       quantity: Number(row.quantity),
       publisher_revenue: String(row.publisher_revenue),

@@ -85,7 +85,7 @@ class Sale(models.Model):
     authors = models.ManyToManyField(Author, through="AuthorSale", related_name="sales")
 
     def __str__(self):
-        return f"{self.quantity} x {self.book.title} on {self.date.strftime('%Y-%m-%d')}"
+        return f"{self.quantity} x {self.book.title} on {self.date.strftime('%Y-%m')}"
 
     def create_author_sales(self, author_royalties={}, author_paid={}):
         author_books = AuthorBook.objects.filter(book=self.book)

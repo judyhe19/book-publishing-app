@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import React from "react";
 import { Button } from "../../../shared/components/Button";
+import { formatMonthYear } from "../../../shared/utils/dateUtils";
 
 // Sort configuration
 // IMPORTANT: Keep sortKeys in sync with backend: bookapp/views/sales.py (FIELD_MAP)
@@ -56,9 +57,7 @@ export const TABLE_COLUMNS = [
         label: 'Date',
         sortKey: 'date',
         render: (sale) => {
-            const [year, month] = sale.date.split('-').map(Number);
-            const date = new Date(year, month - 1);
-            return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            return formatMonthYear(sale.date);
         },
     },
     {

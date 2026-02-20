@@ -43,6 +43,7 @@ export default function MonthPicker({
 }) {
   const selectedDate = parseMonthString(value);
   const minDate = parseMonthString(min);
+  const maxDate = new Date(9999, 11, 1); // Restrict to 4-digit year
 
   return (
     <div className={className}>
@@ -59,6 +60,7 @@ export default function MonthPicker({
           value={value || ""}
           onChange={(e) => onChange(e.target.value)}
           min={min || undefined}
+          max="9999-12"
           required={required}
         />
       ) : (
@@ -68,6 +70,7 @@ export default function MonthPicker({
           dateFormat={["MM/yyyy", "MM-yyyy", "MMM yyyy", "MMM, yyyy", "MMMM yyyy", "MM/yy", "MM-yy", "M/yyyy"]}
           showMonthYearPicker
           minDate={minDate}
+          maxDate={maxDate}
           required={required}
           name={name}
           className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent bg-white"

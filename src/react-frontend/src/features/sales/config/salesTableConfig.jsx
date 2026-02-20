@@ -17,9 +17,9 @@ export const TABLE_COLUMNS = [
         label: 'Book Title',
         sortKey: 'book_title',
         render: (sale) => (
-            <Link to={`/books/${sale.book}`} className="font-medium text-blue-600">
+            <span className="font-medium text-gray-900">
                 {sale.book_title}
-            </Link>
+            </span>
         ),
     },
     {
@@ -131,9 +131,14 @@ export const TABLE_COLUMNS = [
     {
         label: 'Actions',
         render: (sale) => (
-            <Link to={`/sale/${sale.id}`}>
-                <Button variant="secondary">Modify</Button>
-            </Link>
+            <div className="flex gap-2">
+                <Link to={`/books/${sale.book}`}>
+                    <Button variant="secondary">Book Details</Button>
+                </Link>
+                <Link to={`/sale/${sale.id}`}>
+                    <Button variant="primary">Modify Sale</Button>
+                </Link>
+            </div>
         ),
     },
 ];

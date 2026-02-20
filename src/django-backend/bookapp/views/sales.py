@@ -12,7 +12,6 @@ from django.db.models import (
     IntegerField, DecimalField,
 )
 from django.db.models.functions import Coalesce
-from django.shortcuts import get_object_or_404
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -21,7 +20,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from ..models import Sale, Book, AuthorSale, AuthorBook, Author
-from ..serializers.sales import SaleSerializer, SaleCreateSerializer
+from ..serializers.sales import SaleSerializer, SaleWriteSerializer
 from ..config.sort_config import SALES_SORT_FIELD_MAP, SALES_DEFAULT_SORT
 from ..pagination import StandardPagination
 from ..utils import get_first_author_name_subquery
@@ -37,7 +36,7 @@ class SaleViewSet(ModelViewSet):
 
     def get_serializer_class(self):
         if self.action in ("create", "update", "partial_update", "create_many"):
-            return SaleCreateSerializer
+            return SaleWriteSerializer
         return SaleSerializer
 
     # ------------------------------------------------------------------
@@ -127,7 +126,7 @@ class SaleViewSet(ModelViewSet):
     # ------------------------------------------------------------------
 
     def create(self, request, *args, **kwargs):
-        serializer = SaleCreateSerializer(data=request.data)
+        serializer = SaleWriteSerializer(data=request.data)
         if serializer.is_valid():
             with transaction.atomic():
                 sale = serializer.save()
@@ -149,7 +148,7 @@ class SaleViewSet(ModelViewSet):
 
         with transaction.atomic():
             for index, sale_data in enumerate(request.data):
-                serializer = SaleCreateSerializer(data=sale_data)
+                serializer = SaleWriteSerializer(data=sale_data)
                 if serializer.is_valid():
                     sale = serializer.save()
                     created_sales.append(sale)
@@ -180,7 +179,7 @@ class SaleViewSet(ModelViewSet):
         incoming_author_royalties = data.get("author_royalties") or {}
         incoming_author_paid = data.get("author_paid") or {}
 
-        serializer = SaleCreateSerializer(sale, data=data, partial=True)
+        serializer = SaleWriteSerializer(sale, data=data, partial=True)
         if serializer.is_valid():
             with transaction.atomic():
                 updated_sale = serializer.save()

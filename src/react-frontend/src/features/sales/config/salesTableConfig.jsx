@@ -130,15 +130,10 @@ export const TABLE_COLUMNS = [
 
     {
         label: 'Actions',
-        render: (sale) => (
-            <div className="flex gap-2">
-                <Link to={`/books/${sale.book}`}>
-                    <Button variant="secondary">Book Details</Button>
-                </Link>
-                <Link to={`/sale/${sale.id}`}>
-                    <Button variant="primary">Modify Sale</Button>
-                </Link>
-            </div>
-        ),
+        type: 'actions',
+        getActions: (sale) => [
+            { label: 'Book Details', to: `/books/${sale.book}`, variant: 'secondary' },
+            { label: 'Modify Sale', to: `/sale/${sale.id}`, variant: 'primary' }
+        ],
     },
 ];

@@ -95,3 +95,21 @@ class AuthorUpdateSerializer(serializers.ModelSerializer):
         if errors:
             raise serializers.ValidationError(errors)
         return attrs
+
+class AuthorListSerializer(serializers.ModelSerializer):
+    authored_books_count = serializers.IntegerField(read_only=True)
+    total_author_royalty = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    paid_author_royalty = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    unpaid_author_royalty = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+
+    class Meta:
+        model = Author
+        fields = [
+            "id",
+            "name",
+            "email",
+            "authored_books_count",
+            "total_author_royalty",
+            "paid_author_royalty",
+            "unpaid_author_royalty",
+        ]

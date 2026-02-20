@@ -3,8 +3,13 @@
 
 from decimal import Decimal
 
-from django.db.models import Sum
 from django.db import IntegrityError, transaction
+from django.db.models import (
+    Sum, Count, Case, When, Value, Q,
+    IntegerField, DecimalField
+)
+from django.db.models.functions import Coalesce
+
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -14,10 +19,23 @@ from rest_framework.viewsets import ModelViewSet
 
 from ..models import Author, AuthorSale, AuthorBook, Book, Sale
 from ..serializers.author import AuthorListSerializer, AuthorCreateSerializer, AuthorUpdateSerializer
+from ..pagination import StandardPagination
 
+AUTHOR_SORT_FIELD_MAP = {
+    # displayed columns → queryset fields/annotations
+    "name": "name",
+    "email": "email",
+    "authored_books_count": "authored_books_count",
+    "total_author_royalty": "total_author_royalty",
+    "paid_author_royalty": "paid_author_royalty",
+    "unpaid_author_royalty": "unpaid_author_royalty",
+}
+
+AUTHOR_DEFAULT_SORT = "name"
 
 class AuthorViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated]
+    pagination_class = StandardPagination
     queryset = Author.objects.all().order_by("name")
 
     def get_serializer_class(self):
@@ -26,6 +44,70 @@ class AuthorViewSet(ModelViewSet):
         if self.action in ["update", "partial_update"]:
             return AuthorUpdateSerializer
         return AuthorListSerializer
+    
+    def get_queryset(self):
+        qs = Author.objects.all()
+
+        # Only annotate/filter/sort for list endpoint
+        if self.action == "list":
+            # --- keyword search (name + email) ---
+            q = (self.request.query_params.get("q") or "").strip()
+            if q:
+                qs = qs.filter(
+                    Q(name__icontains=q) | Q(email__icontains=q)
+                )
+
+            # --- annotations for table columns ---
+            qs = qs.annotate(
+                authored_books_count=Count("authorbook_set__book", distinct=True),
+
+                total_author_royalty=Coalesce(
+                    Sum("sales_records__royalty_amount"),
+                    Value(0),
+                    output_field=DecimalField(max_digits=12, decimal_places=2),
+                ),
+
+                paid_author_royalty=Coalesce(
+                    Sum(
+                        Case(
+                            When(sales_records__author_paid=True, then="sales_records__royalty_amount"),
+                            default=Value(0),
+                            output_field=DecimalField(max_digits=12, decimal_places=2),
+                        )
+                    ),
+                    Value(0),
+                    output_field=DecimalField(max_digits=12, decimal_places=2),
+                ),
+
+                unpaid_author_royalty=Coalesce(
+                    Sum(
+                        Case(
+                            When(sales_records__author_paid=False, then="sales_records__royalty_amount"),
+                            default=Value(0),
+                            output_field=DecimalField(max_digits=12, decimal_places=2),
+                        )
+                    ),
+                    Value(0),
+                    output_field=DecimalField(max_digits=12, decimal_places=2),
+                ),
+            )
+
+            # --- ordering ---
+            ordering = self.request.query_params.get("ordering", AUTHOR_DEFAULT_SORT)
+            is_desc = ordering.startswith("-")
+            field = ordering[1:] if is_desc else ordering
+
+            mapped = AUTHOR_SORT_FIELD_MAP.get(field, AUTHOR_DEFAULT_SORT)
+            order_field = ("-" if is_desc else "") + mapped
+
+            # stable secondary sort by id to reduce jitter across pages
+            qs = qs.order_by(order_field, "id")
+
+        else:
+            # for retrieve/update/destroy keep simple ordering
+            qs = qs.order_by("name")
+
+        return qs
 
     def create(self, request, *args, **kwargs):
         serializer = AuthorCreateSerializer(data=request.data)
@@ -34,19 +116,25 @@ class AuthorViewSet(ModelViewSet):
         name = serializer.validated_data["name"]
         email = serializer.validated_data["email"]
 
-        existing = Author.objects.filter(name__iexact=name).first()
-        if existing:
-            return Response(AuthorListSerializer(existing).data, status=status.HTTP_200_OK)
+        # Email must be unique
+        if Author.objects.filter(email__iexact=email).exists():
+            return Response(
+                {"email": "An author with this email already exists."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
             author = Author.objects.create(name=name, email=email)
         except IntegrityError:
-            author = Author.objects.filter(name__iexact=name).first()
-            if author:
-                return Response(AuthorListSerializer(author).data, status=status.HTTP_200_OK)
-            raise
+            return Response(
+                {"email": "An author with this email already exists."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        return Response(AuthorListSerializer(author).data, status=status.HTTP_201_CREATED)
+        return Response(
+            AuthorListSerializer(author).data,
+            status=status.HTTP_201_CREATED,
+        )
     
     def destroy(self, request, *args, **kwargs):
         author = self.get_object()

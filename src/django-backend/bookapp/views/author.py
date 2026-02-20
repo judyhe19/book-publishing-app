@@ -12,7 +12,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from ..models import Author, AuthorSale
+from ..models import Author, AuthorSale, AuthorBook, Book, Sale
 from ..serializers.author import AuthorListSerializer, AuthorCreateSerializer, AuthorUpdateSerializer
 
 
@@ -47,7 +47,32 @@ class AuthorViewSet(ModelViewSet):
             raise
 
         return Response(AuthorListSerializer(author).data, status=status.HTTP_201_CREATED)
+    
+    def destroy(self, request, *args, **kwargs):
+        author = self.get_object()
 
+        with transaction.atomic():
+            book_ids = list(
+                AuthorBook.objects.filter(author_id=author.id)
+                .values_list("book_id", flat=True)
+                .distinct()
+            )
+
+            sale_count = Sale.objects.filter(book_id__in=book_ids).count()
+
+            books_deleted, _ = Book.objects.filter(id__in=book_ids).delete()
+
+            author.delete()
+
+        return Response(
+            {
+                "author_id": int(author.id),
+                "deleted_book_ids": book_ids,
+                "deleted_sales_count": int(sale_count),
+                "books_deleted_objects": int(books_deleted),
+            },
+            status=status.HTTP_200_OK,
+        )
     
     def update(self, request, *args, **kwargs):
         # Handles PUT

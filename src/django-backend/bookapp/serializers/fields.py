@@ -37,6 +37,7 @@ class MonthYearField(serializers.Field):
         "required": "Date is required.",
         "null": "Date is required.",
         "invalid": "Please provide date in Month, Year format.",
+        "year_zero": "Cannot accept year 0.",
     }
 
     def to_internal_value(self, data):
@@ -46,6 +47,8 @@ class MonthYearField(serializers.Field):
         if not _YYYY_MM.match(data):
             self.fail("invalid")
         year, month = data.split("-")
+        if int(year) == 0:
+            self.fail("year_zero")
         return datetime.date(int(year), int(month), 1)
 
     def to_representation(self, value):

@@ -94,3 +94,15 @@ class BookValidationTest(TestCase):
         # Errors are nested: {'authors': [{'royalty_rate': [...]}]}
         self.assertIn('authors', serializer.errors)
         self.assertIn('royalty_rate', serializer.errors['authors'][0])
+
+    def test_year_zero_publication_date(self):
+        data = {
+            'title': 'Year Zero Book',
+            'publication_date': '0000-01',
+            'isbn_13': '1234567890123',
+            'authors': [{'author_name': self.author.name, 'royalty_rate': 0.5}]
+        }
+        serializer = BookCreateSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('publication_date', serializer.errors)
+        self.assertEqual(serializer.errors['publication_date'][0], "Cannot accept year 0.")

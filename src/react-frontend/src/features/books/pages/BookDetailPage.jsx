@@ -219,18 +219,7 @@ export default function BookDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookId]);
 
-  // Refetch when page regains focus
-  useEffect(() => {
-    const handleFocus = () => {
-      refreshBook();
-      refreshSales();
-      refreshTotals();
-    };
 
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookId]);
 
   function resetFormToBook(b) {
     if (!b) return;

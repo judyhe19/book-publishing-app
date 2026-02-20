@@ -6,7 +6,7 @@ import sys
 # Configuration
 BASE_URL = "http://localhost:8000"
 USERNAME = "admin"
-PASSWORD = "password"
+PASSWORD = "458group2"
 
 def get_session():
     """
@@ -65,7 +65,7 @@ def get_books(session):
     # Return the full book objects so we can access their authors
     return books
 
-def generate_sales(session, books, count=100):
+def generate_sales(session, books, count=500):
     print(f"Generating {count} sales...")
     
     sales_data = []
@@ -102,7 +102,7 @@ def generate_sales(session, books, count=100):
         
         sale_obj = {
             "book": book_id,
-            "date": str(sale_date),
+            "date": sale_date.strftime("%Y-%m"),
             "quantity": quantity,
             "publisher_revenue": str(revenue),
             "author_paid": author_paid_map
@@ -116,7 +116,7 @@ def generate_sales(session, books, count=100):
     resp = session.post(url, json=sales_data)
     
     if resp.status_code == 201:
-        print("Successfully created 100 sales.")
+        print(f"Successfully created {count} sales.")
     else:
         print(f"Failed to create sales: {resp.status_code} {resp.text}")
 
@@ -124,7 +124,7 @@ def main():
     try:
         session = get_session()
         book_ids = get_books(session)
-        generate_sales(session, book_ids, count=100)
+        generate_sales(session, book_ids, count=500)
     except requests.exceptions.ConnectionError:
         print(f"Error: Could not connect to {BASE_URL}. Is the server running?")
     except KeyboardInterrupt:

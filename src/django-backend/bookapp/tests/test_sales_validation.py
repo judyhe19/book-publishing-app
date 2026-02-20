@@ -119,3 +119,15 @@ def test_edit_sale_negative_quantity(authed_client, sample_book):
     resp = authed_client.patch(f"/api/sales/{sale_id}/", edit_payload, format="json")
     assert resp.status_code == 400
     assert "quantity" in resp.data
+
+def test_create_sale_year_zero_date(authed_client, sample_book):
+    payload = {
+        "book": sample_book.id,
+        "quantity": 10,
+        "publisher_revenue": "100.00",
+        "date": "0000-01"
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 400
+    assert "date" in resp.data
+    assert resp.data["date"][0] == "Cannot accept year 0."

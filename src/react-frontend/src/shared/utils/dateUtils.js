@@ -25,7 +25,10 @@ const MONTH_NAMES = [
  */
 export function formatMonthYear(dateStr, fallback = "") {
   if (!dateStr) return fallback;
-  const [y, m] = dateStr.split("-").map(Number);
-  if (!y || !m || m < 1 || m > 12) return dateStr;
+  const parts = dateStr.split("-");
+  if (parts.length !== 2) return dateStr;
+  const y = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12) return dateStr;
   return `${MONTH_NAMES[m - 1]} ${y}`;
 }

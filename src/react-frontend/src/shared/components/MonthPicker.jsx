@@ -20,14 +20,19 @@ const isMonthInputSupported = (() => {
 
 function parseMonthString(val) {
   if (!val) return null;
-  const [y, m] = val.split("-").map(Number);
-  if (!y || !m) return null;
-  return new Date(y, m - 1, 1, 12, 0, 0);
+  const parts = val.split("-");
+  if (parts.length !== 2) return null;
+  const y = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  if (isNaN(y) || isNaN(m)) return null;
+  const d = new Date(y, m - 1, 1, 12, 0, 0);
+  d.setFullYear(y); // Fix JS 1900 mapping bug
+  return d;
 }
 
 function formatMonthDate(date) {
   if (!date) return "";
-  const y = date.getFullYear();
+  const y = String(date.getFullYear()).padStart(4, "0");
   const m = String(date.getMonth() + 1).padStart(2, "0");
   return `${y}-${m}`;
 }

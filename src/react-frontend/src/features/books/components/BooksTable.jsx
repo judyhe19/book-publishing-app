@@ -2,20 +2,8 @@
 import React from "react";
 import { Card, CardContent } from "../../../shared/components/Card";
 import { Button } from "../../../shared/components/Button";
+import { formatMonthYear } from "../../../shared/utils/dateUtils";
 
-/**
- * HelpersD
- */
-function formatMonthYear(dateStr) {
-  if (!dateStr) return "";
-
-  const [y, m] = dateStr.split("-").map(Number);
-  if (!y || !m) return dateStr;
-
-  // Create a UTC date at noon to avoid timezone edge cases entirely
-  const d = new Date(Date.UTC(y, m - 1, 1, 12, 0, 0));
-  return d.toLocaleString(undefined, { month: "long", year: "numeric" });
-}
 
 
 function pct(x) {

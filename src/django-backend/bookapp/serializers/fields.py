@@ -13,6 +13,11 @@ is purely an internal storage artefact and is never exposed through the API.
 
 This convention is enforced by ``MonthYearField`` below, which is used by both
 the Sale and Book serializers.
+
+Year 0 is unsupported: Python's ``datetime.date`` requires year >= 1 (there is
+no year 0 in the proleptic Gregorian calendar — it goes from 1 BC to 1 AD).
+The regex ``\d{4}`` technically allows ``"0000-01"`` but ``datetime.date(0,1,1)``
+raises ``ValueError``, so the request is rejected.
 """
 import datetime
 import re

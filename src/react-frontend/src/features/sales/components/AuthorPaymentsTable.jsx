@@ -1,4 +1,5 @@
 import React from "react";
+import { formatMonthYear } from "../../../shared/utils/dateUtils";
 
 function PaymentStatusCell({ paid }) {
   return paid ? (
@@ -57,10 +58,7 @@ export default function AuthorPaymentsTable({ rows, onGoBook, onGoSale }) {
               </td>
 
               <td className="px-6 py-4 text-sm text-gray-500">
-                {(() => {
-                  const [y, m] = r.sale.date.split('-').map(Number);
-                  return new Date(y, m - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-                })()}
+                {formatMonthYear(r.sale.date)}
               </td>
 
               <td className="px-6 py-4 text-sm text-gray-500 text-right">

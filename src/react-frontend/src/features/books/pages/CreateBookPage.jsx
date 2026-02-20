@@ -6,6 +6,7 @@ import { Input } from "../../../shared/components/Input";
 import { Button } from "../../../shared/components/Button";
 import { errorMessage } from "../../../shared/utils/errors";
 import * as booksApi from "../api/booksApi";
+import MonthPicker from "../../../shared/components/MonthPicker";
 
 function normalizeName(s) {
   return s.trim().replace(/\s+/g, " ");
@@ -128,21 +129,12 @@ export default function CreateBookPage() {
               </div>
 
               {/* Month/Year picker */}
-              <div>
-                <label className="text-sm font-medium text-slate-700">
-                  Publication date (month, year)
-                </label>
-                <div className="mt-1">
-                  <input
-                    type="month"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2"
-                    value={publicationMonth}
-                    onChange={(e) => setPublicationMonth(e.target.value)}
-                    required
-                  />
-                </div>
-
-              </div>
+              <MonthPicker
+                label="Publication date (month, year)"
+                value={publicationMonth}
+                onChange={setPublicationMonth}
+                required
+              />
 
               {/* ISBNs */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

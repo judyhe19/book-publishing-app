@@ -5,6 +5,7 @@ import { Button } from "../../../shared/components/Button";
 import { Spinner } from "../../../shared/components/Spinner";
 import SaleEntryRow from "../../../shared/components/SaleEntryRow";
 import { formatBookLabel } from "../../../shared/utils/bookUtils";
+import { formatMonthYear } from "../../../shared/utils/dateUtils";
 
 import { useSalesDetails } from "../hooks/useSalesDetails";
 import DeleteSalesRecordDialog from "../components/DeleteSalesRecordDialog";
@@ -111,20 +112,6 @@ function saleToRow(sale, bookData) {
     author_paid,
     overrides,
   };
-}
-
-function formatMonthYear(isoDate) {
-  if (!isoDate) return "";
-
-  const [y, m] = isoDate.split("-").map(Number);
-  if (!y || !m) return isoDate;
-
-  const d = new Date(Date.UTC(y, m - 1, 1));
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(d);
 }
 
 export default function SalesDetailPage() {

@@ -14,6 +14,8 @@ import SaleEntryRow from "../../../shared/components/SaleEntryRow";
 import { EMPTY_ROW, transformRowToSaleData, isRowComplete } from "../../../shared/utils/salesUtils";
 import { createManySales } from "../../sales/api/salesApi";
 import SalesPagination from "../../sales/components/SalesPagination";
+import { formatMonthYear } from "../../../shared/utils/dateUtils";
+import MonthPicker from "../../../shared/components/MonthPicker";
 
 function normalizeName(s) {
   return (s || "").trim().replace(/\s+/g, " ");
@@ -21,17 +23,6 @@ function normalizeName(s) {
 
 function monthInputFromDate(dateStr) {
   return dateStr || "";
-}
-
-function formatMonthYear(dateStr) {
-  if (!dateStr) return "—";
-  const [y, m] = dateStr.split("-").map(Number);
-  if (!y || !m) return dateStr;
-  const monthNames = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
-  ];
-  return `${monthNames[m - 1]} ${y}`;
 }
 
 function pct(x) {
@@ -445,18 +436,12 @@ export default function BookDetailPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium text-slate-700">Publication month, year</label>
-                  <div className="mt-1">
-                    <input
-                      type="month"
-                      className="w-full rounded-xl border border-slate-200 px-3 py-2"
-                      value={publicationMonth}
-                      onChange={(e) => setPublicationMonth(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
+                <MonthPicker
+                  label="Publication month, year"
+                  value={publicationMonth}
+                  onChange={setPublicationMonth}
+                  required
+                />
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>

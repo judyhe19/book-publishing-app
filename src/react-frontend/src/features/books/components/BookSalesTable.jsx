@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Spinner } from "../../../shared/components/Spinner";
+import { DataTable } from "../../../shared/components/DataTable";
 
 // Table columns for book sales (excludes Book Title since we're already on the book page)
 const BOOK_SALES_COLUMNS = [
@@ -97,71 +97,23 @@ const BOOK_SALES_COLUMNS = [
     },
     {
         label: 'Actions',
-        render: (sale) => (
-            <Link
-                to={`/sale/${sale.id}`}
-                className="text-indigo-600 hover:text-indigo-900 font-medium"
-            >
-                Modify
-            </Link>
-        ),
+        type: 'actions',
+        getActions: (sale) => [
+            { label: 'Modify', to: `/sale/${sale.id}`, variant: 'primary' }
+        ],
     },
 ];
 
 export default function BookSalesTable({ data, loading, ordering, onSort }) {
-
-    const renderSortIcon = (field) => {
-        if (!field) return null;
-        if (ordering === field) return " ↑";
-        if (ordering === `-${field}`) return " ↓";
-        return "";
-    };
-
     return (
-        <div className="overflow-x-auto rounded-lg border border-slate-200">
-            <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                    <tr>
-                        {BOOK_SALES_COLUMNS.map((col, idx) => (
-                            <th
-                                key={idx}
-                                onClick={col.sortKey ? () => onSort(col.sortKey) : undefined}
-                                className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${col.sortKey ? 'cursor-pointer hover:bg-gray-100' : ''}`}
-                            >
-                                {col.label} {renderSortIcon(col.sortKey)}
-                            </th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                    {loading ? (
-                        <tr>
-                            <td colSpan={BOOK_SALES_COLUMNS.length} className="px-6 py-12 text-center">
-                                <div className="flex justify-center items-center gap-2 text-slate-500">
-                                    <Spinner />
-                                    <span>Loading sales data...</span>
-                                </div>
-                            </td>
-                        </tr>
-                    ) : data.length === 0 ? (
-                        <tr>
-                            <td colSpan={BOOK_SALES_COLUMNS.length} className="px-6 py-4 text-center text-slate-500">
-                                No sales records found for this book.
-                            </td>
-                        </tr>
-                    ) : (
-                        data.map((sale) => (
-                            <tr key={sale.id} className="hover:bg-gray-50">
-                                {BOOK_SALES_COLUMNS.map((col, idx) => (
-                                    <td key={idx} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {col.render(sale)}
-                                    </td>
-                                ))}
-                            </tr>
-                        ))
-                    )}
-                </tbody>
-            </table>
-        </div>
+        <DataTable
+            data={data}
+            columns={BOOK_SALES_COLUMNS}
+            loading={loading}
+            ordering={ordering}
+            onSort={onSort}
+            emptyMessage="No sales records found for this book."
+            loadingMessage="Loading sales data..."
+        />
     );
 }

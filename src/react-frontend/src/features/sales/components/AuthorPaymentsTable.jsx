@@ -1,5 +1,6 @@
 import React from "react";
 import { formatMonthYear } from "../../../shared/utils/dateUtils";
+import { DataTable } from "../../../shared/components/DataTable";
 
 function PaymentStatusCell({ paid }) {
   return paid ? (
@@ -15,80 +16,65 @@ function PaymentStatusCell({ paid }) {
   );
 }
 
+const getColumns = (onGoBook, onGoSale) => [
+  {
+    label: "Book Title",
+    render: (r) => (
+      <button
+        className="font-medium text-blue-600"
+        onClick={() => onGoBook(r.sale.book)}
+      >
+        {r.sale.book_title}
+      </button>
+    )
+  },
+  {
+    label: "Date",
+    render: (r) => formatMonthYear(r.sale.date)
+  },
+  {
+    label: "Quantity",
+    className: "text-right whitespace-nowrap",
+    render: (r) => r.sale.quantity
+  },
+  {
+    label: "Revenue",
+    className: "text-right whitespace-nowrap",
+    render: (r) => `$${r.sale.publisher_revenue}`
+  },
+  {
+    label: "Royalty",
+    className: "text-right whitespace-nowrap",
+    render: (r) => `$${r.author.royalty_amount}`
+  },
+  {
+    label: "Payment Status",
+    render: (r) => <PaymentStatusCell paid={r.paid} />
+  },
+  {
+    label: "Actions",
+    className: "text-right whitespace-nowrap",
+    type: "actions",
+    getActions: (r) => [
+      { label: "Modify", onClick: () => onGoSale(r.sale.id), variant: "primary" }
+    ]
+  }
+];
+
 export default function AuthorPaymentsTable({ rows, onGoBook, onGoSale }) {
+  const columns = React.useMemo(() => getColumns(onGoBook, onGoSale), [onGoBook, onGoSale]);
+  
+  // DataTable uses `row.id` for the key, so we need to inject an id
+  const dataWithId = rows.map((r, idx) => ({
+    ...r,
+    id: `${r.sale?.id}-${idx}`
+  }));
+
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Book Title
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Date
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-              Quantity
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-              Revenue
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-              Royalty
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Payment Status
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-              Actions
-            </th>
-          </tr>
-        </thead>
-
-        <tbody className="bg-white divide-y divide-gray-200">
-          {rows.map((r, idx) => (
-            <tr key={`${r.sale.id}-${idx}`} className="hover:bg-gray-50">
-              <td className="px-6 py-4 text-sm">
-                <button
-                  className="font-medium text-blue-600"
-                  onClick={() => onGoBook(r.sale.book)}
-                >
-                  {r.sale.book_title}
-                </button>
-              </td>
-
-              <td className="px-6 py-4 text-sm text-gray-500">
-                {formatMonthYear(r.sale.date)}
-              </td>
-
-              <td className="px-6 py-4 text-sm text-gray-500 text-right">
-                {r.sale.quantity}
-              </td>
-
-              <td className="px-6 py-4 text-sm text-gray-500 text-right">
-                ${r.sale.publisher_revenue}
-              </td>
-
-              <td className="px-6 py-4 text-sm text-gray-500 text-right">
-                ${r.author.royalty_amount}
-              </td>
-
-              <td className="px-6 py-4 text-sm">
-                <PaymentStatusCell paid={r.paid} />
-              </td>
-
-              <td className="px-6 py-4 text-sm text-right">
-                <button
-                  className="text-indigo-600 hover:text-indigo-900 font-medium"
-                  onClick={() => onGoSale(r.sale.id)}
-                >
-                  Modify
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      data={dataWithId}
+      columns={columns}
+      emptyMessage="No author payments found."
+    />
   );
 }

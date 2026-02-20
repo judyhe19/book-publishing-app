@@ -186,12 +186,8 @@ export default function SalesDetailPage() {
   const payload = useMemo(() => {
     if (!row || !row.book) return null;
 
-    // ensure date is in full date format (YYYY-MM-DD), appending -01 if it's just YYYY-MM
-    const dateStr =
-      row.date && row.date.split("-").length === 2 ? `${row.date}-01` : row.date;
-
     return {
-      date: dateStr,
+      date: row.date,
       book: row.book.value,
       quantity: Number(row.quantity),
       publisher_revenue: String(row.publisher_revenue),

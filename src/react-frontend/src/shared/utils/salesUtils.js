@@ -17,7 +17,7 @@ export const EMPTY_ROW = {
 export const transformRowToSaleData = (row) => {
     const sale = {
         book: row.book ? row.book.value : null,
-        date: `${row.date}-01`,
+        date: row.date,
         quantity: parseInt(row.quantity),
         publisher_revenue: parseFloat(row.publisher_revenue),
         author_royalties: {},

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Script to populate the production server with books and sales data.
-Generates 55 books with varying numbers of authors (1-4) and royalty rates (5-25%),
-then generates 60 sales entries with varying quantities and revenues.
+Generates 150 books with varying numbers of authors (1-4) and royalty rates (5-25%),
+then generates 500 sales entries with varying quantities and revenues.
 
 Usage:
     python populate_prod.py
@@ -13,7 +13,7 @@ Default: Connect to production server
 python src/scripts/populate_prod.py
 
 Custom options:
-python src/scripts/populate_prod.py --url https://vcm-51984.vm.duke.edu --books 55 --sales 60
+python src/scripts/populate_prod.py --url https://vcm-51984.vm.duke.edu --books 150 --sales 500
 
 Skip book creation (only create sales):
 python src/scripts/populate_prod.py --skip-books
@@ -33,7 +33,7 @@ BASE_URL = "https://vcm-51984.vm.duke.edu"
 
 # Login credentials (matching production defaults)
 USERNAME = "admin"
-PASSWORD = "password" # CHANGE THIS WHEN THE PROD PASSWORD CHANGES
+PASSWORD = "458group2" # CHANGE THIS WHEN THE PROD PASSWORD CHANGES
 
 
 def get_session(base_url):
@@ -161,7 +161,7 @@ def generate_isbn10():
     return core + check
 
 
-def generate_books(session, base_url, authors, count=55):
+def generate_books(session, base_url, authors, count=150):
     """
     Generate books with varying numbers of authors and royalty rates.
     
@@ -261,7 +261,7 @@ def generate_books(session, base_url, authors, count=55):
     return success_count
 
 
-def generate_sales(session, base_url, count=60):
+def generate_sales(session, base_url, count=500):
     """
     Generate sales with varying quantities, revenues, and royalty payments.
     
@@ -346,7 +346,7 @@ def generate_sales(session, base_url, count=60):
         
         sale_obj = {
             "book": book_id,
-            "date": str(sale_date),
+            "date": sale_date.strftime("%Y-%m"),
             "quantity": quantity,
             "publisher_revenue": str(revenue),
             "author_paid": author_paid_map
@@ -425,8 +425,8 @@ def get_session_with_creds(base_url, username, password):
 def main():
     parser = argparse.ArgumentParser(description='Populate production server with books and sales data.')
     parser.add_argument('--url', default=BASE_URL, help=f'Base URL of the server (default: {BASE_URL})')
-    parser.add_argument('--books', type=int, default=55, help='Number of books to create (default: 55)')
-    parser.add_argument('--sales', type=int, default=60, help='Number of sales to create (default: 60)')
+    parser.add_argument('--books', type=int, default=150, help='Number of books to create (default: 150)')
+    parser.add_argument('--sales', type=int, default=500, help='Number of sales to create (default: 500)')
     parser.add_argument('--username', default=USERNAME, help=f'Login username (default: {USERNAME})')
     parser.add_argument('--password', default=PASSWORD, help=f'Login password (default: {PASSWORD})')
     parser.add_argument('--skip-books', action='store_true', help='Skip book generation')

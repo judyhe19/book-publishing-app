@@ -8,7 +8,7 @@ import sys
 BASE_URL = "http://localhost:8000"
 # Login credentials (matching entrypoint.sh defaults)
 USERNAME = "admin"
-PASSWORD = "password"
+PASSWORD = "458group2"
 
 def get_session():
     """
@@ -65,9 +65,9 @@ def get_or_create_author(session):
     # Pagination check: 'results' key usually present if paginated
     authors = data.get('results', data) if isinstance(data, dict) else data
     
-    if len(authors) < 5:
-        needed = 5 - len(authors)
-        print(f"Less than 5 authors found. Creating {needed} dummy authors...")
+    if len(authors) < 50:
+        needed = 50 - len(authors)
+        print(f"Less than 50 authors found. Creating {needed} dummy authors...")
         for _ in range(needed):
             new_author = {
                 "name": f"Auto Author {random.randint(1000, 9999)} - {random.choice(string.ascii_uppercase)}",
@@ -80,7 +80,7 @@ def get_or_create_author(session):
             else:
                 authors.append(create_resp.json())
         
-    return [a['id'] for a in authors]
+    return authors
 
 def generate_isbn13():
     # Start with 978
@@ -92,7 +92,7 @@ def generate_isbn13():
     # It doesn't seem to enforce checksum validation in the model definition, just string length.
     return prefix + core + random.choice(string.digits)
 
-def generate_books(session, author_ids, count=55):
+def generate_books(session, authors, count=150):
     print(f"Generating {count} books...")
     
     success_count = 0
@@ -116,23 +116,23 @@ def generate_books(session, author_ids, count=55):
         
         # Pick 1-2 authors
         num_authors = random.choice([1, 1, 2, 2, 3]) # Mostly 1 author
-        selected_authors = random.sample(author_ids, min(len(author_ids), num_authors))
+        selected_authors = random.sample(authors, min(len(authors), num_authors))
         
         # Construct payload
         # Structure based on BookCreateSerializer:
         # fields = ["title", "publication_date", "isbn_13", "isbn_10", "authors"]
-        # authors = [{"author_id": id, "royalty_rate": ...}]
+        # authors = [{"author_name": name, "royalty_rate": ...}]
         
         authors_payload = []
-        for auth_id in selected_authors:
+        for author in selected_authors:
             authors_payload.append({
-                "author_id": auth_id,
+                "author_name": author['name'],
                 "royalty_rate": round(random.uniform(0.05, 0.20), 2) # 5% to 20%
             })
             
         payload = {
             "title": title,
-            "publication_date": str(pub_date),
+            "publication_date": pub_date.strftime("%Y-%m"),
             "isbn_13": isbn13,
             "isbn_10": None, # Optional
             "authors": authors_payload
@@ -152,8 +152,8 @@ def generate_books(session, author_ids, count=55):
 def main():
     try:
         session = get_session()
-        author_ids = get_or_create_author(session)
-        generate_books(session, author_ids, count=55)
+        authors = get_or_create_author(session)
+        generate_books(session, authors, count=150)
     except requests.exceptions.ConnectionError:
         print(f"Error: Could not connect to {BASE_URL}. Is the server running?")
     except KeyboardInterrupt:

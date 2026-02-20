@@ -43,7 +43,7 @@ def test_create_sale_creates_author_sale_records(authed_client, user):
         "book": b1.id,
         "quantity": 100,
         "publisher_revenue": "1000.00",
-        "date": "2023-01-01"
+        "date": "2023-01"
     }
 
     resp = authed_client.post("/api/sales/", payload, format="json")
@@ -71,7 +71,7 @@ def test_create_sale_with_royalty_override(authed_client, user):
         "book": b1.id,
         "quantity": 100,
         "publisher_revenue": "1000.00",
-        "date": "2023-01-01",
+        "date": "2023-01",
         "author_royalties": {
             str(a1.id): "500.00"
         },
@@ -96,13 +96,13 @@ def test_create_many_sales(authed_client, user):
             "book": b1.id,
             "quantity": 10,
             "publisher_revenue": "100.00",
-            "date": "2023-01-01"
+            "date": "2023-01"
         },
         {
             "book": b1.id,
             "quantity": 20,
             "publisher_revenue": "200.00",
-            "date": "2023-01-02"
+            "date": "2023-02"
         }
     ]
 
@@ -226,7 +226,7 @@ def test_get_sale_by_id(authed_client, user):
     assert data['book'] == b1.id
     assert data['quantity'] == 15
     assert Decimal(data['publisher_revenue']) == Decimal("150.00")
-    assert data['date'] == "2023-05-01"
+    assert data['date'] == "2023-05"
     
     # Verify author_details are included
     assert 'author_details' in data

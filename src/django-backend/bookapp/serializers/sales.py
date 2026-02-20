@@ -1,9 +1,15 @@
-import datetime
-import re
-
 from rest_framework import serializers
 from decimal import Decimal
 from ..models import Sale, Book, Author, AuthorSale, AuthorBook
+from .fields import MonthYearField
+
+
+class SaleMonthYearField(MonthYearField):
+    """Sale-specific error wording."""
+    default_error_messages = {
+        **MonthYearField.default_error_messages,
+        "invalid": "Please provide sale date in Month, Year format.",
+    }
 
 
 class SaleSerializer(serializers.ModelSerializer):
@@ -39,33 +45,6 @@ class PlaceholderDecimalField(serializers.DecimalField):
         if isinstance(data, str) and data.strip() in ("", "--"):
             self.fail("required")
         return super().to_internal_value(data)
-
-_YYYY_MM = re.compile(r"^\d{4}-(?:0[1-9]|1[0-2])$")
-
-class MonthYearField(serializers.Field):
-    """
-    Accepts only YYYY-MM strings.  Stores as a date (first of month) internally
-    and outputs YYYY-MM in responses.
-    """
-    default_error_messages = {
-        "required": "Date is required.",
-        "null": "Date is required.",
-        "invalid": "Please provide sale date in Month, Year format (YYYY-MM).",
-    }
-
-    def to_internal_value(self, data):
-        if not isinstance(data, str) or data.strip() == "":
-            self.fail("required")
-        data = data.strip()
-        if not _YYYY_MM.match(data):
-            self.fail("invalid")
-        year, month = data.split("-")
-        return datetime.date(int(year), int(month), 1)
-
-    def to_representation(self, value):
-        if isinstance(value, datetime.date):
-            return value.strftime("%Y-%m")
-        return value
 
 
 class SaleWriteSerializer(serializers.ModelSerializer):
@@ -108,7 +87,7 @@ class SaleWriteSerializer(serializers.ModelSerializer):
         },
     )
 
-    date = MonthYearField()
+    date = SaleMonthYearField()
 
     book = serializers.PrimaryKeyRelatedField(
         queryset=Book.objects.all(),

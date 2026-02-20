@@ -121,7 +121,7 @@ class AuthorPaymentsViewSet(ViewSet):
                     "id": sale.id,
                     "book": sale.book_id,
                     "book_title": sale.book.title if sale.book else "",
-                    "date": str(sale.date),
+                    "date": sale.date.strftime("%Y-%m") if sale.date else "",
                     "quantity": sale.quantity,
                     "publisher_revenue": str(sale.publisher_revenue),
                 },
@@ -133,7 +133,7 @@ class AuthorPaymentsViewSet(ViewSet):
                 },
                 "paid": bool(ars.author_paid),
                 "royalty": float(ars.royalty_amount or Decimal("0.00")),
-                "dateKey": int(sale.date.strftime("%s")) if sale and sale.date else 0,
+                "dateKey": sale.date.year * 100 + sale.date.month if sale and sale.date else 0,
             })
 
         results = [groups[a.id] for a in page_authors]

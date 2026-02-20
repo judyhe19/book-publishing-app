@@ -11,7 +11,7 @@ class BookValidationTest(TestCase):
     def test_valid_book(self):
         data = {
             'title': 'Valid Book',
-            'publication_date': '2023-01-01',
+            'publication_date': '2023-01',
             'isbn_13': '1234567890123',
             'isbn_10': '1234567890',
             'authors': [{'author_name': self.author.name, 'royalty_rate': 0.5}]
@@ -23,7 +23,7 @@ class BookValidationTest(TestCase):
 
     def test_missing_title(self):
         data = {
-            'publication_date': '2023-01-01',
+            'publication_date': '2023-01',
             'isbn_13': '1234567890123',
             'authors': [{'author_name': self.author.name, 'royalty_rate': 0.5}]
         }
@@ -34,7 +34,7 @@ class BookValidationTest(TestCase):
     def test_missing_authors(self):
         data = {
             'title': 'No Author Book',
-            'publication_date': '2023-01-01',
+            'publication_date': '2023-01',
             'isbn_13': '1234567890123',
             'authors': []
         }
@@ -45,7 +45,7 @@ class BookValidationTest(TestCase):
     def test_invalid_isbn_length(self):
         data = {
             'title': 'Bad ISBN Book',
-            'publication_date': '2023-01-01',
+            'publication_date': '2023-01',
             'isbn_13': '123', # Too short
             'authors': [{'author_name': self.author.name, 'royalty_rate': 0.5}]
         }
@@ -56,7 +56,7 @@ class BookValidationTest(TestCase):
     def test_negative_royalty(self):
         data = {
             'title': 'Negative Royalty Book',
-            'publication_date': '2023-01-01',
+            'publication_date': '2023-01',
             'isbn_13': '1234567890123',
             'authors': [{'author_name': self.author.name, 'royalty_rate': -0.5}]
         }
@@ -69,7 +69,7 @@ class BookValidationTest(TestCase):
     def test_duplicate_authors(self):
         data = {
             'title': 'Duplicate Author Book',
-            'publication_date': '2023-01-01',
+            'publication_date': '2023-01',
             'isbn_13': '1234567890123',
             'authors': [
                 {'author_name': self.author.name, 'royalty_rate': 0.1},
@@ -83,7 +83,7 @@ class BookValidationTest(TestCase):
     def test_invalid_royalty_format(self):
         data = {
             'title': 'Invalid Royalty Book',
-            'publication_date': '2023-01-01',
+            'publication_date': '2023-01',
             'isbn_13': '1234567890123',
             'authors': [
                 {'author_name': self.author.name, 'royalty_rate': "not-a-number"}

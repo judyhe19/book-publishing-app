@@ -3,8 +3,7 @@ import AsyncSelect from 'react-select/async';
 import { Input } from './Input';
 
 export const DateField = ({ value, onChange, minDate }) => {
-    // Convert YYYY-MM-DD to YYYY-MM for the min attribute
-    const minMonth = minDate ? minDate.substring(0, 7) : undefined;
+    const minMonth = minDate || undefined;
     
     return (
         <div className="w-48">

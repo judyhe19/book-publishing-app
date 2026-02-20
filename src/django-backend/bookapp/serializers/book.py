@@ -3,6 +3,7 @@ from rest_framework import serializers
 from django.db import IntegrityError
 
 from ..models import Book, AuthorBook, Author
+from .fields import MonthYearField
 from .validators import (
     normalize_author_name,
     validate_royalty_rate,
@@ -10,6 +11,14 @@ from .validators import (
     validate_isbn_13,
     validate_isbn_10,
 )
+
+
+class BookMonthYearField(MonthYearField):
+    """Publication-date-specific error wording."""
+    default_error_messages = {
+        **MonthYearField.default_error_messages,
+        "invalid": "Please provide publication date in Month, Year format.",
+    }
 
 def _get_or_create_author_by_name(name: str) -> Author:
     """
@@ -104,6 +113,7 @@ class AuthorBookByNameInputSerializer(serializers.Serializer):
 
 class BookListSerializer(serializers.ModelSerializer):
     authors = AuthorBookSerializer(source="authorbook_set", many=True, read_only=True)
+    publication_date = MonthYearField(read_only=True)
 
     # total_sales_to_date is not a model field; it comes from queryset annotation.
     total_sales_to_date = serializers.IntegerField(read_only=True)
@@ -132,6 +142,7 @@ class BookDetailSerializer(BookListSerializer):
 class BookCreateSerializer(serializers.ModelSerializer):
     # Input authors by NAME (write-only). Response uses BookDetailSerializer.
     authors = AuthorBookByNameInputSerializer(many=True, write_only=True)
+    publication_date = BookMonthYearField()
 
     class Meta:
         model = Book
@@ -205,6 +216,7 @@ class BookUpdateSerializer(serializers.ModelSerializer):
     - If "authors" is omitted, we do not touch authorbook_set.
     """
     authors = AuthorBookByNameInputSerializer(many=True, required=False, write_only=True)
+    publication_date = BookMonthYearField(required=False)
 
     class Meta:
         model = Book

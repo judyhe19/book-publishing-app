@@ -30,7 +30,7 @@ def test_missing_quantity_message(authed_client, sample_book):
     payload = {
         "book": sample_book.id,
         "publisher_revenue": "100.00",
-        "date": "2023-01-01"
+        "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
@@ -42,7 +42,7 @@ def test_negative_quantity_message(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": -5,
         "publisher_revenue": "100.00",
-        "date": "2023-01-01"
+        "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
@@ -53,7 +53,7 @@ def test_missing_revenue_message(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 10,
         # "publisher_revenue": "100.00", # Missing
-        "date": "2023-01-01"
+        "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400

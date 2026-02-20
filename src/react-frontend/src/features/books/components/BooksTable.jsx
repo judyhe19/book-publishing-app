@@ -9,16 +9,11 @@ import { Button } from "../../../shared/components/Button";
 function formatMonthYear(dateStr) {
   if (!dateStr) return "";
 
-  // Expect "YYYY-MM-DD"
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
-  if (!m) return dateStr;
-
-  const year = Number(m[1]);
-  const monthIndex = Number(m[2]) - 1; // 0-based
-  if (!Number.isFinite(year) || !Number.isFinite(monthIndex)) return dateStr;
+  const [y, m] = dateStr.split("-").map(Number);
+  if (!y || !m) return dateStr;
 
   // Create a UTC date at noon to avoid timezone edge cases entirely
-  const d = new Date(Date.UTC(year, monthIndex, 1, 12, 0, 0));
+  const d = new Date(Date.UTC(y, m - 1, 1, 12, 0, 0));
   return d.toLocaleString(undefined, { month: "long", year: "numeric" });
 }
 

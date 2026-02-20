@@ -97,7 +97,7 @@ export default function CreateBookPage() {
 
       const payload = {
         title: title.trim(),
-        publication_date: `${publicationMonth}-01`, // default day = 1
+        publication_date: publicationMonth,
         isbn_13: isbn13.replaceAll("-", "").trim(),
         isbn_10: isbn10.trim() === "" ? null : isbn10.replaceAll("-", "").trim(),
         authors: cleanedAuthors, // ✅ send names, backend creates missing authors atomically
@@ -141,9 +141,7 @@ export default function CreateBookPage() {
                     required
                   />
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
-                  Day will default to the 1st in the database.
-                </div>
+
               </div>
 
               {/* ISBNs */}

@@ -34,7 +34,7 @@ def test_create_sale_negative_quantity(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": -5,
         "publisher_revenue": "100.00",
-        "date": "2023-01-01"
+        "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
@@ -45,7 +45,7 @@ def test_create_sale_zero_quantity(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 0,
         "publisher_revenue": "100.00",
-        "date": "2023-01-01"
+        "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
@@ -56,7 +56,7 @@ def test_create_sale_negative_revenue(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 10,
         "publisher_revenue": "-50.00",
-        "date": "2023-01-01"
+        "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
@@ -69,7 +69,7 @@ def test_create_sale_negative_royalties(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 10,
         "publisher_revenue": "100.00",
-        "date": "2023-01-01",
+        "date": "2023-01",
         "author_royalties": {
             str(a1.id): "-10.00"
         }
@@ -84,7 +84,7 @@ def test_create_sale_date_before_publication(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 10,
         "publisher_revenue": "100.00",
-        "date": "2019-12-31" # Before publication
+        "date": "2019-12" # Before publication
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
@@ -95,7 +95,7 @@ def test_create_sale_valid(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 10,
         "publisher_revenue": "100.00",
-        "date": "2023-01-01"
+        "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 201
@@ -106,7 +106,7 @@ def test_edit_sale_negative_quantity(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 10,
         "publisher_revenue": "100.00",
-        "date": "2023-01-01"
+        "date": "2023-01"
     }
     create_resp = authed_client.post("/api/sales/", payload, format="json")
     assert create_resp.status_code == 201

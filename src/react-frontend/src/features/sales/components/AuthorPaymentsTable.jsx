@@ -57,7 +57,10 @@ export default function AuthorPaymentsTable({ rows, onGoBook, onGoSale }) {
               </td>
 
               <td className="px-6 py-4 text-sm text-gray-500">
-                {new Date(r.sale.date).toLocaleDateString()}
+                {(() => {
+                  const [y, m] = r.sale.date.split('-').map(Number);
+                  return new Date(y, m - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                })()}
               </td>
 
               <td className="px-6 py-4 text-sm text-gray-500 text-right">

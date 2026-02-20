@@ -10,10 +10,7 @@ import { useSalesDetails } from "../hooks/useSalesDetails";
 import DeleteSalesRecordDialog from "../components/DeleteSalesRecordDialog";
 
 function toMonthValue(value) {
-  if (!value) return "";
-  const s = String(value);
-  const yyyyMmDd = s.length >= 10 ? s.slice(0, 10) : s; // handles ISO datetime too
-  return yyyyMmDd.split("-").length >= 2 ? yyyyMmDd.slice(0, 7) : yyyyMmDd;
+  return value ? String(value) : "";
 }
 
 function moneyNumber(x) {

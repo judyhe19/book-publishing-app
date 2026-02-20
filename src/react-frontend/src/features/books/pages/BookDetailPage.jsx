@@ -20,22 +20,18 @@ function normalizeName(s) {
 }
 
 function monthInputFromDate(dateStr) {
-  if (!dateStr) return "";
-  const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(dateStr);
-  return m ? `${m[1]}-${m[2]}` : "";
+  return dateStr || "";
 }
 
 function formatMonthYear(dateStr) {
   if (!dateStr) return "—";
-  const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(dateStr);
-  if (!m) return dateStr;
-  const year = m[1];
-  const month = Number(m[2]);
+  const [y, m] = dateStr.split("-").map(Number);
+  if (!y || !m) return dateStr;
   const monthNames = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December",
   ];
-  return `${monthNames[month - 1]} ${year}`;
+  return `${monthNames[m - 1]} ${y}`;
 }
 
 function pct(x) {
@@ -275,7 +271,7 @@ export default function BookDetailPage() {
       // The backend is now atomic and will validate everything.
       const payload = {
         title: title.trim(),
-        publication_date: `${publicationMonth}-01`,
+        publication_date: publicationMonth,
         isbn_13: isbn13.replaceAll("-", "").trim(),
         isbn_10: isbn10.trim() === "" ? null : isbn10.replaceAll("-", "").trim(),
         authors: cleanedAuthors, // ✅ send names; backend creates missing authors atomically

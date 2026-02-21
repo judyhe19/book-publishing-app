@@ -1,13 +1,15 @@
 // src/features/books/pages/BooksListPage.jsx
-import React, { useRef, useCallback } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useBooksList } from "../hooks/useBooksList";
-
-import BooksToolbar from "../components/BooksToolbar";
-import BooksTable from "../components/BooksTable";
-import BooksPagination from "../components/BooksPagination";
-import { Button } from "../../../shared/components/Button";
+import { BooksToolbar, BooksTable } from "../components";
+import {
+  Button,
+  Pagination,
+  ShowAllToggle,
+  DualScrollContainer,
+} from "../../../shared/components";
 
 export default function BooksListPage() {
   const navigate = useNavigate();
@@ -28,33 +30,13 @@ export default function BooksListPage() {
     setShowAll,
   } = useBooksList({ pageSize: 50, ordering: "title" });
 
-  // Synchronized scroll refs for top and bottom scrollbars
-  const topScrollRef = useRef(null);
-  const bottomScrollRef = useRef(null);
-
-  const handleTopScroll = useCallback(() => {
-    if (bottomScrollRef.current && topScrollRef.current) {
-      bottomScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
-    }
-  }, []);
-
-  const handleBottomScroll = useCallback(() => {
-    if (topScrollRef.current && bottomScrollRef.current) {
-      topScrollRef.current.scrollLeft = bottomScrollRef.current.scrollLeft;
-    }
-  }, []);
-
-  const onCreateBook = () => {
-    navigate("/books/input");
-  };
-
   const onGoBook = (book) => {
     navigate(`/books/${book.id}`);
   };
 
   return (
     <div className="p-6 space-y-4 max-w-full">
-      <BooksToolbar q={q} onChangeQ={setQ} onCreateBook={onCreateBook} />
+      <BooksToolbar q={q} onChangeQ={setQ} />
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-slate-600">
@@ -62,47 +44,28 @@ export default function BooksListPage() {
           {showAll && count != null ? " (showing all)" : ""}
         </div>
 
-        <Button
-          variant="secondary"
-          onClick={() => {
+        <ShowAllToggle
+          showAll={showAll}
+          onToggle={() => {
             setShowAll((v) => !v);
             setPage(1);
           }}
-        >
-          {showAll ? "Paginate" : "Show all"}
-        </Button>
+        />
       </div>
 
-      {error ? <div className="text-sm text-red-600">{error}</div> : null}
+      {error && <div className="text-sm text-red-600">{error}</div>}
 
-      {/* Top scrollbar */}
-      <div
-        ref={topScrollRef}
-        onScroll={handleTopScroll}
-        className="overflow-x-auto"
-        style={{ height: "20px" }}
-      >
-        <div style={{ width: "1400px", height: "1px" }} />
-      </div>
-
-      {/* Table with bottom scrollbar */}
-      <div
-        ref={bottomScrollRef}
-        onScroll={handleBottomScroll}
-        className="overflow-x-auto"
-      >
-        <div style={{ minWidth: "1400px" }}>
-          <BooksTable
-            books={books}
-            ordering={ordering}
-            onToggleOrdering={toggleOrdering}
-            onGoBook={onGoBook}
-          />
-        </div>
-      </div>
+      <DualScrollContainer contentWidth={1400}>
+        <BooksTable
+          books={books}
+          ordering={ordering}
+          onToggleOrdering={toggleOrdering}
+          onGoBook={onGoBook}
+        />
+      </DualScrollContainer>
 
       {!showAll && (
-        <BooksPagination
+        <Pagination
           page={page}
           totalPages={totalPages}
           onPrev={() => setPage(Math.max(1, page - 1))}

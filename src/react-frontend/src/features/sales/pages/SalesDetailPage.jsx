@@ -1,14 +1,16 @@
 // src/features/sales/pages/SalesDetailPage.jsx
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button } from "../../../shared/components/Button";
-import { Spinner } from "../../../shared/components/Spinner";
-import SaleEntryRow from "../../../shared/components/SaleEntryRow";
+import {
+  Button,
+  ErrorAlert,
+  LoadingState,
+  PageHeader,
+  SaleEntryRow,
+} from "../../../shared/components";
 import { formatBookLabel } from "../../../shared/utils/bookUtils";
-import { formatMonthYear } from "../../../shared/utils/dateUtils";
-
 import { useSalesDetails } from "../hooks/useSalesDetails";
-import DeleteSalesRecordDialog from "../components/DeleteSalesRecordDialog";
+import { DeleteSalesRecordDialog } from "../components";
 
 function toMonthValue(value) {
   return value ? String(value) : "";
@@ -19,7 +21,6 @@ function moneyNumber(x) {
   return Number.isNaN(n) ? 0 : n;
 }
 
-// royalty_rate could be "10" (percent) or "0.10" (fraction). Handle both safely.
 function normalizeRate(rate) {
   const r = Number(rate);
   if (Number.isNaN(r)) return 0;
@@ -29,16 +30,10 @@ function normalizeRate(rate) {
 function formatMoneyString(x) {
   const n = Number(x);
   if (Number.isNaN(n)) return "0";
-  // keep stable money formatting (string) for inputs
   return n.toFixed(2);
 }
 
-function computeAutoRoyalties({
-  bookAuthors,
-  publisherRevenue,
-  overrides,
-  existing,
-}) {
+function computeAutoRoyalties({ bookAuthors, publisherRevenue, overrides, existing }) {
   const revenue = moneyNumber(publisherRevenue);
   const next = { ...(existing || {}) };
 
@@ -46,7 +41,6 @@ function computeAutoRoyalties({
     const key = String(a.author_id);
     const isOverridden = !!(overrides && overrides[key]);
 
-    // Only auto-update if this author isn't overridden
     if (!isOverridden) {
       const rate = normalizeRate(a.royalty_rate);
       next[key] = formatMoneyString(revenue * rate);
@@ -57,7 +51,6 @@ function computeAutoRoyalties({
 }
 
 function saleToRow(sale, bookData) {
-  // Use book data from the books API (same source as SalesInputPage)
   const book = {
     value: bookData.id,
     label: formatBookLabel(bookData.title, bookData.isbn_13),
@@ -73,7 +66,6 @@ function saleToRow(sale, bookData) {
   const author_paid = {};
   const overrides = {};
 
-  // ✅ build a lookup so we can determine whether a saved royalty differs from default
   const rateByAuthorId = {};
   for (const a of book.authors || []) {
     rateByAuthorId[String(a.author_id)] = a.royalty_rate;
@@ -85,10 +77,8 @@ function saleToRow(sale, bookData) {
     author_royalties[id] = String(a.royalty_amount);
     author_paid[id] = !!a.paid;
 
-    // ✅ If saved royalty differs from the default computed royalty, mark as overridden
     const rate = rateByAuthorId[id];
     if (rate === undefined) {
-      // if we can't compute a default, treat as overridden to avoid clobbering
       overrides[id] = true;
     } else {
       const revenue = moneyNumber(sale.publisher_revenue);
@@ -104,7 +94,7 @@ function saleToRow(sale, bookData) {
 
   return {
     isEdit: true,
-    date: toMonthValue(sale.date), // ✅ normalize to YYYY-MM for month inputs
+    date: toMonthValue(sale.date),
     book,
     quantity: sale.quantity,
     publisher_revenue: sale.publisher_revenue,
@@ -118,9 +108,7 @@ export default function SalesDetailPage() {
   const { saleId } = useParams();
   const navigate = useNavigate();
 
-  const { sale, book, loading, saving, error, save, remove } = useSalesDetails(
-    saleId
-  );
+  const { sale, book, loading, saving, error, save, remove } = useSalesDetails(saleId);
 
   const [row, setRow] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -130,8 +118,7 @@ export default function SalesDetailPage() {
     setRow(saleToRow(sale, book));
   }, [sale, book]);
 
-  // ✅ Auto-recalculate royalties whenever revenue changes (or book authors load),
-  // but ONLY for authors that are not overridden.
+  // Auto-recalculate royalties when revenue changes
   useEffect(() => {
     if (!row || !row.book || !row.book.authors) return;
 
@@ -142,7 +129,6 @@ export default function SalesDetailPage() {
       existing: row.author_royalties,
     });
 
-    // Avoid infinite loops: only set if something actually changed.
     const prev = row.author_royalties || {};
     const nextKeys = Object.keys(nextRoyalties);
     let changed = false;
@@ -161,7 +147,7 @@ export default function SalesDetailPage() {
     if (changed) {
       setRow((prevRow) => ({ ...prevRow, author_royalties: nextRoyalties }));
     }
-  }, [row?.publisher_revenue, row?.book?.value]); // intentional: recompute on revenue change + when book loads/changes
+  }, [row?.publisher_revenue, row?.book?.value]);
 
   const handleRowChange = (index, field, value) => {
     setRow((prev) => ({ ...prev, [field]: value }));
@@ -181,10 +167,7 @@ export default function SalesDetailPage() {
   }, [row]);
 
   async function onSave() {
-    if (!row) return;
-    if (!payload) return;
-
-    console.log("Saving payload:", JSON.stringify(payload, null, 2));
+    if (!row || !payload) return;
     await save(payload);
     navigate(-1);
   }
@@ -195,56 +178,32 @@ export default function SalesDetailPage() {
   }
 
   if (loading) {
-    return (
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="flex items-center gap-2 text-slate-500">
-          <Spinner />
-          <span>Loading sales record...</span>
-        </div>
-      </div>
-    );
+    return <LoadingState message="Loading sales record..." fullPage />;
   }
 
   if (!sale) {
     return (
       <div className="p-6 max-w-7xl mx-auto">
-        <p className="text-red-600">{error || "Sale not found."}</p>
+        <ErrorAlert>{error || "Sale not found."}</ErrorAlert>
       </div>
     );
   }
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Sales Record</h1>
-          <p className="text-slate-500 mt-1">
-            View and modify sales record details.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          
-          <Button
-            variant="danger"
-            onClick={() => setDeleteOpen(true)}
-            disabled={saving}
-          >
-            Delete
-          </Button>
-          <Button onClick={onSave} disabled={saving || !payload}>
-            {saving ? "Saving..." : "Save Changes"}
-          </Button>
-        </div>
-      </div>
+      <PageHeader title="Sales Record" subtitle="View and modify sales record details.">
+        <Button variant="danger" onClick={() => setDeleteOpen(true)} disabled={saving}>
+          Delete
+        </Button>
+        <Button onClick={onSave} disabled={saving || !payload}>
+          {saving ? "Saving..." : "Save Changes"}
+        </Button>
+      </PageHeader>
 
-      {error ? (
-        <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4 rounded-md">
-          <p className="text-sm text-red-700 whitespace-pre-wrap">{error}</p>
-        </div>
-      ) : null}
+      {error && <ErrorAlert variant="leftBorder" className="mb-4">{error}</ErrorAlert>}
 
       <div className="space-y-6">
-        {row ? (
+        {row && (
           <SaleEntryRow
             index={0}
             data={row}
@@ -252,12 +211,11 @@ export default function SalesDetailPage() {
             onRemove={() => {}}
             isFirst={true}
           />
-        ) : null}
+        )}
       </div>
 
       <DeleteSalesRecordDialog
         open={deleteOpen}
-        onOpenChange={setDeleteOpen}
         onConfirm={onConfirmDelete}
         onCancel={() => setDeleteOpen(false)}
         saleId={sale.id}

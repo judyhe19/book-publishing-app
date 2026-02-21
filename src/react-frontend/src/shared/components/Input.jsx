@@ -1,3 +1,4 @@
+// src/shared/components/Input.jsx
 import React from "react";
 
 export function Input(props) {
@@ -13,3 +14,5 @@ export function Input(props) {
     />
   );
 }
+
+export default Input;

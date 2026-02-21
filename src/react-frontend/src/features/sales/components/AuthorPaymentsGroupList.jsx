@@ -1,3 +1,4 @@
+// src/features/sales/components/AuthorPaymentsGroupList.jsx
 import React from "react";
 import AuthorPaymentsGroupCard from "./AuthorPaymentsGroupCard";
 

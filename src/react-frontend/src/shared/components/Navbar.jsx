@@ -1,3 +1,4 @@
+// src/shared/components/Navbar.jsx
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "./Button";
@@ -40,16 +41,11 @@ export function Navbar() {
                 Logout
               </Button>
             </>
-          ) : (
-            <>
-              {/* <Link className="text-sm text-slate-700 hover:text-slate-900" to="/login">
-                Login
-              </Link>
-              <Button onClick={() => nav("/register")}>Register</Button> */}
-            </>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
+
+export default Navbar;

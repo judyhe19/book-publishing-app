@@ -1,6 +1,6 @@
 // src/features/books/components/AuthorsEditor.jsx
 import React, { useMemo } from "react";
-import { Button } from "../../../shared/components/Button";
+import { Button, Input } from "../../../shared/components";
 
 function normalizeName(s) {
   return (s || "").trim().replace(/\s+/g, " ");
@@ -69,9 +69,9 @@ export function AuthorsEditor({
 
           return (
             <div key={idx} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              {/* Author name input with dropdown */}
               <div className="sm:w-[28rem] w-full relative">
-                <input
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2"
+                <Input
                   value={row.author_name}
                   onChange={(e) => {
                     updateAuthorRow(idx, { author_name: e.target.value });
@@ -88,7 +88,7 @@ export function AuthorsEditor({
                   required
                 />
 
-                {showDropdown ? (
+                {showDropdown && (
                   <div className="absolute z-20 mt-1 w-full rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
                     {typed.length === 0 ? (
                       <div className="px-3 py-2 text-sm text-slate-500">
@@ -96,7 +96,7 @@ export function AuthorsEditor({
                       </div>
                     ) : suggestions.length === 0 ? (
                       <div className="px-3 py-2 text-sm text-slate-500">
-                        No matches — will create “{typed}” on save
+                        No matches — will create "{typed}" on save
                       </div>
                     ) : (
                       <ul className="max-h-56 overflow-auto">
@@ -118,12 +118,12 @@ export function AuthorsEditor({
                       </ul>
                     )}
                   </div>
-                ) : null}
+                )}
               </div>
 
+              {/* Royalty rate input */}
               <div className="sm:w-40 w-full">
-                <input
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2"
+                <Input
                   value={row.royalty_rate}
                   onChange={(e) =>
                     updateAuthorRow(idx, { royalty_rate: e.target.value })
@@ -133,7 +133,8 @@ export function AuthorsEditor({
                 />
               </div>
 
-              {authors.length > 1 ? (
+              {/* Remove button */}
+              {authors.length > 1 && (
                 <Button
                   type="button"
                   variant="secondary"
@@ -141,7 +142,7 @@ export function AuthorsEditor({
                 >
                   Remove
                 </Button>
-              ) : null}
+              )}
             </div>
           );
         })}
@@ -149,3 +150,5 @@ export function AuthorsEditor({
     </div>
   );
 }
+
+export default AuthorsEditor;

@@ -1,26 +1,30 @@
+// src/features/sales/pages/AuthorPaymentsPage.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "../../../shared/components/Button";
-import { Card, CardContent } from "../../../shared/components/Card";
-import { Spinner } from "../../../shared/components/Spinner";
+import {
+  Button,
+  Card,
+  CardContent,
+  LoadingState,
+  PageHeader,
+  Pagination,
+  ShowAllToggle,
+  ConfirmDialog,
+} from "../../../shared/components";
 import { useAuthorPayments } from "../hooks/useAuthorPayments";
-import ConfirmDialog from "../components/ConfirmDialog";
-import AuthorPaymentsGroupList from "../components/AuthorPaymentsGroupList";
-import SalesPagination from "../components/SalesPagination"; // adjust if path differs
+import { AuthorPaymentsGroupList } from "../components";
 
 export default function AuthorPaymentsPage() {
   const navigate = useNavigate();
   const {
     loading,
     authorGroups,
-
     page,
     totalPages,
     setPage,
     count,
     showAll,
     toggleShowAll,
-
     confirm,
     paying,
     openConfirm,
@@ -33,30 +37,18 @@ export default function AuthorPaymentsPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Author Payments</h1>
-          <p className="text-slate-500 mt-1">
-            Grouped by author. Review unpaid royalties and mark them paid.
-          </p>
-        </div>
-
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => navigate("/sales")}>
-            Sales Records
-          </Button>
-
-          <Button onClick={() => navigate("/sales/input")}>
-            Input New Sales
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Author Payments"
+        subtitle="Grouped by author. Review unpaid royalties and mark them paid."
+      >
+        <Button variant="secondary" onClick={() => navigate("/sales")}>
+          Sales Records
+        </Button>
+        <Button onClick={() => navigate("/sales/input")}>Input New Sales</Button>
+      </PageHeader>
 
       {loading ? (
-        <div className="flex items-center gap-2 text-slate-500">
-          <Spinner />
-          <span>Loading author payment data...</span>
-        </div>
+        <LoadingState message="Loading author payment data..." />
       ) : count === 0 ? (
         <Card>
           <CardContent>No author payment rows found.</CardContent>
@@ -66,13 +58,11 @@ export default function AuthorPaymentsPage() {
           <CardContent>
             <div className="mb-4 flex items-center justify-between gap-3">
               <div className="text-sm text-slate-600">
-                <span className="font-semibold text-slate-900">{count}</span>{" "}
-                author{count === 1 ? "" : "s"}
+                <span className="font-semibold text-slate-900">{count}</span> author
+                {count === 1 ? "" : "s"}
               </div>
 
-              <Button variant="secondary" onClick={toggleShowAll}>
-                {showAll ? "Paginate" : "Show all"}
-              </Button>
+              <ShowAllToggle showAll={showAll} onToggle={toggleShowAll} />
             </div>
 
             <AuthorPaymentsGroupList
@@ -82,16 +72,16 @@ export default function AuthorPaymentsPage() {
               onGoSale={onGoSale}
             />
 
-            {!showAll ? (
+            {!showAll && (
               <div className="mt-4">
-                <SalesPagination
+                <Pagination
                   page={page}
                   totalPages={totalPages}
                   onPrev={() => setPage((p) => Math.max(1, p - 1))}
                   onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
                 />
               </div>
-            ) : null}
+            )}
           </CardContent>
         </Card>
       )}
@@ -104,9 +94,9 @@ export default function AuthorPaymentsPage() {
             ? `This will mark all unpaid royalty records for ${confirm.author.name} as paid.`
             : ""
         }
+        confirming={paying}
         onCancel={closeConfirm}
         onConfirm={payAllUnpaidForAuthor}
-        confirming={paying}
       />
     </div>
   );

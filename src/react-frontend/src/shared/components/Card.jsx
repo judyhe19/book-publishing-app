@@ -1,5 +1,12 @@
-export function Card({ children }) {
-  return <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">{children}</div>;
+// src/shared/components/Card.jsx
+import React from "react";
+
+export function Card({ children, className = "" }) {
+  return (
+    <div className={`rounded-2xl border border-slate-200 bg-white shadow-sm ${className}`}>
+      {children}
+    </div>
+  );
 }
 
 export function CardHeader({ title, subtitle }) {
@@ -11,6 +18,8 @@ export function CardHeader({ title, subtitle }) {
   );
 }
 
-export function CardContent({ children }) {
-  return <div className="p-6">{children}</div>;
+export function CardContent({ children, className = "" }) {
+  return <div className={`p-6 ${className}`}>{children}</div>;
 }
+
+export default Card;

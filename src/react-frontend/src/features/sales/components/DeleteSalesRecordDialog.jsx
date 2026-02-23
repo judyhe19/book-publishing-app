@@ -1,10 +1,9 @@
+// src/features/sales/components/DeleteSalesRecordDialog.jsx
 import React from "react";
-
-import ConfirmDialog from "./ConfirmDialog";
+import { ConfirmDialog, ErrorAlert } from "../../../shared/components";
 
 export default function DeleteSalesRecordDialog({
   open,
-  onOpenChange,
   onConfirm,
   onCancel,
   saleId,
@@ -13,14 +12,19 @@ export default function DeleteSalesRecordDialog({
   return (
     <ConfirmDialog
       open={open}
-      onOpenChange={onOpenChange}
       title="Delete sales record?"
-      description={`This will permanently delete Sales Record #${saleId}. This cannot be undone.`}
       confirmText="Delete"
       confirmVariant="danger"
-      onConfirm={onConfirm}
+      confirming={disabled}
       onCancel={onCancel}
-      disabled={disabled}
-    />
+      onConfirm={onConfirm}
+    >
+      <div className="space-y-3">
+        <ErrorAlert>This action cannot be undone.</ErrorAlert>
+        <p className="text-slate-600">
+          This will permanently delete Sales Record #{saleId}.
+        </p>
+      </div>
+    </ConfirmDialog>
   );
 }

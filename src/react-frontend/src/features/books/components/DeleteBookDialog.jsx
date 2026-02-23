@@ -1,5 +1,6 @@
+// src/features/books/components/DeleteBookDialog.jsx
 import React from "react";
-import { ConfirmDialog } from "./ConfirmDialog";
+import { ConfirmDialog, ErrorAlert, DetailField } from "../../../shared/components";
 
 export function DeleteBookDialog({ open, book, deleting, onCancel, onConfirm }) {
   const hasSales = (book?.total_sales_to_date ?? 0) > 0;
@@ -8,35 +9,31 @@ export function DeleteBookDialog({ open, book, deleting, onCancel, onConfirm }) 
     <ConfirmDialog
       open={open}
       title="Delete book?"
-      confirmText={deleting ? "Deleting..." : "Delete"}
-      confirmDisabled={deleting}
+      confirmText="Delete"
+      confirmVariant="danger"
+      confirming={deleting}
       onCancel={onCancel}
       onConfirm={onConfirm}
     >
       <div className="space-y-3">
-        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-          This action cannot be undone.
-        </div>
+        <ErrorAlert>This action cannot be undone.</ErrorAlert>
 
-        <div>
-          <div className="text-xs font-semibold uppercase text-slate-500">Title</div>
-          <div className="text-slate-900 font-semibold">{book?.title}</div>
-        </div>
+        <DetailField label="Title">
+          <span className="font-semibold">{book?.title}</span>
+        </DetailField>
 
-        <div>
-          <div className="text-xs font-semibold uppercase text-slate-500">Author(s)</div>
-          <div className="text-slate-900">
-            {(book?.authors || []).length === 0
-              ? "—"
-              : book.authors.map((a) => a.name).join(", ")}
-          </div>
-        </div>
+        <DetailField label="Author(s)">
+          {(book?.authors || []).length === 0
+            ? "—"
+            : book.authors.map((a) => a.name).join(", ")}
+        </DetailField>
 
         {hasSales ? (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <ErrorAlert variant="warning">
             <span className="font-semibold">Warning:</span> This book has existing sales
-            records (Total Sales: {book?.total_sales_to_date}). Deleting will delete all existing sales for this book.
-          </div>
+            records (Total Sales: {book?.total_sales_to_date}). Deleting will delete all
+            existing sales for this book.
+          </ErrorAlert>
         ) : (
           <div className="text-sm text-slate-600">
             No sales records have been recorded for this book.
@@ -50,3 +47,5 @@ export function DeleteBookDialog({ open, book, deleting, onCancel, onConfirm }) 
     </ConfirmDialog>
   );
 }
+
+export default DeleteBookDialog;

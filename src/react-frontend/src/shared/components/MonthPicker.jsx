@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+// src/shared/components/MonthPicker.jsx
+import React from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -13,8 +14,6 @@ const isMonthInputSupported = (() => {
   const input = document.createElement("input");
   input.type = "month";
   input.value = "invalid-date";
-  // A supported browser sanitizes the invalid date to an empty string.
-  // An unsupported browser (falls back to "text") keeps "invalid-date".
   return input.type === "month" && input.value !== "invalid-date";
 })();
 
@@ -26,7 +25,7 @@ function parseMonthString(val) {
   const m = parseInt(parts[1], 10);
   if (isNaN(y) || isNaN(m)) return null;
   const d = new Date(y, m - 1, 1, 12, 0, 0);
-  d.setFullYear(y); // Fix JS 1900 mapping bug
+  d.setFullYear(y);
   return d;
 }
 
@@ -37,7 +36,7 @@ function formatMonthDate(date) {
   return `${y}-${m}`;
 }
 
-export default function MonthPicker({
+export function MonthPicker({
   label,
   value,
   onChange,
@@ -48,14 +47,12 @@ export default function MonthPicker({
 }) {
   const selectedDate = parseMonthString(value);
   const minDate = parseMonthString(min);
-  const maxDate = new Date(9999, 11, 1); // Restrict to 4-digit year
+  const maxDate = new Date(9999, 11, 1);
 
   return (
     <div className={className}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          {label}
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
       )}
       {isMonthInputSupported ? (
         <input
@@ -72,7 +69,16 @@ export default function MonthPicker({
         <DatePicker
           selected={selectedDate}
           onChange={(date) => onChange(formatMonthDate(date))}
-          dateFormat={["MM/yyyy", "MM-yyyy", "MMM yyyy", "MMM, yyyy", "MMMM yyyy", "MM/yy", "MM-yy", "M/yyyy"]}
+          dateFormat={[
+            "MM/yyyy",
+            "MM-yyyy",
+            "MMM yyyy",
+            "MMM, yyyy",
+            "MMMM yyyy",
+            "MM/yy",
+            "MM-yy",
+            "M/yyyy",
+          ]}
           showMonthYearPicker
           minDate={minDate}
           maxDate={maxDate}
@@ -85,3 +91,5 @@ export default function MonthPicker({
     </div>
   );
 }
+
+export default MonthPicker;

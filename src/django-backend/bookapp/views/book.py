@@ -167,9 +167,8 @@ class BookViewSet(ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        with transaction.atomic():
-            serializer.is_valid(raise_exception=True)
-            book = serializer.save()
+        serializer.is_valid(raise_exception=True)
+        book = serializer.save()
 
         # Return detail representation (with annotations)
         book = self._base_queryset().get(pk=book.pk)
@@ -177,6 +176,7 @@ class BookViewSet(ModelViewSet):
             BookDetailSerializer(book).data,
             status=status.HTTP_201_CREATED,
         )
+
 
     # ------------------------------------------------------------------
     # RETRIEVE — use annotated queryset
@@ -193,10 +193,8 @@ class BookViewSet(ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         book = self.get_object()
         serializer = BookUpdateSerializer(book, data=request.data, partial=True)
-
-        with transaction.atomic():
-            serializer.is_valid(raise_exception=True)
-            book = serializer.save()
+        serializer.is_valid(raise_exception=True)
+        book = serializer.save()
 
         book = self._base_queryset().get(pk=book.pk)
         return Response(BookDetailSerializer(book).data)

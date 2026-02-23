@@ -16,8 +16,10 @@ export function getBooks(queryParams = "") {
 }
 
 // AUTHORS
-export function listAuthors() {
-  return apiFetch("/api/authors/");
+export async function listAuthors() {
+  const data = await apiFetch("/api/authors/");
+  // API returns paginated response, extract the results array
+  return Array.isArray(data) ? data : (data.results || []);
 }
 
 export function createAuthor(name) {

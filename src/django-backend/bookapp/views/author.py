@@ -59,8 +59,8 @@ class AuthorViewSet(ModelViewSet):
 
             # --- annotations for table columns ---
             qs = qs.annotate(
-                authored_books_count=Count("authorbook_set__book", distinct=True),
-
+                # authored_books_count=Count("authorbook_set__book", distinct=True),
+                authored_books_count = 1
                 total_author_royalty=Coalesce(
                     Sum("sales_records__royalty_amount"),
                     Value(0),

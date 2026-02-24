@@ -1,6 +1,6 @@
 # serializers/book.py
 from rest_framework import serializers
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 
 from ..models import Book, AuthorBook, Author
 from .fields import MonthYearField
@@ -19,6 +19,7 @@ class BookMonthYearField(MonthYearField):
         **MonthYearField.default_error_messages,
         "invalid": "Please provide publication date in Month, Year format.",
     }
+
 
 def _get_or_create_author_by_name(name: str) -> Author:
     """
@@ -42,6 +43,7 @@ def _get_or_create_author_by_name(name: str) -> Author:
         if existing:
             return existing
         raise
+
 
 class AuthorBookSerializer(serializers.ModelSerializer):
     """
@@ -72,7 +74,7 @@ class AuthorBookSerializer(serializers.ModelSerializer):
                 aid = data.get("author_id")
                 try:
                     author_obj = Author.objects.filter(pk=aid).first()
-                    author_label = author_obj.name if author_obj else str(aid) # if author_obj is None, use the author_id as the label (fallback)
+                    author_label = author_obj.name if author_obj else str(aid)
                 except Exception:
                     author_label = str(aid) if aid else "unknown"
 
@@ -80,6 +82,7 @@ class AuthorBookSerializer(serializers.ModelSerializer):
                     exc.detail["royalty_rate"], author_label
                 )
             raise exc
+
 
 class AuthorBookByNameInputSerializer(serializers.Serializer):
     """
@@ -111,6 +114,7 @@ class AuthorBookByNameInputSerializer(serializers.Serializer):
                 )
             raise exc
 
+
 class BookListSerializer(serializers.ModelSerializer):
     authors = AuthorBookSerializer(source="authorbook_set", many=True, read_only=True)
     publication_date = MonthYearField(read_only=True)
@@ -138,6 +142,7 @@ class BookDetailSerializer(BookListSerializer):
     changing the list endpoint.
     """
     pass
+
 
 class BookCreateSerializer(serializers.ModelSerializer):
     # Input authors by NAME (write-only). Response uses BookDetailSerializer.
@@ -190,11 +195,10 @@ class BookCreateSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
         authors_data = validated_data.pop("authors", [])
 
-        # Create book first; author creation + AuthorBook rows occur in the same DB transaction
-        # (transaction.atomic is enforced in the view).
         book = Book.objects.create(**validated_data)
 
         for entry in authors_data:
@@ -252,6 +256,7 @@ class BookUpdateSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         authors_data = validated_data.pop("authors", None)
 

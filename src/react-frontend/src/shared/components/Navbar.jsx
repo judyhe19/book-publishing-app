@@ -25,14 +25,17 @@ export function Navbar() {
         <div className="flex items-center gap-3">
           {user ? (
             <>
+              <Link className="text-sm text-slate-700 hover:text-slate-900" to="/account">
+                Account
+              </Link>
               <Link className="text-sm text-slate-700 hover:text-slate-900" to="/books">
                 Books
               </Link>
               <Link className="text-sm text-slate-700 hover:text-slate-900" to="/sales">
                 Sales
               </Link>
-              <Link className="text-sm text-slate-700 hover:text-slate-900" to="/account">
-                Account
+              <Link className="text-sm text-slate-700 hover:text-slate-900" to="/authors">
+                Authors
               </Link>
               <Link className="text-sm text-slate-700 hover:text-slate-900" to="/changepassword">
                 Password

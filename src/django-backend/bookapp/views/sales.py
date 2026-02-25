@@ -1,15 +1,13 @@
 # views/sales.py
-# Refactored to use ModelViewSet
+# Refactored to use ModelViewSet (Evolution 2: single author per book)
 
 import calendar
-
 from decimal import Decimal, ROUND_HALF_UP
-from math import ceil
 
 from django.db import transaction
 from django.db.models import (
     Sum, Count, Case, When, Value,
-    IntegerField, DecimalField,
+    IntegerField, DecimalField, F,
 )
 from django.db.models.functions import Coalesce
 
@@ -19,11 +17,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from ..models import Sale, Book, AuthorSale, AuthorBook, Author
+from ..models import Sale, AuthorSale
 from ..serializers.sales import SaleSerializer, SaleWriteSerializer
 from ..config.sort_config import SALES_SORT_FIELD_MAP, SALES_DEFAULT_SORT
 from ..pagination import StandardPagination
-from ..utils import get_first_author_name_subquery
 
 
 def money(x):
@@ -45,7 +42,7 @@ class SaleViewSet(ModelViewSet):
 
     def get_queryset(self):
         qs = Sale.objects.all()
-        qs = qs.select_related("book").prefetch_related("author_sales__author")
+        qs = qs.select_related("book", "book__author").prefetch_related("author_sales__author")
 
         # Filtering (only on list)
         if self.action == "list":
@@ -74,8 +71,9 @@ class SaleViewSet(ModelViewSet):
                 qs = qs.filter(date__lte=last_of_month)
 
             # Annotations for sorting
+            # Evolution 2: single author on Book; royalties use distributor_author_royalty_rate at time of sale creation
             qs = qs.annotate(
-                first_author_name=get_first_author_name_subquery("book"),
+                first_author_name=F("book__author__name"),
                 total_royalties=Sum("author_sales__royalty_amount"),
                 unpaid_count=Count(
                     Case(
@@ -110,16 +108,6 @@ class SaleViewSet(ModelViewSet):
                 qs = qs.order_by("-date")
 
         return qs
-
-    # ------------------------------------------------------------------
-    # LIST — uses standard pagination
-    # ------------------------------------------------------------------
-    # Default ModelViewSet.list() handles pagination via StandardPagination
-
-    # ------------------------------------------------------------------
-    # RETRIEVE — single sale by pk
-    # ------------------------------------------------------------------
-    # Default ModelViewSet.retrieve() handles this
 
     # ------------------------------------------------------------------
     # CREATE — single sale
@@ -184,29 +172,32 @@ class SaleViewSet(ModelViewSet):
             with transaction.atomic():
                 updated_sale = serializer.save()
 
-                # If book changed, rebuild AuthorSale rows
+                # If book changed, rebuild AuthorSale rows (Evolution 2: exactly one author)
                 if updated_sale.book_id != old_book_id:
                     AuthorSale.objects.filter(sale=updated_sale).delete()
-                    author_books = AuthorBook.objects.select_related("author").filter(book=updated_sale.book)
 
-                    for ab in author_books:
-                        key = str(ab.author_id)
-                        if key in incoming_author_royalties:
-                            royalty_amount = money(incoming_author_royalties[key])
-                        else:
-                            royalty_amount = money(updated_sale.publisher_revenue * ab.royalty_rate)
+                    author = updated_sale.book.author
+                    key = str(author.id)
 
-                        author_paid = bool(incoming_author_paid.get(key, False))
-
-                        AuthorSale.objects.create(
-                            sale=updated_sale,
-                            author=ab.author,
-                            royalty_amount=royalty_amount,
-                            author_paid=author_paid,
+                    if key in incoming_author_royalties:
+                        royalty_amount = money(incoming_author_royalties[key])
+                    else:
+                        royalty_amount = money(
+                            updated_sale.publisher_revenue * updated_sale.book.distributor_author_royalty_rate
                         )
+
+                    author_paid = bool(incoming_author_paid.get(key, False))
+
+                    AuthorSale.objects.create(
+                        sale=updated_sale,
+                        author=author,
+                        royalty_amount=royalty_amount,
+                        author_paid=author_paid,
+                    )
 
             full_serializer = SaleSerializer(updated_sale)
             return Response(full_serializer.data)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     # Also support PUT as same behavior as PATCH
@@ -238,10 +229,6 @@ class SaleViewSet(ModelViewSet):
             },
             status=status.HTTP_200_OK,
         )
-
-    # ------------------------------------------------------------------
-    # BOOK SALES TOTALS — custom action on books (routed separately)
-    # ------------------------------------------------------------------
 
 
 class BookSalesTotalsView(ModelViewSet):

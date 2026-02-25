@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from decimal import Decimal
-from ..models import Sale, Book, Author, AuthorSale, AuthorBook
+from ..models import Sale, Book, Author, AuthorSale
 from .fields import MonthYearField
 
 

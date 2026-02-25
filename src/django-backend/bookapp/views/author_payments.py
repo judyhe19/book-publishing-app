@@ -14,7 +14,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
-from ..models import Author, AuthorSale
+from ..models import Author, Sale
 
 # cannot use StandardPagination here because it does not support pagination by author groups (only by individual Sales or Book records)
 
@@ -46,6 +46,8 @@ class AuthorPaymentsViewSet(ViewSet):
         page = max(page, 1)
         page_size = min(max(page_size, 1), 100)
 
+        # Query authors via Book→AuthorBook relationship,
+        # annotating with unpaid sale data from Sale records
         author_qs = (
             Author.objects.all()
             .order_by("name", "id")
@@ -53,7 +55,10 @@ class AuthorPaymentsViewSet(ViewSet):
                 unpaid_total=Coalesce(
                     Sum(
                         Case(
-                            When(sales_records__author_paid=False, then="sales_records__royalty_amount"),
+                            When(
+                                books__sales__author_paid=False,
+                                then="books__sales__author_royalty",
+                            ),
                             default=Value(0),
                             output_field=DecimalField(),
                         )
@@ -63,7 +68,7 @@ class AuthorPaymentsViewSet(ViewSet):
                 ),
                 unpaid_count=Count(
                     Case(
-                        When(sales_records__author_paid=False, then=1),
+                        When(books__sales__author_paid=False, then=1),
                         output_field=IntegerField(),
                     )
                 ),
@@ -97,11 +102,13 @@ class AuthorPaymentsViewSet(ViewSet):
                 status=status.HTTP_200_OK,
             )
 
+        # Get sales for these authors via book relationship
         rows_qs = (
-            AuthorSale.objects
-            .filter(author_id__in=author_ids)
-            .select_related("author", "sale", "sale__book")
-            .order_by("author__name", "-sale__date", "-sale__id")
+            Sale.objects
+            .filter(book__authors__id__in=author_ids)
+            .select_related("book")
+            .prefetch_related("book__authors")
+            .order_by("-date", "-id")
         )
 
         groups = {
@@ -114,27 +121,28 @@ class AuthorPaymentsViewSet(ViewSet):
             for a in page_authors
         }
 
-        for ars in rows_qs:
-            sale = ars.sale
-            groups[ars.author_id]["rows"].append({
-                "sale": {
-                    "id": sale.id,
-                    "book": sale.book_id,
-                    "book_title": sale.book.title if sale.book else "",
-                    "date": sale.date.strftime("%Y-%m") if sale.date else "",
-                    "quantity": sale.quantity,
-                    "publisher_revenue": str(sale.publisher_revenue),
-                },
-                "author": {
-                    "id": ars.author_id,
-                    "name": ars.author.name if ars.author else "",
-                    "royalty_amount": str(ars.royalty_amount),
-                    "paid": bool(ars.author_paid),
-                },
-                "paid": bool(ars.author_paid),
-                "royalty": float(ars.royalty_amount or Decimal("0.00")),
-                "dateKey": sale.date.year * 100 + sale.date.month if sale and sale.date else 0,
-            })
+        for sale in rows_qs:
+            # Find the author(s) from the book that are in our page_authors set
+            for author in sale.book.authors.filter(id__in=author_ids):
+                groups[author.id]["rows"].append({
+                    "sale": {
+                        "id": sale.id,
+                        "book": sale.book_id,
+                        "book_title": sale.book.title if sale.book else "",
+                        "date": sale.date.strftime("%Y-%m") if sale.date else "",
+                        "quantity": sale.quantity,
+                        "publisher_revenue": str(sale.publisher_revenue),
+                    },
+                    "author": {
+                        "id": author.id,
+                        "name": author.name,
+                        "royalty_amount": str(sale.author_royalty),
+                        "paid": bool(sale.author_paid),
+                    },
+                    "paid": bool(sale.author_paid),
+                    "royalty": float(sale.author_royalty or Decimal("0.00")),
+                    "dateKey": sale.date.year * 100 + sale.date.month if sale and sale.date else 0,
+                })
 
         results = [groups[a.id] for a in page_authors]
 

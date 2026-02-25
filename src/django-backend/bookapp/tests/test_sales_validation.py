@@ -2,7 +2,7 @@ import pytest
 from rest_framework.test import APIClient
 from django.contrib.auth.models import User
 from decimal import Decimal
-from bookapp.models import Book, Author, Sale, AuthorSale
+from bookapp.models import Book, Author, Sale
 
 pytestmark = pytest.mark.django_db
 
@@ -34,6 +34,8 @@ def test_create_sale_negative_quantity(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": -5,
         "publisher_revenue": "100.00",
+        "author_royalty": "10.00",
+        "sale_source": "distributor",
         "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
@@ -45,6 +47,8 @@ def test_create_sale_zero_quantity(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 0,
         "publisher_revenue": "100.00",
+        "author_royalty": "10.00",
+        "sale_source": "distributor",
         "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
@@ -56,27 +60,26 @@ def test_create_sale_negative_revenue(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 10,
         "publisher_revenue": "-50.00",
+        "author_royalty": "10.00",
+        "sale_source": "distributor",
         "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
     assert "publisher_revenue" in resp.data
 
-def test_create_sale_negative_royalties(authed_client, sample_book):
-    a1 = Author.objects.first()
-    
+def test_create_sale_negative_author_royalty(authed_client, sample_book):
     payload = {
         "book": sample_book.id,
         "quantity": 10,
         "publisher_revenue": "100.00",
-        "date": "2023-01",
-        "author_royalties": {
-            str(a1.id): "-10.00"
-        }
+        "author_royalty": "-10.00",
+        "sale_source": "distributor",
+        "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
-    assert "author_royalties" in resp.data
+    assert "author_royalty" in resp.data
 
 def test_create_sale_date_before_publication(authed_client, sample_book):
     # Book pub date is 2020-01-01
@@ -84,17 +87,34 @@ def test_create_sale_date_before_publication(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 10,
         "publisher_revenue": "100.00",
+        "author_royalty": "10.00",
+        "sale_source": "distributor",
         "date": "2019-12" # Before publication
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
     assert "date" in resp.data
 
+def test_create_sale_invalid_source(authed_client, sample_book):
+    payload = {
+        "book": sample_book.id,
+        "quantity": 10,
+        "publisher_revenue": "100.00",
+        "author_royalty": "10.00",
+        "sale_source": "invalid",
+        "date": "2023-01"
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 400
+    assert "sale_source" in resp.data
+
 def test_create_sale_valid(authed_client, sample_book):
     payload = {
         "book": sample_book.id,
         "quantity": 10,
         "publisher_revenue": "100.00",
+        "author_royalty": "10.00",
+        "sale_source": "distributor",
         "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
@@ -106,6 +126,8 @@ def test_edit_sale_negative_quantity(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 10,
         "publisher_revenue": "100.00",
+        "author_royalty": "10.00",
+        "sale_source": "distributor",
         "date": "2023-01"
     }
     create_resp = authed_client.post("/api/sales/", payload, format="json")
@@ -125,6 +147,8 @@ def test_create_sale_year_zero_date(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 10,
         "publisher_revenue": "100.00",
+        "author_royalty": "10.00",
+        "sale_source": "distributor",
         "date": "0000-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")

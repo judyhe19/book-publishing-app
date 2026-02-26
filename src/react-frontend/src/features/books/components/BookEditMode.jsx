@@ -1,7 +1,7 @@
 // src/features/books/components/BookEditMode.jsx
 import React from "react";
 import { FormField, Input, MonthPicker } from "../../../shared/components";
-import CoverImage from "./CoverImage";
+import CoverImageField from "./CoverImageField";
 import AuthorPicker from "./AuthorPicker";
 import SeriesFields from "./SeriesFields";
 
@@ -38,6 +38,7 @@ export default function BookEditMode({
   // Cover image
   coverImagePath,
   setCoverImagePath,
+  onCoverImageFileChange,
   // Series
   seriesName,
   setSeriesName,
@@ -142,29 +143,12 @@ export default function BookEditMode({
       </div>
 
       {/* Cover image */}
-      <FormField label="Cover image path (optional)">
-        <div className="flex gap-2">
-          <Input
-            value={coverImagePath}
-            onChange={(e) => setCoverImagePath(e.target.value)}
-            placeholder="/static/covers/mybook.jpg — leave blank to clear"
-          />
-          {coverImagePath && (
-            <button
-              type="button"
-              className="flex-shrink-0 text-xs text-red-500 underline"
-              onClick={() => setCoverImagePath("")}
-            >
-              Clear
-            </button>
-          )}
-        </div>
-        {coverImagePath && (
-          <div className="mt-2">
-            <CoverImage path={coverImagePath} title={title} />
-          </div>
-        )}
-      </FormField>
+      <CoverImageField
+        value={coverImagePath}
+        onChange={setCoverImagePath}
+        onFileChange={onCoverImageFileChange}
+        title={title}
+      />
 
       {/* Series */}
       <SeriesFields

@@ -49,6 +49,7 @@ export default function BookDetailPage() {
   const [coverPrice, setCoverPrice] = useState("");
   const [printCost, setPrintCost] = useState("");
   const [coverImagePath, setCoverImagePath] = useState("");
+  const [coverImageFile, setCoverImageFile] = useState(null);
   const [seriesName, setSeriesName] = useState("");
   const [seriesPosition, setSeriesPosition] = useState("");
 
@@ -66,6 +67,7 @@ export default function BookDetailPage() {
     setCoverPrice(b.cover_price != null ? String(b.cover_price) : "");
     setPrintCost(b.print_cost != null ? String(b.print_cost) : "");
     setCoverImagePath(b.cover_image_path || "");
+    setCoverImageFile(null);
     setSeriesName(b.series_name || "");
     setSeriesPosition(b.series_position != null ? String(b.series_position) : "");
   }
@@ -116,6 +118,14 @@ export default function BookDetailPage() {
     setSaving(true);
 
     try {
+      // Upload cover image first if a new file was selected
+      let finalCoverImagePath = coverImagePath.trim() === "" ? null : coverImagePath.trim();
+      
+      if (coverImageFile) {
+        const uploadResult = await booksApi.uploadCoverImage(coverImageFile);
+        finalCoverImagePath = uploadResult.cover_image_path;
+      }
+
       const payload = {
         title: title.trim(),
         publication_date: publicationMonth,
@@ -126,7 +136,7 @@ export default function BookDetailPage() {
         hand_sold_author_royalty_rate: handSoldRoyaltyRate,
         cover_price: coverPrice,
         print_cost: printCost,
-        cover_image_path: coverImagePath.trim() === "" ? null : coverImagePath.trim(),
+        cover_image_path: finalCoverImagePath,
         series_name: seriesName.trim() === "" ? null : seriesName.trim(),
         series_position: seriesPosition === "" || seriesPosition == null ? null : Number(seriesPosition),
       };
@@ -246,6 +256,7 @@ export default function BookDetailPage() {
                 setPrintCost={setPrintCost}
                 coverImagePath={coverImagePath}
                 setCoverImagePath={setCoverImagePath}
+                onCoverImageFileChange={setCoverImageFile}
                 seriesName={seriesName}
                 setSeriesName={setSeriesName}
                 seriesPosition={seriesPosition}

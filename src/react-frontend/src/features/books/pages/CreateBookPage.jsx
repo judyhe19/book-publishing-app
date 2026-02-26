@@ -11,7 +11,7 @@ import {
   ErrorAlert,
   FormField,
 } from "../../../shared/components";
-import { AuthorPicker, CoverImage, SeriesFields } from "../components";
+import { AuthorPicker, CoverImageField, SeriesFields } from "../components";
 import { errorMessage } from "../../../shared/utils/errors";
 import * as booksApi from "../api/booksApi";
 
@@ -38,6 +38,7 @@ export default function CreateBookPage() {
 
   // Cover image
   const [coverImagePath, setCoverImagePath] = useState("");
+  const [coverImageFile, setCoverImageFile] = useState(null);
 
   // Author (single author model)
   const [authorOptions, setAuthorOptions] = useState([]);
@@ -80,6 +81,14 @@ export default function CreateBookPage() {
     setSubmitting(true);
 
     try {
+      // Upload cover image first if a new file was selected
+      let finalCoverImagePath = coverImagePath.trim() === "" ? null : coverImagePath.trim();
+      
+      if (coverImageFile) {
+        const uploadResult = await booksApi.uploadCoverImage(coverImageFile);
+        finalCoverImagePath = uploadResult.cover_image_path;
+      }
+
       const payload = {
         title: title.trim(),
         publication_date: publicationMonth,
@@ -92,7 +101,7 @@ export default function CreateBookPage() {
         print_cost: printCost,
         series_name: seriesName.trim() === "" ? null : seriesName.trim(),
         series_position: seriesName.trim() === "" || seriesPosition === "" ? null : Number(seriesPosition),
-        cover_image_path: coverImagePath.trim() === "" ? null : coverImagePath.trim(),
+        cover_image_path: finalCoverImagePath,
       };
 
       await booksApi.createBook(payload);
@@ -215,19 +224,12 @@ export default function CreateBookPage() {
               />
 
               {/* Cover image */}
-              <FormField label="Cover image path (optional)">
-                <Input
-                  value={coverImagePath}
-                  onChange={(e) => setCoverImagePath(e.target.value)}
-                  placeholder="/static/covers/my-book.jpg"
-                />
-                {coverImagePath.trim() && (
-                  <div className="mt-2">
-                    <p className="text-xs text-slate-500 mb-1">Preview:</p>
-                    <CoverImage path={coverImagePath.trim()} title={title} />
-                  </div>
-                )}
-              </FormField>
+              <CoverImageField
+                value={coverImagePath}
+                onChange={setCoverImagePath}
+                onFileChange={setCoverImageFile}
+                title={title}
+              />
 
               {/* Error message */}
               {err && <ErrorAlert>{err}</ErrorAlert>}

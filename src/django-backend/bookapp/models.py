@@ -25,6 +25,8 @@ class Author(models.Model):
     email = models.EmailField(
         max_length=254,
         unique=True,
+        blank=True,
+        null=True,
         help_text="Author's primary contact email"
     )
 
@@ -50,16 +52,14 @@ class Book(models.Model):
         validators=[isbn_10_format],
     )
 
-    # NEW: single author (Evolution 2)
-    # PROTECT prevents deleting an author who still has books (usually desired for accounting/history)
+    # Single author per book
     author = models.ForeignKey(
         Author,
         on_delete=models.PROTECT,
         related_name="books",
     )
 
-    # NEW: book-level royalty rates (required, defaults)
-    # Stored as decimals in [0, 1], e.g. 0.50 for 50%
+    # Book-level royalty rates (decimals in [0, 1])
     distributor_author_royalty_rate = models.DecimalField(
         max_digits=5,
         decimal_places=4,
@@ -76,7 +76,7 @@ class Book(models.Model):
         help_text="Percentage of publisher revenue paid to the author for hand-sold books (decimal, e.g. 0.20).",
     )
 
-    # NEW: required non-negative monetary values
+    # Required non-negative monetary values
     cover_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -91,7 +91,7 @@ class Book(models.Model):
         help_text="Non-negative print cost.",
     )
 
-    # NEW: optional cover image path (served from static)
+    # Optional cover image path (served from static)
     cover_image_path = models.CharField(
         max_length=500,
         blank=True,
@@ -99,7 +99,7 @@ class Book(models.Model):
         help_text="Optional path to a web-viewable cover image (e.g. /static/covers/mybook.jpg).",
     )
 
-    # NEW: optional series / position (must be provided together)
+    # Optional series / position (must be provided together)
     series_name = models.CharField(
         max_length=255,
         blank=True,
@@ -143,49 +143,20 @@ class Book(models.Model):
 
 # 3. SALE Table
 class Sale(models.Model):
+    SALE_SOURCE_CHOICES = [
+        ("distributor", "Distributor"),
+        ("handsold", "Handsold"),
+    ]
+
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="sales")
     date = models.DateField()
     quantity = models.IntegerField()
+    sale_source = models.CharField(max_length=20, choices=SALE_SOURCE_CHOICES, default="distributor")
+    comment = models.CharField(max_length=256, blank=True, null=True)
 
-    # Financial snapshots
     publisher_revenue = models.DecimalField(max_digits=10, decimal_places=2)
-
-    # Relationships
-    authors = models.ManyToManyField(Author, through="AuthorSale", related_name="sales")
-
-    def __str__(self):
-        return f"{self.quantity} x {self.book.title} on {self.date.strftime('%Y-%m')}"
-
-    def create_author_sales(self, author_royalties={}, author_paid={}):
-        """
-        Evolution 2: exactly one author per book (self.book.author)
-
-        - If an override exists for that author id (as string), use it.
-        - Otherwise compute royalty using distributor_author_royalty_rate.
-          (Hand-sold rate can be used later once Sale has a way to distinguish sale type.)
-        """
-        author = self.book.author
-        author_id_str = str(author.id)
-
-        if author_id_str in author_royalties:
-            royalty_amount = author_royalties[author_id_str]
-        else:
-            royalty_amount = self.publisher_revenue * self.book.distributor_author_royalty_rate
-
-        AuthorSale.objects.create(
-            sale=self,
-            author=author,
-            royalty_amount=royalty_amount,
-            author_paid=author_paid.get(author_id_str, False),
-        )
-
-
-# 4. AUTHOR_SALE Table
-class AuthorSale(models.Model):
-    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="author_sales")
-    author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name="sales_records")
-    royalty_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    author_royalty = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     author_paid = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.author.name} paid ${self.royalty_amount} for Sale {self.sale.id}"
+        return f"{self.quantity} x {self.book.title} on {self.date.strftime('%Y-%m')}"

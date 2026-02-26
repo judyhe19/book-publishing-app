@@ -16,7 +16,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+<<<<<<< HEAD
 from ..models import Author, AuthorSale, Book, Sale
+=======
+from ..models import Author, AuthorBook, Book, Sale
+>>>>>>> main
 from ..serializers.author import AuthorListSerializer, AuthorCreateSerializer, AuthorUpdateSerializer
 from ..pagination import StandardPagination
 
@@ -56,12 +60,16 @@ class AuthorViewSet(ModelViewSet):
                 qs = qs.filter(Q(name__icontains=q) | Q(email__icontains=q))
 
             # --- annotations for table columns ---
+<<<<<<< HEAD
             # Evolution 2: authored books come from Book.author FK (related_name="books")
+=======
+            # Query royalties through Book → Sale path
+>>>>>>> main
             qs = qs.annotate(
                 authored_books_count=Count("books", distinct=True),
 
                 total_author_royalty=Coalesce(
-                    Sum("sales_records__royalty_amount"),
+                    Sum("books__sales__author_royalty"),
                     Value(0),
                     output_field=DecimalField(max_digits=12, decimal_places=2),
                 ),
@@ -69,7 +77,7 @@ class AuthorViewSet(ModelViewSet):
                 paid_author_royalty=Coalesce(
                     Sum(
                         Case(
-                            When(sales_records__author_paid=True, then="sales_records__royalty_amount"),
+                            When(books__sales__author_paid=True, then="books__sales__author_royalty"),
                             default=Value(0),
                             output_field=DecimalField(max_digits=12, decimal_places=2),
                         )
@@ -81,7 +89,7 @@ class AuthorViewSet(ModelViewSet):
                 unpaid_author_royalty=Coalesce(
                     Sum(
                         Case(
-                            When(sales_records__author_paid=False, then="sales_records__royalty_amount"),
+                            When(books__sales__author_paid=False, then="books__sales__author_royalty"),
                             default=Value(0),
                             output_field=DecimalField(max_digits=12, decimal_places=2),
                         )
@@ -198,10 +206,11 @@ class AuthorViewSet(ModelViewSet):
     def unpaid_subtotal(self, request, pk=None):
         author = self.get_object()
 
+        # Query unpaid royalties through Book → Sale
         subtotal = (
-            AuthorSale.objects
-            .filter(author_id=author.id, author_paid=False)
-            .aggregate(total=Sum("royalty_amount"))
+            Sale.objects
+            .filter(book__authors=author, author_paid=False)
+            .aggregate(total=Sum("author_royalty"))
             .get("total")
         ) or Decimal("0.00")
 
@@ -219,19 +228,14 @@ class AuthorViewSet(ModelViewSet):
 
         with transaction.atomic():
             qs = (
-                AuthorSale.objects
+                Sale.objects
                 .select_for_update()
-                .filter(author_id=author.id, author_paid=False)
+                .filter(book__authors=author, author_paid=False)
             )
 
-            total_to_pay = qs.aggregate(total=Sum("royalty_amount")).get("total") or Decimal("0.00")
+            total_to_pay = qs.aggregate(total=Sum("author_royalty")).get("total") or Decimal("0.00")
 
-            sale_ids = list(
-                AuthorSale.objects
-                .filter(author_id=author.id, author_paid=False)
-                .values_list("sale_id", flat=True)
-                .distinct()
-            )
+            sale_ids = list(qs.values_list("id", flat=True).distinct())
 
             updated_count = qs.update(author_paid=True)
 

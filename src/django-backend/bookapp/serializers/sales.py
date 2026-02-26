@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from decimal import Decimal
-from ..models import Sale, Book, Author, AuthorSale, AuthorBook
+from ..models import Sale, Book
 from .fields import MonthYearField
 
 
@@ -14,26 +14,15 @@ class SaleMonthYearField(MonthYearField):
 
 class SaleSerializer(serializers.ModelSerializer):
     book_title = serializers.CharField(source="book.title", read_only=True)
-    author_details = serializers.SerializerMethodField()
     date = MonthYearField(read_only=True)
 
     class Meta:
         model = Sale
-        fields = ["id", "book", "book_title", "date", "quantity", "publisher_revenue", "author_details"]
-
-    def get_author_details(self, obj):
-        """Get author details for the sale - royalty amounts and paid status."""
-        details = []
-        for ars in obj.author_sales.select_related("author").all():
-            details.append(
-                {
-                    "id": ars.author.id,
-                    "name": ars.author.name,
-                    "royalty_amount": ars.royalty_amount,
-                    "paid": ars.author_paid,
-                }
-            )
-        return details
+        fields = [
+            "id", "book", "book_title", "date", "quantity",
+            "sale_source", "publisher_revenue", "author_royalty",
+            "author_paid", "comment",
+        ]
 
 
 class PlaceholderDecimalField(serializers.DecimalField):
@@ -55,16 +44,6 @@ class SaleWriteSerializer(serializers.ModelSerializer):
     On PATCH (partial=True), DRF automatically makes all fields optional.
     Only fields explicitly sent in the payload are validated.
     """
-    author_royalties = serializers.DictField(
-        child=serializers.DecimalField(max_digits=10, decimal_places=2),
-        required=False,
-        write_only=True,
-    )
-    author_paid = serializers.DictField(
-        child=serializers.BooleanField(),
-        required=False,
-        write_only=True,
-    )
 
     quantity = serializers.IntegerField(
         min_value=1,
@@ -83,7 +62,35 @@ class SaleWriteSerializer(serializers.ModelSerializer):
         error_messages={
             "required": "Publisher revenue is required.",
             "null": "Publisher revenue is required.",
-            "min_value": "Publisher revenue cannot be negative.",
+            "min_value": "Publisher revenue must be non-negative.",
+        },
+    )
+
+    # TODO: Once Book has cover_price / print_cost, publisher_revenue for
+    #       handsold sales should be auto-computed and this field made
+    #       read-only for that sale_source.
+
+    author_royalty = PlaceholderDecimalField(
+        max_digits=10,
+        decimal_places=2,
+        min_value=Decimal("0"),
+        error_messages={
+            "required": "Author royalty is required.",
+            "null": "Author royalty is required.",
+            "min_value": "Author royalty must be non-negative.",
+        },
+    )
+
+    # TODO: Once Book has distributor_royalty_rate / hand_sold_royalty_rate,
+    #       author_royalty should be auto-computed as
+    #       rate × publisher_revenue and this field made read-only.
+
+    sale_source = serializers.ChoiceField(
+        choices=Sale.SALE_SOURCE_CHOICES,
+        error_messages={
+            "required": "Sale source is required.",
+            "null": "Sale source is required.",
+            "invalid_choice": "Sale source must be 'distributor' or 'handsold'.",
         },
     )
 
@@ -98,29 +105,18 @@ class SaleWriteSerializer(serializers.ModelSerializer):
         },
     )
 
+    author_paid = serializers.BooleanField(required=False, default=False)
+
+    comment = serializers.CharField(
+        max_length=256, required=False, allow_blank=True, allow_null=True,
+    )
+
     class Meta:
         model = Sale
-        fields = ["book", "quantity", "publisher_revenue", "author_royalties", "author_paid", "date"]
-
-    # ------------------------------------------------------------------
-    # Field-level validators (called by DRF)
-    # ------------------------------------------------------------------
-
-    def validate_author_royalties(self, value):
-        """Validate that no author royalty amounts are negative."""
-        negative_errors = []
-        for author_id, amount in value.items():
-            if amount < 0:
-                try:
-                    author = Author.objects.get(id=author_id)
-                    author_name = author.name
-                except Author.DoesNotExist:
-                    author_name = str(author_id)
-                negative_errors.append(f"Royalty amount for author {author_name} cannot be negative.")
-
-        if negative_errors:
-            raise serializers.ValidationError("\n".join(negative_errors))
-        return value
+        fields = [
+            "book", "quantity", "sale_source", "publisher_revenue",
+            "author_royalty", "author_paid", "date", "comment",
+        ]
 
     # ------------------------------------------------------------------
     # Cross-field validation
@@ -142,33 +138,3 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                 })
 
         return data
-
-    def create(self, validated_data):
-        """Create a Sale instance and associated AuthorSales."""
-        author_royalties = validated_data.pop("author_royalties", {})
-        author_paid = validated_data.pop("author_paid", {})
-        sale = super().create(validated_data)
-        sale.create_author_sales(author_royalties, author_paid)
-        return sale
-
-    def update(self, instance, validated_data):
-        """
-        Update a Sale instance WITHOUT recreating associated AuthorSales.
-        (Past sales must not change authors/default royalties retroactively.)
-        """
-        author_royalties = validated_data.pop("author_royalties", {})
-        author_paid = validated_data.pop("author_paid", {})
-
-        sale = super().update(instance, validated_data)
-
-        # Apply explicit overrides ONLY to existing AuthorSale rows (no recreation).
-        if author_royalties or author_paid:
-            for ars in sale.author_sales.all():
-                key = str(ars.author_id)
-                if key in author_royalties:
-                    ars.royalty_amount = author_royalties[key]
-                if key in author_paid:
-                    ars.author_paid = bool(author_paid[key])
-                ars.save()
-
-        return sale

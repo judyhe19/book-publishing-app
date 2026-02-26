@@ -19,7 +19,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from ..models import Sale, Book, AuthorSale, AuthorBook, Author
+from ..models import Sale, Book
 from ..serializers.sales import SaleSerializer, SaleWriteSerializer
 from ..config.sort_config import SALES_SORT_FIELD_MAP, SALES_DEFAULT_SORT
 from ..pagination import StandardPagination
@@ -45,7 +45,7 @@ class SaleViewSet(ModelViewSet):
 
     def get_queryset(self):
         qs = Sale.objects.all()
-        qs = qs.select_related("book").prefetch_related("author_sales__author")
+        qs = qs.select_related("book")
 
         # Filtering (only on list)
         if self.action == "list":
@@ -76,26 +76,6 @@ class SaleViewSet(ModelViewSet):
             # Annotations for sorting
             qs = qs.annotate(
                 first_author_name=get_first_author_name_subquery("book"),
-                total_royalties=Sum("author_sales__royalty_amount"),
-                unpaid_count=Count(
-                    Case(
-                        When(author_sales__author_paid=False, then=1),
-                        output_field=IntegerField(),
-                    )
-                ),
-                paid_count=Count(
-                    Case(
-                        When(author_sales__author_paid=True, then=1),
-                        output_field=IntegerField(),
-                    )
-                ),
-                total_author_count=Count("author_sales"),
-                paid_status_order=Case(
-                    When(unpaid_count=0, total_author_count__gt=0, then=Value(0)),
-                    When(paid_count__gt=0, unpaid_count__gt=0, then=Value(1)),
-                    default=Value(2),
-                    output_field=IntegerField(),
-                ),
             )
 
             # Ordering
@@ -168,7 +148,6 @@ class SaleViewSet(ModelViewSet):
 
     def partial_update(self, request, *args, **kwargs):
         sale = self.get_object()
-        old_book_id = sale.book_id
 
         fields_param = request.query_params.get("fields")
         data = request.data
@@ -176,34 +155,10 @@ class SaleViewSet(ModelViewSet):
             allowed_fields = fields_param.split(",")
             data = {k: v for k, v in request.data.items() if k in allowed_fields}
 
-        incoming_author_royalties = data.get("author_royalties") or {}
-        incoming_author_paid = data.get("author_paid") or {}
-
         serializer = SaleWriteSerializer(sale, data=data, partial=True)
         if serializer.is_valid():
             with transaction.atomic():
                 updated_sale = serializer.save()
-
-                # If book changed, rebuild AuthorSale rows
-                if updated_sale.book_id != old_book_id:
-                    AuthorSale.objects.filter(sale=updated_sale).delete()
-                    author_books = AuthorBook.objects.select_related("author").filter(book=updated_sale.book)
-
-                    for ab in author_books:
-                        key = str(ab.author_id)
-                        if key in incoming_author_royalties:
-                            royalty_amount = money(incoming_author_royalties[key])
-                        else:
-                            royalty_amount = money(updated_sale.publisher_revenue * ab.royalty_rate)
-
-                        author_paid = bool(incoming_author_paid.get(key, False))
-
-                        AuthorSale.objects.create(
-                            sale=updated_sale,
-                            author=ab.author,
-                            royalty_amount=royalty_amount,
-                            author_paid=author_paid,
-                        )
 
             full_serializer = SaleSerializer(updated_sale)
             return Response(full_serializer.data)
@@ -215,26 +170,28 @@ class SaleViewSet(ModelViewSet):
         return self.partial_update(request, *args, **kwargs)
 
     # ------------------------------------------------------------------
-    # PAY AUTHORS — custom action
+    # PAY AUTHOR — custom action (marks author_paid=True on this sale)
     # ------------------------------------------------------------------
 
     @action(detail=True, methods=["post"], url_path="pay-authors")
     def pay_authors(self, request, pk=None):
         sale = self.get_object()
 
-        with transaction.atomic():
-            qs = (
-                AuthorSale.objects.select_for_update()
-                .filter(sale_id=sale.id, author_paid=False)
+        if sale.author_paid:
+            return Response(
+                {"detail": "Author already paid for this sale."},
+                status=status.HTTP_200_OK,
             )
-            total_to_pay = qs.aggregate(total=Sum("royalty_amount")).get("total") or Decimal("0.00")
-            updated_count = qs.update(author_paid=True)
+
+        with transaction.atomic():
+            sale.author_paid = True
+            sale.save(update_fields=["author_paid"])
 
         return Response(
             {
                 "sale_id": sale.id,
-                "authors_marked_paid": updated_count,
-                "total_royalties_paid": str(total_to_pay),
+                "authors_marked_paid": 1,
+                "total_royalties_paid": str(sale.author_royalty),
             },
             status=status.HTTP_200_OK,
         )
@@ -254,24 +211,21 @@ class BookSalesTotalsView(ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         book_id = kwargs.get("book_pk")
 
-        publisher_revenue = Sale.objects.filter(book_id=book_id).aggregate(
-            total=Coalesce(
+        totals = Sale.objects.filter(book_id=book_id).aggregate(
+            publisher_revenue=Coalesce(
                 Sum("publisher_revenue"),
                 Value(0),
                 output_field=DecimalField(max_digits=12, decimal_places=2),
-            )
-        )["total"]
-
-        royalty_totals = AuthorSale.objects.filter(sale__book_id=book_id).aggregate(
+            ),
             total_royalties=Coalesce(
-                Sum("royalty_amount"),
+                Sum("author_royalty"),
                 Value(0),
                 output_field=DecimalField(max_digits=12, decimal_places=2),
             ),
             paid_royalties=Coalesce(
                 Sum(
                     Case(
-                        When(author_paid=True, then="royalty_amount"),
+                        When(author_paid=True, then="author_royalty"),
                         default=Value(0),
                         output_field=DecimalField(max_digits=12, decimal_places=2),
                     )
@@ -282,7 +236,7 @@ class BookSalesTotalsView(ModelViewSet):
             unpaid_royalties=Coalesce(
                 Sum(
                     Case(
-                        When(author_paid=False, then="royalty_amount"),
+                        When(author_paid=False, then="author_royalty"),
                         default=Value(0),
                         output_field=DecimalField(max_digits=12, decimal_places=2),
                     )
@@ -295,10 +249,10 @@ class BookSalesTotalsView(ModelViewSet):
         return Response(
             {
                 "book_id": int(book_id),
-                "publisher_revenue": str(publisher_revenue),
-                "total_royalties": str(royalty_totals["total_royalties"]),
-                "paid_royalties": str(royalty_totals["paid_royalties"]),
-                "unpaid_royalties": str(royalty_totals["unpaid_royalties"]),
+                "publisher_revenue": str(totals["publisher_revenue"]),
+                "total_royalties": str(totals["total_royalties"]),
+                "paid_royalties": str(totals["paid_royalties"]),
+                "unpaid_royalties": str(totals["unpaid_royalties"]),
             },
             status=status.HTTP_200_OK,
         )

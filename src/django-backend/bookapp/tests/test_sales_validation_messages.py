@@ -30,6 +30,8 @@ def test_missing_quantity_message(authed_client, sample_book):
     payload = {
         "book": sample_book.id,
         "publisher_revenue": "100.00",
+        "author_royalty": "10.00",
+        "sale_source": "distributor",
         "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
@@ -42,6 +44,8 @@ def test_negative_quantity_message(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": -5,
         "publisher_revenue": "100.00",
+        "author_royalty": "10.00",
+        "sale_source": "distributor",
         "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
@@ -52,6 +56,8 @@ def test_missing_revenue_message(authed_client, sample_book):
     payload = {
         "book": sample_book.id,
         "quantity": 10,
+        "author_royalty": "10.00",
+        "sale_source": "distributor",
         # "publisher_revenue": "100.00", # Missing
         "date": "2023-01"
     }
@@ -64,11 +70,39 @@ def test_missing_date_message(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 10,
         "publisher_revenue": "100.00",
+        "author_royalty": "10.00",
+        "sale_source": "distributor",
         # "date": "2023-01-01" # Missing
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
     assert resp.data["date"] == ["Date is required."]
+
+def test_missing_sale_source_message(authed_client, sample_book):
+    payload = {
+        "book": sample_book.id,
+        "quantity": 10,
+        "publisher_revenue": "100.00",
+        "author_royalty": "10.00",
+        # "sale_source": missing
+        "date": "2023-01"
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 400
+    assert resp.data["sale_source"] == ["Sale source is required."]
+
+def test_missing_author_royalty_message(authed_client, sample_book):
+    payload = {
+        "book": sample_book.id,
+        "quantity": 10,
+        "publisher_revenue": "100.00",
+        "sale_source": "distributor",
+        # "author_royalty": missing
+        "date": "2023-01"
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 400
+    assert resp.data["author_royalty"] == ["Author royalty is required."]
 
 def test_null_value_message(authed_client, sample_book):
     # Test sending explicit null
@@ -76,10 +110,14 @@ def test_null_value_message(authed_client, sample_book):
         "book": sample_book.id,
         "quantity":  None,
         "publisher_revenue": None,
+        "author_royalty": None,
+        "sale_source": None,
         "date": None
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
     assert resp.data["quantity"] == ["Quantity is required."]
     assert resp.data["publisher_revenue"] == ["Publisher revenue is required."]
+    assert resp.data["author_royalty"] == ["Author royalty is required."]
+    assert resp.data["sale_source"] == ["Sale source is required."]
     assert resp.data["date"] == ["Date is required."]

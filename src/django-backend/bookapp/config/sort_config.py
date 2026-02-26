@@ -8,8 +8,8 @@ SALES_SORT_FIELD_MAP = {
     'publisher_revenue': 'publisher_revenue',
     'book_title': 'book__title',
     'authors': 'first_author_name',  # annotated field - first author's name
-    'total_royalties': 'total_royalties',  # annotated field - total royalties for this sale
-    'paid_status': 'paid_status_order',  # annotated field - 0=Fully Paid, 1=Partially Paid, 2=Unpaid
+    'total_royalties': 'author_royalty',  # direct field on Sale
+    'paid_status': 'author_paid',  # direct boolean field on Sale
 }
 
 SALES_DEFAULT_SORT = '-date'

@@ -78,42 +78,30 @@ class AuthorBook(models.Model):
 
 # 4. SALE Table
 class Sale(models.Model):
+    SALE_SOURCE_CHOICES = [
+        ("distributor", "Distributor"),
+        ("handsold", "Handsold"),
+    ]
+
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="sales")
     date = models.DateField()
     quantity = models.IntegerField()
+    sale_source = models.CharField(max_length=20, choices=SALE_SOURCE_CHOICES, default="distributor")
+    comment = models.CharField(max_length=256, blank=True, null=True) # A short single-line text field for general use (max 256 characters). It is also populated during a CSV import. Optional.
 
-    # Financial snapshots
+    # TODO: For handsold sales, publisher_revenue should be computed as
+    #       (book.cover_price - book.print_cost) × quantity
+    #       once those fields exist on Book. For now it is always an input.
     publisher_revenue = models.DecimalField(max_digits=10, decimal_places=2)
 
-    # Relationships
-    authors = models.ManyToManyField(Author, through="AuthorSale", related_name="sales")
+    # TODO: author_royalty should be computed as
+    #       author_royalty_rate × publisher_revenue
+    #       where the rate comes from book.distributor_royalty_rate or
+    #       book.hand_sold_royalty_rate depending on sale_source,
+    #       once those fields exist on Book. For now it is an input.
+    author_royalty = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
-    def __str__(self):
-        return f"{self.quantity} x {self.book.title} on {self.date.strftime('%Y-%m')}"
-
-    def create_author_sales(self, author_royalties={}, author_paid={}):
-        author_books = AuthorBook.objects.filter(book=self.book)
-        for ab in author_books:
-            # Check for override
-            if str(ab.author.id) in author_royalties:
-                royalty_amount = author_royalties[str(ab.author.id)]
-            else:
-                royalty_amount = self.publisher_revenue * ab.royalty_rate
-
-            AuthorSale.objects.create(
-                sale=self,
-                author=ab.author,
-                royalty_amount=royalty_amount,
-                author_paid=author_paid.get(str(ab.author.id), False),
-            )
-
-
-# 5. AUTHOR_SALE Table
-class AuthorSale(models.Model):
-    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="author_sales")
-    author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name="sales_records")
-    royalty_amount = models.DecimalField(max_digits=10, decimal_places=2)
     author_paid = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.author.name} paid ${self.royalty_amount} for Sale {self.sale.id}"
+        return f"{self.quantity} x {self.book.title} on {self.date.strftime('%Y-%m')}"

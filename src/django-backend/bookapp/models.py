@@ -117,7 +117,7 @@ class Book(models.Model):
         constraints = [
             # series_name and series_position must be both NULL or both non-NULL
             CheckConstraint(
-                check=(
+                condition=(
                     (Q(series_name__isnull=True) & Q(series_position__isnull=True))
                     | (Q(series_name__isnull=False) & Q(series_position__isnull=False))
                 ),

@@ -2,6 +2,7 @@
 """
 Script to populate the LOCAL database with EV1 review data from CSV files.
 """
+"python src/scripts/populate_local_ev1_data.py"
 
 import csv
 import requests

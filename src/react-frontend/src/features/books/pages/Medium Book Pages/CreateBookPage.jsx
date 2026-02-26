@@ -11,7 +11,7 @@ import {
   ErrorAlert,
   FormField,
 } from "../../../shared/components";
-import { AuthorPicker, CoverImageField, SeriesFields } from "../components";
+import { AuthorsEditor } from "../components";
 import { errorMessage } from "../../../shared/utils/errors";
 import * as booksApi from "../api/booksApi";
 
@@ -28,33 +28,35 @@ export default function CreateBookPage() {
   const [isbn13, setIsbn13] = useState("");
   const [isbn10, setIsbn10] = useState("");
 
-  // Pricing fields
-  const [coverPrice, setCoverPrice] = useState("");
-  const [printCost, setPrintCost] = useState("");
+  // NEW required fields
+  const [coverPrice, setCoverPrice] = useState(""); // required, non-negative
+  const [printCost, setPrintCost] = useState(""); // required, non-negative
 
-  // Series fields
+  // NEW optional series/cover
   const [seriesName, setSeriesName] = useState("");
-  const [seriesPosition, setSeriesPosition] = useState("");
+  const [seriesPosition, setSeriesPosition] = useState(""); // optional but required if seriesName present
+  const [coverImagePath, setCoverImagePath] = useState(""); // optional string path (served from /static)
 
-  // Cover image
-  const [coverImagePath, setCoverImagePath] = useState("");
-  const [coverImageFile, setCoverImageFile] = useState(null);
-
-  // Author (single author model)
+  // Author options (existing authors only)
   const [authorOptions, setAuthorOptions] = useState([]);
   const [authorsLoading, setAuthorsLoading] = useState(true);
   const [authorsErr, setAuthorsErr] = useState(null);
-  const [selectedAuthorId, setSelectedAuthorId] = useState("");
-  const [authorSearch, setAuthorSearch] = useState("");
 
-  // Royalty rates (book-level, not per-author)
-  const [distributorRoyaltyRate, setDistributorRoyaltyRate] = useState("0.50");
-  const [handSoldRoyaltyRate, setHandSoldRoyaltyRate] = useState("0.20");
+  // Evolution 2: keep AuthorsEditor API but use single row:
+  // { author_id, author_name, distributor_author_royalty_rate, hand_sold_author_royalty_rate }
+  const [authors, setAuthors] = useState([
+    {
+      author_id: null,
+      author_name: "",
+      distributor_author_royalty_rate: "0.50",
+      hand_sold_author_royalty_rate: "0.20",
+    },
+  ]);
+  const [openAuthorIdx, setOpenAuthorIdx] = useState(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
 
-  // Load authors
   useEffect(() => {
     let cancelled = false;
 
@@ -72,7 +74,9 @@ export default function CreateBookPage() {
     }
 
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function onSubmit(e) {
@@ -81,27 +85,34 @@ export default function CreateBookPage() {
     setSubmitting(true);
 
     try {
-      // Upload cover image first if a new file was selected
-      let finalCoverImagePath = coverImagePath.trim() === "" ? null : coverImagePath.trim();
-      
-      if (coverImageFile) {
-        const uploadResult = await booksApi.uploadCoverImage(coverImageFile);
-        finalCoverImagePath = uploadResult.cover_image_path;
-      }
+      const a0 = authors?.[0] || {};
 
       const payload = {
         title: title.trim(),
         publication_date: publicationMonth,
         isbn_13: cleanIsbn(isbn13),
         isbn_10: cleanIsbn(isbn10) === "" ? null : cleanIsbn(isbn10),
-        author_id: selectedAuthorId ? Number(selectedAuthorId) : null,
-        distributor_author_royalty_rate: distributorRoyaltyRate,
-        hand_sold_author_royalty_rate: handSoldRoyaltyRate,
-        cover_price: coverPrice,
-        print_cost: printCost,
+
+        // Single-author book
+        author_id: a0.author_id,
+
+        // Book-level royalty rates
+        distributor_author_royalty_rate: String(a0.distributor_author_royalty_rate ?? "0.50").trim(),
+        hand_sold_author_royalty_rate: String(a0.hand_sold_author_royalty_rate ?? "0.20").trim(),
+
+        // Required monetary fields
+        cover_price: String(coverPrice).trim(),
+        print_cost: String(printCost).trim(),
+
+        // Optional fields
         series_name: seriesName.trim() === "" ? null : seriesName.trim(),
-        series_position: seriesName.trim() === "" || seriesPosition === "" ? null : Number(seriesPosition),
-        cover_image_path: finalCoverImagePath,
+        series_position:
+          seriesName.trim() === ""
+            ? null
+            : seriesPosition === ""
+            ? null
+            : Number(seriesPosition),
+        cover_image_path: coverImagePath.trim() === "" ? null : coverImagePath.trim(),
       };
 
       await booksApi.createBook(payload);
@@ -120,12 +131,10 @@ export default function CreateBookPage() {
           <CardHeader title="Create Book" subtitle="Add a new book to the catalog." />
           <CardContent>
             <form className="space-y-5" onSubmit={onSubmit}>
-              {/* Title */}
               <FormField label="Title">
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
               </FormField>
 
-              {/* Publication date */}
               <MonthPicker
                 label="Publication date (month, year)"
                 value={publicationMonth}
@@ -133,7 +142,6 @@ export default function CreateBookPage() {
                 required
               />
 
-              {/* ISBNs */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField label="ISBN-13">
                   <Input
@@ -143,6 +151,7 @@ export default function CreateBookPage() {
                     required
                   />
                 </FormField>
+
                 <FormField label="ISBN-10 (optional)">
                   <Input
                     value={isbn10}
@@ -152,24 +161,19 @@ export default function CreateBookPage() {
                 </FormField>
               </div>
 
-              {/* Pricing */}
+              {/* NEW: required money fields */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField label="Cover price">
                   <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
                     value={coverPrice}
                     onChange={(e) => setCoverPrice(e.target.value)}
                     placeholder="19.99"
                     required
                   />
                 </FormField>
+
                 <FormField label="Print cost">
                   <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
                     value={printCost}
                     onChange={(e) => setPrintCost(e.target.value)}
                     placeholder="4.25"
@@ -178,63 +182,60 @@ export default function CreateBookPage() {
                 </FormField>
               </div>
 
-              {/* Author */}
-              {authorsErr && <ErrorAlert>Failed to load authors: {authorsErr}</ErrorAlert>}
-
-              <AuthorPicker
-                authorOptions={authorOptions}
-                selectedAuthorId={selectedAuthorId}
-                setSelectedAuthorId={setSelectedAuthorId}
-                authorSearch={authorSearch}
-                setAuthorSearch={setAuthorSearch}
-              />
-
-              {/* Royalty rates */}
+              {/* NEW: optional series */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField label="Distributor royalty rate">
+                <FormField label="Series (optional)">
                   <Input
-                    type="number"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={distributorRoyaltyRate}
-                    onChange={(e) => setDistributorRoyaltyRate(e.target.value)}
+                    value={seriesName}
+                    onChange={(e) => setSeriesName(e.target.value)}
+                    placeholder='e.g., "Lord of the Rings"'
                   />
-                  <p className="mt-1 text-xs text-slate-400">Decimal (0–1), e.g. 0.50 for 50%</p>
                 </FormField>
-                <FormField label="Hand-sold royalty rate">
+
+                <FormField label="Series position (required if series set)">
                   <Input
-                    type="number"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={handSoldRoyaltyRate}
-                    onChange={(e) => setHandSoldRoyaltyRate(e.target.value)}
+                    value={seriesPosition}
+                    onChange={(e) => setSeriesPosition(e.target.value)}
+                    placeholder="e.g., 3"
+                    disabled={seriesName.trim() === ""}
                   />
-                  <p className="mt-1 text-xs text-slate-400">Decimal (0–1), e.g. 0.20 for 20%</p>
                 </FormField>
               </div>
 
-              {/* Series */}
-              <SeriesFields
-                seriesName={seriesName}
-                setSeriesName={setSeriesName}
-                seriesPosition={seriesPosition}
-                setSeriesPosition={setSeriesPosition}
+              {/* NEW: optional cover image */}
+              <FormField label="Cover image path (optional)">
+                <Input
+                  value={coverImagePath}
+                  onChange={(e) => setCoverImagePath(e.target.value)}
+                  placeholder='/static/covers/my-book.jpg'
+                />
+                {coverImagePath.trim() ? (
+                  <div className="mt-2">
+                    <div className="text-xs text-slate-500 mb-1">Preview</div>
+                    <img
+                      src={coverImagePath.trim()}
+                      alt="Cover preview"
+                      className="max-h-56 w-auto rounded-xl border border-slate-200 shadow-sm"
+                    />
+                  </div>
+                ) : null}
+              </FormField>
+
+              {authorsErr && <ErrorAlert>Failed to load authors: {authorsErr}</ErrorAlert>}
+
+              <AuthorsEditor
+                authors={authors}
+                setAuthors={setAuthors}
+                authorOptions={authorOptions}
+                authorsLoading={authorsLoading}
+                openAuthorIdx={openAuthorIdx}
+                setOpenAuthorIdx={setOpenAuthorIdx}
               />
 
-              {/* Cover image */}
-              <CoverImageField
-                value={coverImagePath}
-                onChange={setCoverImagePath}
-                onFileChange={setCoverImageFile}
-                title={title}
-              />
+              <div className="text-xs text-slate-500">
+                Royalty rates are decimals (e.g., 0.50 for 50%).
+              </div>
 
-              {/* Error message */}
-              {err && <ErrorAlert>{err}</ErrorAlert>}
-
-              {/* Actions */}
               <div className="flex items-center justify-end gap-2">
                 <Button type="button" variant="secondary" onClick={() => nav("/books")}>
                   Cancel
@@ -243,6 +244,8 @@ export default function CreateBookPage() {
                   {submitting ? "Creating..." : "Create"}
                 </Button>
               </div>
+
+              {err && <ErrorAlert>{err}</ErrorAlert>}
             </form>
           </CardContent>
         </Card>

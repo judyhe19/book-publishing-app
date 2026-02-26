@@ -5,56 +5,34 @@ import {
   Card,
   CardContent,
   CardHeader,
-  Input,
   Button,
-  MonthPicker,
   ErrorAlert,
-  StatCard,
-  DetailField,
-  FormField,
-  Pagination,
-  ShowAllToggle,
-  SaleEntryRow,
 } from "../../../shared/components";
-import { DeleteBookDialog, AuthorsEditor, BookSalesTable } from "../components";
+import {
+  BookViewMode,
+  BookEditMode,
+  BookSalesSection,
+  DeleteBookDialog,
+} from "../components";
 import { errorMessage } from "../../../shared/utils/errors";
 import * as booksApi from "../api/booksApi";
-import { useBookSales } from "../hooks/useBookSales";
-import { EMPTY_ROW, transformRowToSaleData, isRowComplete } from "../../../shared/utils/salesUtils";
-import { createManySales } from "../../sales/api/salesApi";
-import { formatMonthYear } from "../../../shared/utils/dateUtils";
 
-function normalizeName(s) {
-  return (s || "").trim().replace(/\s+/g, " ");
-}
-
-function monthInputFromDate(dateStr) {
-  return dateStr || "";
-}
-
-function pct(x) {
-  const n = Number(x);
-  if (Number.isNaN(n)) return "—";
-  return `${(n * 100).toFixed(1)}%`;
-}
-
-function formatMoney(x) {
-  return `$${Number(x || 0).toFixed(2)}`;
-}
-
+/**
+ * Book detail page with view/edit modes and sales section.
+ * Refactored to use extracted components for clarity.
+ */
 export default function BookDetailPage() {
   const { bookId } = useParams();
   const nav = useNavigate();
 
+  // Fetch state
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const [book, setBook] = useState(null);
 
-  // Edit mode
+  // UI state
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  // Delete dialog
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -63,124 +41,44 @@ export default function BookDetailPage() {
   const [publicationMonth, setPublicationMonth] = useState("");
   const [isbn13, setIsbn13] = useState("");
   const [isbn10, setIsbn10] = useState("");
-  const [authors, setAuthors] = useState([{ author_name: "", royalty_rate: "0.50" }]);
-
-  // Authors list for dropdown
   const [authorOptions, setAuthorOptions] = useState([]);
-  const [authorsLoading, setAuthorsLoading] = useState(true);
-  const [openAuthorIdx, setOpenAuthorIdx] = useState(null);
+  const [selectedAuthorId, setSelectedAuthorId] = useState("");
+  const [authorSearch, setAuthorSearch] = useState("");
+  const [distributorRoyaltyRate, setDistributorRoyaltyRate] = useState("0.50");
+  const [handSoldRoyaltyRate, setHandSoldRoyaltyRate] = useState("0.20");
+  const [coverPrice, setCoverPrice] = useState("");
+  const [printCost, setPrintCost] = useState("");
+  const [coverImagePath, setCoverImagePath] = useState("");
+  const [coverImageFile, setCoverImageFile] = useState(null);
+  const [seriesName, setSeriesName] = useState("");
+  const [seriesPosition, setSeriesPosition] = useState("");
 
-  // Paginated sales
-  const {
-    sales: bookSales,
-    loading: salesLoading,
-    ordering: salesOrdering,
-    handleSort: handleSalesSort,
-    refresh: refreshSales,
-    page: salesPage,
-    totalPages: salesTotalPages,
-    setPage: setSalesPage,
-    count: salesCount,
-    showAll: salesShowAll,
-    toggleShowAll: toggleSalesShowAll,
-  } = useBookSales(bookId);
-
-  // Totals from backend
-  const [totalsLoading, setTotalsLoading] = useState(true);
-  const [totalsErr, setTotalsErr] = useState(null);
-  const [totals, setTotals] = useState({
-    publisher_revenue: "0",
-    total_royalties: "0",
-    paid_royalties: "0",
-    unpaid_royalties: "0",
-  });
-
-  // Inline sale entry
-  const [showSaleEntry, setShowSaleEntry] = useState(false);
-  const [saleRow, setSaleRow] = useState({ ...EMPTY_ROW });
-  const [saleSubmitting, setSaleSubmitting] = useState(false);
-  const [saleError, setSaleError] = useState(null);
-
-  const fixedBook = book
-    ? {
-        value: book.id,
-        label: book.title,
-        authors: book.authors,
-        publication_date: book.publication_date,
-      }
-    : null;
-
-  const handleSaleRowChange = (index, field, value) => {
-    setSaleRow((prev) => {
-      if (typeof field === "object" && field !== null) {
-        return { ...prev, ...field };
-      }
-      return { ...prev, [field]: value };
-    });
-  };
-
-  async function refreshBook() {
-    try {
-      const b = await booksApi.getBook(bookId);
-      setBook(b);
-    } catch (e) {
-      console.error("Error refreshing book:", e);
-    }
+  // Populate form from book data
+  function populateFormFromBook(b) {
+    if (!b) return;
+    setTitle(b.title || "");
+    setPublicationMonth(b.publication_date || "");
+    setIsbn13(b.isbn_13 || "");
+    setIsbn10(b.isbn_10 || "");
+    setSelectedAuthorId(b.author_id != null ? String(b.author_id) : "");
+    setAuthorSearch(b.author_name || "");
+    setDistributorRoyaltyRate(String(b.distributor_author_royalty_rate ?? "0.50"));
+    setHandSoldRoyaltyRate(String(b.hand_sold_author_royalty_rate ?? "0.20"));
+    setCoverPrice(b.cover_price != null ? String(b.cover_price) : "");
+    setPrintCost(b.print_cost != null ? String(b.print_cost) : "");
+    setCoverImagePath(b.cover_image_path || "");
+    setCoverImageFile(null);
+    setSeriesName(b.series_name || "");
+    setSeriesPosition(b.series_position != null ? String(b.series_position) : "");
   }
 
-  async function refreshTotals() {
-    if (!bookId) return;
-    setTotalsLoading(true);
-    setTotalsErr(null);
-    try {
-      const t = await booksApi.getBookSalesTotals(bookId);
-      setTotals(t);
-    } catch (e) {
-      setTotalsErr(errorMessage(e));
-    } finally {
-      setTotalsLoading(false);
-    }
-  }
-
-  const handleSubmitSale = async () => {
-    setSaleError(null);
-
-    if (!isRowComplete(saleRow)) {
-      setSaleError("Please fill in all fields.");
-      return;
-    }
-
-    setSaleSubmitting(true);
-    try {
-      const saleData = transformRowToSaleData(saleRow);
-      await createManySales([saleData]);
-
-      setSaleRow({ ...EMPTY_ROW });
-      setShowSaleEntry(false);
-
-      refreshBook();
-      refreshSales();
-      refreshTotals();
-    } catch (e) {
-      setSaleError(errorMessage(e));
-    } finally {
-      setSaleSubmitting(false);
-    }
-  };
-
-  const handleCancelSale = () => {
-    setSaleRow({ ...EMPTY_ROW });
-    setSaleError(null);
-    setShowSaleEntry(false);
-  };
-
+  // Load book and authors
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       setLoading(true);
       setErr(null);
-      setAuthorsLoading(true);
 
       try {
         const [b, a] = await Promise.all([
@@ -191,85 +89,65 @@ export default function BookDetailPage() {
         if (cancelled) return;
 
         setBook(b);
-        setTitle(b?.title || "");
-        setPublicationMonth(monthInputFromDate(b?.publication_date));
-        setIsbn13(b?.isbn_13 || "");
-        setIsbn10(b?.isbn_10 || "");
-
-        const initialAuthors =
-          (b?.authors || []).length > 0
-            ? b.authors.map((x) => ({
-                author_name: x.name || "",
-                royalty_rate: String(x.royalty_rate ?? "0.50"),
-              }))
-            : [{ author_name: "", royalty_rate: "0.50" }];
-
-        setAuthors(initialAuthors);
+        populateFormFromBook(b);
         setAuthorOptions(Array.isArray(a) ? a : []);
       } catch (e) {
         if (!cancelled) setErr(errorMessage(e));
       } finally {
         if (!cancelled) setLoading(false);
-        if (!cancelled) setAuthorsLoading(false);
       }
     }
 
     load();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [bookId]);
 
-  useEffect(() => {
-    refreshTotals();
-  }, [bookId]);
-
-  function resetFormToBook(b) {
-    if (!b) return;
-    setTitle(b.title || "");
-    setPublicationMonth(monthInputFromDate(b.publication_date));
-    setIsbn13(b.isbn_13 || "");
-    setIsbn10(b.isbn_10 || "");
-    setAuthors(
-      (b.authors || []).length > 0
-        ? b.authors.map((x) => ({
-            author_name: x.name || "",
-            royalty_rate: String(x.royalty_rate ?? "0.50"),
-          }))
-        : [{ author_name: "", royalty_rate: "0.50" }]
-    );
+  // Refresh book data
+  async function refreshBook() {
+    try {
+      const b = await booksApi.getBook(bookId);
+      setBook(b);
+    } catch (e) {
+      console.error("Error refreshing book:", e);
+    }
   }
 
+  // Save changes
   async function onSave() {
     setErr(null);
     setSaving(true);
 
     try {
-      const cleanedAuthors = authors.map((r) => ({
-        author_name: normalizeName(r.author_name),
-        royalty_rate: String(r.royalty_rate).trim(),
-      }));
+      // Upload cover image first if a new file was selected
+      let finalCoverImagePath = coverImagePath.trim() === "" ? null : coverImagePath.trim();
+      
+      if (coverImageFile) {
+        const uploadResult = await booksApi.uploadCoverImage(coverImageFile);
+        finalCoverImagePath = uploadResult.cover_image_path;
+      }
 
       const payload = {
         title: title.trim(),
         publication_date: publicationMonth,
         isbn_13: isbn13.replaceAll("-", "").trim(),
         isbn_10: isbn10.trim() === "" ? null : isbn10.replaceAll("-", "").trim(),
-        authors: cleanedAuthors,
+        author_id: selectedAuthorId ? Number(selectedAuthorId) : undefined,
+        distributor_author_royalty_rate: distributorRoyaltyRate,
+        hand_sold_author_royalty_rate: handSoldRoyaltyRate,
+        cover_price: coverPrice,
+        print_cost: printCost,
+        cover_image_path: finalCoverImagePath,
+        series_name: seriesName.trim() === "" ? null : seriesName.trim(),
+        series_position: seriesPosition === "" || seriesPosition == null ? null : Number(seriesPosition),
       };
 
       const updated = await booksApi.updateBook(bookId, payload);
-
       setBook(updated);
+      populateFormFromBook(updated);
       setEditing(false);
-      resetFormToBook(updated);
 
-      try {
-        const a = await booksApi.listAuthors();
-        setAuthorOptions(Array.isArray(a) ? a : []);
-      } catch {
-        // ignore
-      }
+      // Refresh author list
+      booksApi.listAuthors().then((a) => setAuthorOptions(Array.isArray(a) ? a : [])).catch(() => {});
     } catch (e) {
       setErr(errorMessage(e));
     } finally {
@@ -277,11 +155,7 @@ export default function BookDetailPage() {
     }
   }
 
-  function onDeleteClick() {
-    setErr(null);
-    setDeleteOpen(true);
-  }
-
+  // Delete book
   async function onConfirmDelete() {
     setErr(null);
     setDeleting(true);
@@ -296,14 +170,12 @@ export default function BookDetailPage() {
     }
   }
 
+  // Loading state
   if (loading) {
-    return (
-      <div className="p-6">
-        <div className="text-slate-600">Loading…</div>
-      </div>
-    );
+    return <div className="p-6 text-slate-600">Loading…</div>;
   }
 
+  // Not found state
   if (!book) {
     return (
       <div className="p-6">
@@ -315,235 +187,101 @@ export default function BookDetailPage() {
 
   return (
     <div className="min-h-screen flex items-start justify-center p-6">
-      <div className="w-full max-w-6xl">
+      <div className="w-full max-w-6xl space-y-8">
+
         {/* Book Details Card */}
         <Card>
           <CardHeader
             title={editing ? "Edit Book" : "Book Details"}
-            subtitle={editing ? "Update fields and save changes." : "View book metadata and authors."}
+            subtitle={editing ? "Update fields and save changes." : "View book metadata and cover art."}
           />
           <CardContent>
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                {!editing ? (
-                  <>
-                    <Button variant="secondary" onClick={() => setEditing(true)}>
-                      Edit
-                    </Button>
-                    <Button variant="danger" onClick={onDeleteClick}>
-                      Delete
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      variant="secondary"
-                      onClick={() => {
-                        resetFormToBook(book);
-                        setEditing(false);
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button disabled={saving} onClick={onSave}>
-                      {saving ? "Saving..." : "Save"}
-                    </Button>
-                  </>
-                )}
-              </div>
+            {/* Action buttons */}
+            <div className="flex items-center gap-2">
+              {!editing ? (
+                <>
+                  <Button variant="secondary" onClick={() => setEditing(true)}>
+                    Edit
+                  </Button>
+                  <Button variant="danger" onClick={() => { setErr(null); setDeleteOpen(true); }}>
+                    Delete
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      populateFormFromBook(book);
+                      setEditing(false);
+                      setErr(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button disabled={saving} onClick={onSave}>
+                    {saving ? "Saving…" : "Save"}
+                  </Button>
+                </>
+              )}
             </div>
 
             {err && <ErrorAlert className="mt-4">{err}</ErrorAlert>}
 
+            {/* View or Edit mode */}
             {!editing ? (
-              /* View Mode */
-              <div className="mt-6 space-y-4">
-                <DetailField label="Title">{book.title}</DetailField>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <DetailField label="Publication">
-                    {formatMonthYear(book.publication_date)}
-                  </DetailField>
-                  <DetailField label="Total Sales">{book.total_sales_to_date ?? 0}</DetailField>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <DetailField label="ISBN-13">
-                    <span className="font-mono">{book.isbn_13 || "—"}</span>
-                  </DetailField>
-                  <DetailField label="ISBN-10">
-                    <span className="font-mono">{book.isbn_10 || "—"}</span>
-                  </DetailField>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <DetailField label="Authors">
-                    {(book.authors || []).length === 0 ? (
-                      "—"
-                    ) : (
-                      <div className="mt-2 space-y-1">
-                        {book.authors.map((a) => (
-                          <div key={a.author_id}>{a.name}</div>
-                        ))}
-                      </div>
-                    )}
-                  </DetailField>
-
-                  <DetailField label="Royalty Rate">
-                    {(book.authors || []).length === 0 ? (
-                      "—"
-                    ) : (
-                      <div className="mt-2 space-y-1">
-                        {book.authors.map((a) => (
-                          <div key={a.author_id}>{pct(a.royalty_rate)}</div>
-                        ))}
-                      </div>
-                    )}
-                  </DetailField>
-                </div>
-              </div>
+              <BookViewMode book={book} />
             ) : (
-              /* Edit Mode */
-              <div className="mt-6 space-y-5">
-                <FormField label="Title">
-                  <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-                </FormField>
-
-                <MonthPicker
-                  label="Publication month, year"
-                  value={publicationMonth}
-                  onChange={setPublicationMonth}
-                  required
-                />
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <FormField label="ISBN-13">
-                    <Input value={isbn13} onChange={(e) => setIsbn13(e.target.value)} />
-                  </FormField>
-
-                  <FormField label="ISBN-10 (optional)">
-                    <Input value={isbn10} onChange={(e) => setIsbn10(e.target.value)} />
-                  </FormField>
-                </div>
-
-                <AuthorsEditor
-                  authors={authors}
-                  setAuthors={setAuthors}
-                  authorOptions={authorOptions}
-                  authorsLoading={authorsLoading}
-                  openAuthorIdx={openAuthorIdx}
-                  setOpenAuthorIdx={setOpenAuthorIdx}
-                />
-              </div>
+              <BookEditMode
+                title={title}
+                setTitle={setTitle}
+                publicationMonth={publicationMonth}
+                setPublicationMonth={setPublicationMonth}
+                isbn13={isbn13}
+                setIsbn13={setIsbn13}
+                isbn10={isbn10}
+                setIsbn10={setIsbn10}
+                authorOptions={authorOptions}
+                selectedAuthorId={selectedAuthorId}
+                setSelectedAuthorId={setSelectedAuthorId}
+                authorSearch={authorSearch}
+                setAuthorSearch={setAuthorSearch}
+                distributorRoyaltyRate={distributorRoyaltyRate}
+                setDistributorRoyaltyRate={setDistributorRoyaltyRate}
+                handSoldRoyaltyRate={handSoldRoyaltyRate}
+                setHandSoldRoyaltyRate={setHandSoldRoyaltyRate}
+                coverPrice={coverPrice}
+                setCoverPrice={setCoverPrice}
+                printCost={printCost}
+                setPrintCost={setPrintCost}
+                coverImagePath={coverImagePath}
+                setCoverImagePath={setCoverImagePath}
+                onCoverImageFileChange={setCoverImageFile}
+                seriesName={seriesName}
+                setSeriesName={setSeriesName}
+                seriesPosition={seriesPosition}
+                setSeriesPosition={setSeriesPosition}
+              />
             )}
           </CardContent>
         </Card>
 
+        {/* Delete dialog */}
         <DeleteBookDialog
           open={deleteOpen}
           book={book}
           deleting={deleting}
-          onCancel={() => {
-            if (deleting) return;
-            setDeleteOpen(false);
-          }}
+          onCancel={() => { if (!deleting) setDeleteOpen(false); }}
           onConfirm={onConfirmDelete}
         />
 
-        {/* Sales Records Section */}
-        <Card className="mt-8">
-          <CardHeader title="Sales Records" subtitle="All sales records for this book." />
-          <CardContent>
-            <div className="mb-4 flex justify-end">
-              {!showSaleEntry && <Button onClick={() => setShowSaleEntry(true)}>Add Sale</Button>}
-            </div>
+        {/* Sales section */}
+        <BookSalesSection
+          bookId={bookId}
+          book={book}
+          onSaleCreated={refreshBook}
+        />
 
-            {showSaleEntry && (
-              <div className="mb-6">
-                {saleError && <ErrorAlert className="mb-4">{saleError}</ErrorAlert>}
-
-                <SaleEntryRow
-                  index={0}
-                  data={saleRow}
-                  onChange={handleSaleRowChange}
-                  onRemove={() => {}}
-                  isFirst={true}
-                  fixedBook={fixedBook}
-                />
-
-                <div className="mt-4 flex justify-end gap-2">
-                  <Button variant="secondary" onClick={handleCancelSale} disabled={saleSubmitting}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleSubmitSale} disabled={saleSubmitting}>
-                    {saleSubmitting ? "Submitting..." : "Submit Sale"}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {totalsErr && <ErrorAlert className="mb-4">{totalsErr}</ErrorAlert>}
-
-            {/* Stats Cards */}
-            <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <StatCard
-                label="Publisher Revenue"
-                value={formatMoney(totals.publisher_revenue)}
-                loading={totalsLoading}
-              />
-              <StatCard
-                label="Total Royalties"
-                value={formatMoney(totals.total_royalties)}
-                loading={totalsLoading}
-              />
-              <StatCard
-                label="Paid Royalties"
-                value={formatMoney(totals.paid_royalties)}
-                loading={totalsLoading}
-                variant="success"
-              />
-              <StatCard
-                label="Unpaid Royalties"
-                value={formatMoney(totals.unpaid_royalties)}
-                loading={totalsLoading}
-                variant="danger"
-              />
-            </div>
-
-            <div className="mb-3 flex items-center justify-end">
-              <ShowAllToggle showAll={salesShowAll} onToggle={toggleSalesShowAll} />
-            </div>
-
-            <BookSalesTable
-              data={bookSales}
-              loading={salesLoading}
-              ordering={salesOrdering}
-              onSort={handleSalesSort}
-            />
-
-            {!salesShowAll && (
-              <div className="mt-4">
-                <Pagination
-                  page={salesPage}
-                  totalPages={salesTotalPages}
-                  onPrev={() => setSalesPage((p) => Math.max(1, p - 1))}
-                  onNext={() => setSalesPage((p) => Math.min(salesTotalPages, p + 1))}
-                />
-              </div>
-            )}
-
-            <div className="mt-2 text-sm text-slate-600">
-              {salesLoading ? (
-                "Loading…"
-              ) : (
-                <>
-                  <span className="font-semibold text-slate-900">{salesCount}</span> sale
-                  {salesCount === 1 ? "" : "s"} for this book
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

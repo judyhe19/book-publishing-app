@@ -33,6 +33,10 @@ function formatMoneyString(x) {
   return n.toFixed(2);
 }
 
+/**
+ * Compute auto-calculated royalties for authors whose values aren't overridden.
+ * With single-author model, there's only one author per book.
+ */
 function computeAutoRoyalties({ bookAuthors, publisherRevenue, overrides, existing }) {
   const revenue = moneyNumber(publisherRevenue);
   const next = { ...(existing || {}) };
@@ -50,33 +54,47 @@ function computeAutoRoyalties({ bookAuthors, publisherRevenue, overrides, existi
   return next;
 }
 
+/**
+ * Transform a sale record and book data into row format for SaleEntryRow.
+ * Adapted for single-author model where royalty_rate comes from book.distributor_author_royalty_rate.
+ */
 function saleToRow(sale, bookData) {
+  // Build authors array from single author (for compatibility with SaleEntryRow)
+  const authors = bookData.author_id
+    ? [{
+        author_id: bookData.author_id,
+        name: bookData.author_name,
+        royalty_rate: bookData.distributor_author_royalty_rate,
+      }]
+    : [];
+
   const book = {
     value: bookData.id,
     label: formatBookLabel(bookData.title, bookData.isbn_13),
-    authors: (bookData.authors || []).map((a) => ({
-      author_id: a.author_id,
-      name: a.name,
-      royalty_rate: a.royalty_rate,
-    })),
+    authors,
     publication_date: bookData.publication_date,
+    distributor_author_royalty_rate: bookData.distributor_author_royalty_rate,
+    hand_sold_author_royalty_rate: bookData.hand_sold_author_royalty_rate,
   };
 
   const author_royalties = {};
   const author_paid = {};
   const overrides = {};
 
+  // Build rate lookup from authors array
   const rateByAuthorId = {};
-  for (const a of book.authors || []) {
+  for (const a of authors) {
     rateByAuthorId[String(a.author_id)] = a.royalty_rate;
   }
 
+  // Process author details from the sale
   for (const a of sale.author_details || []) {
     const id = String(a.id);
 
     author_royalties[id] = String(a.royalty_amount);
     author_paid[id] = !!a.paid;
 
+    // Determine if this royalty was overridden (differs from calculated default)
     const rate = rateByAuthorId[id];
     if (rate === undefined) {
       overrides[id] = true;

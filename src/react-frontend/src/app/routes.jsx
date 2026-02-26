@@ -14,6 +14,7 @@ import CreateBookPage from "../features/books/pages/CreateBookPage";
 import BookDetailPage from "../features/books/pages/BookDetailPage";
 import AuthorListPage from "../features/author/pages/AuthorListPage";
 import AuthorCreatePage from "../features/author/pages/AuthorCreatePage";
+import AuthorModifyPage from "../features/author/pages/AuthorModifyPage";
 
 
 export function AppRoutes() {
@@ -93,6 +94,15 @@ export function AppRoutes() {
         element={
           <RequireAuth>
             <AuthorListPage />
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/authors/:authorId/modify"
+        element={
+          <RequireAuth>
+            <AuthorModifyPage />
           </RequireAuth>
         }
       />

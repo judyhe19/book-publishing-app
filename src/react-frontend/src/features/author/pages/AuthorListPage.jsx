@@ -10,6 +10,7 @@ import {
   Pagination,
   ShowAllToggle,
   DualScrollContainer,
+  Input,
 } from "../../../shared/components";
 
 export default function AuthorListPage() {
@@ -30,20 +31,31 @@ export default function AuthorListPage() {
 
   return (
     <div className="p-6 max-w-full mx-auto">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Authors</h1>
           <p className="text-slate-500 mt-1">Manage and view your authors.</p>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="w-full sm:w-[320px]">
+            <Input
+              value={filters.q}
+              onChange={handleSearchChange}
+              placeholder="Search name or email…"
+            />
+          </div>
           <Button onClick={() => navigate("/authors/create")}>New Author</Button>
         </div>
       </div>
 
       <Card>
         <CardContent>
-          {/* Filters + Show All toggle */}
           <div className="flex items-center justify-between gap-3">
+            <div className="text-sm text-slate-600">
+              {loading ? "Loading…" : `${count ?? 0} author${count === 1 ? "" : "s"}`}
+              {showAll && count != null ? " (showing all)" : ""}
+            </div>
             <ShowAllToggle showAll={showAll} onToggle={toggleShowAll} />
           </div>
 
@@ -56,7 +68,6 @@ export default function AuthorListPage() {
             />
           </DualScrollContainer>
 
-          {/* Pagination */}
           <div className="mt-4">
             {!showAll && (
               <Pagination

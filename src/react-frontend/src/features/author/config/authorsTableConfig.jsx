@@ -76,6 +76,7 @@ export const TABLE_COLUMNS = [
     type: "actions",
     getActions: (author) => [
       { label: "Author Details", to: `/authors/${author.id}`, variant: "secondary" },
+      { label: 'Modify Author', to: `/authors/${author.id}/modify`, variant: 'primary' }
     ],
   },
 ];

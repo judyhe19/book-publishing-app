@@ -139,10 +139,11 @@ class AuthorViewSet(ModelViewSet):
     
     def destroy(self, request, *args, **kwargs):
         author = self.get_object()
+        author_id = author.id
 
         with transaction.atomic():
             book_ids = list(
-                AuthorBook.objects.filter(author_id=author.id)
+                AuthorBook.objects.filter(author_id=author_id)
                 .values_list("book_id", flat=True)
                 .distinct()
             )
@@ -155,10 +156,10 @@ class AuthorViewSet(ModelViewSet):
 
         return Response(
             {
-                "author_id": int(author.id),
+                "author_id": author_id,
                 "deleted_book_ids": book_ids,
-                "deleted_sales_count": int(sale_count),
-                "books_deleted_objects": int(books_deleted),
+                "deleted_sales_count": sale_count,
+                "books_deleted_objects": books_deleted,
             },
             status=status.HTTP_200_OK,
         )

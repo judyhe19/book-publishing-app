@@ -1,8 +1,6 @@
 # models.py
 from django.db import models
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
-from django.db.models import Q
-from django.db.models.constraints import UniqueConstraint, CheckConstraint
 
 # -----------------------------
 # Shared validators
@@ -12,7 +10,7 @@ isbn_13_digits = RegexValidator(
     message="ISBN-13 must be exactly 13 digits.",
 )
 
-# allow ISBN-10 check digit to be a digit OR X (upper/lower) in final position
+# CHANGED: allow ISBN-10 check digit to be a digit OR X (upper/lower) in final position
 isbn_10_format = RegexValidator(
     regex=r"^\d{9}[\dXx]$",
     message="ISBN-10 must be 10 characters: 9 digits followed by a digit or X.",
@@ -25,8 +23,6 @@ class Author(models.Model):
     email = models.EmailField(
         max_length=254,
         unique=True,
-        blank=True,
-        null=True,
         help_text="Author's primary contact email"
     )
 
@@ -45,6 +41,7 @@ class Book(models.Model):
         validators=[isbn_13_digits],
     )
 
+    # CHANGED: validator now allows X/x as the last character
     isbn_10 = models.CharField(
         max_length=10,
         blank=True,
@@ -52,96 +49,34 @@ class Book(models.Model):
         validators=[isbn_10_format],
     )
 
-    # Single author per book
-    author = models.ForeignKey(
-        Author,
-        on_delete=models.PROTECT,
-        related_name="books",
-    )
-
-    # Book-level royalty rates (decimals in [0, 1])
-    distributor_author_royalty_rate = models.DecimalField(
-        max_digits=5,
-        decimal_places=4,
-        default=0.50,
-        validators=[MinValueValidator(0), MaxValueValidator(1)],
-        help_text="Percentage of publisher revenue paid to the author for distributor sales (decimal, e.g. 0.50).",
-    )
-
-    hand_sold_author_royalty_rate = models.DecimalField(
-        max_digits=5,
-        decimal_places=4,
-        default=0.20,
-        validators=[MinValueValidator(0), MaxValueValidator(1)],
-        help_text="Percentage of publisher revenue paid to the author for hand-sold books (decimal, e.g. 0.20).",
-    )
-
-    # Required non-negative monetary values
-    cover_price = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        validators=[MinValueValidator(0)],
-        help_text="Non-negative cover price.",
-    )
-
-    print_cost = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        validators=[MinValueValidator(0)],
-        help_text="Non-negative print cost.",
-    )
-
-    # Optional cover image path (served from static)
-    cover_image_path = models.CharField(
-        max_length=500,
-        blank=True,
-        null=True,
-        help_text="Optional path to a web-viewable cover image (e.g. /static/covers/mybook.jpg).",
-    )
-
-    # Optional series / position (must be provided together)
-    series_name = models.CharField(
-        max_length=255,
-        blank=True,
-        null=True,
-        help_text='Optional series name. Display as "Series (position)".',
-    )
-
-    series_position = models.PositiveIntegerField(
-        blank=True,
-        null=True,
-        help_text="Optional positive position within the series; required if series_name is set.",
-    )
-
-    class Meta:
-        constraints = [
-            # series_name and series_position must be both NULL or both non-NULL
-            CheckConstraint(
-                condition=(
-                    (Q(series_name__isnull=True) & Q(series_position__isnull=True))
-                    | (Q(series_name__isnull=False) & Q(series_position__isnull=False))
-                ),
-                name="book_series_name_and_position_together",
-            ),
-            # (series_name, series_position) must be unique when series is present
-            UniqueConstraint(
-                fields=["series_name", "series_position"],
-                condition=Q(series_name__isnull=False) & Q(series_position__isnull=False),
-                name="unique_series_position",
-            ),
-        ]
+    # Relationships
+    authors = models.ManyToManyField(Author, through="AuthorBook", related_name="books")
 
     def __str__(self):
         return self.title
 
-    @property
-    def series_display(self):
-        if self.series_name and self.series_position:
-            return f"{self.series_name} ({self.series_position})"
-        return None
 
 
-# 3. SALE Table
+# 3. AUTHOR_BOOK Table (Through Table)
+class AuthorBook(models.Model):
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)
+
+    royalty_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        help_text="Royalty rate as a decimal (e.g. 0.15 for 15%)",
+        validators=[MinValueValidator(0), MaxValueValidator(1)],
+    )
+
+    class Meta:
+        unique_together = ("author", "book")
+
+    def __str__(self):
+        return f"{self.author.name} - {self.book.title} ({self.royalty_rate})"
+
+
+# 4. SALE Table
 class Sale(models.Model):
     SALE_SOURCE_CHOICES = [
         ("distributor", "Distributor"),
@@ -152,10 +87,20 @@ class Sale(models.Model):
     date = models.DateField()
     quantity = models.IntegerField()
     sale_source = models.CharField(max_length=20, choices=SALE_SOURCE_CHOICES, default="distributor")
-    comment = models.CharField(max_length=256, blank=True, null=True)
+    comment = models.CharField(max_length=256, blank=True, null=True) # A short single-line text field for general use (max 256 characters). It is also populated during a CSV import. Optional.
 
+    # TODO: For handsold sales, publisher_revenue should be computed as
+    #       (book.cover_price - book.print_cost) × quantity
+    #       once those fields exist on Book. For now it is always an input.
     publisher_revenue = models.DecimalField(max_digits=10, decimal_places=2)
+
+    # TODO: author_royalty should be computed as
+    #       author_royalty_rate × publisher_revenue
+    #       where the rate comes from book.distributor_royalty_rate or
+    #       book.hand_sold_royalty_rate depending on sale_source,
+    #       once those fields exist on Book. For now it is an input.
     author_royalty = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
     author_paid = models.BooleanField(default=False)
 
     def __str__(self):

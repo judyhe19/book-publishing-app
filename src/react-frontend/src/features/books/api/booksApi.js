@@ -57,38 +57,3 @@ export function createBook(payload) {
 export function getBookSalesTotals(bookId) {
   return apiFetch(`/api/sales/book/${bookId}/totals`);
 }
-/**
- * Upload a cover image file.
- * @param {File} file - The image file to upload
- * @returns {Promise<{cover_image_path: string}>} - The path to use in book data
- */
-export async function uploadCoverImage(file) {
-  // Ensure CSRF cookie is set
-  await fetch("/api/csrf", { credentials: "include" });
-
-  // Get CSRF token from cookie
-  const csrfToken = document.cookie
-    .split('; ')
-    .find(row => row.startsWith('csrftoken='))
-    ?.split('=')[1];
-
-  const formData = new FormData();
-  formData.append('file', file);
-
-  const response = await fetch('/api/books/upload-cover/', {
-    method: 'POST',
-    body: formData,
-    credentials: 'include',
-    headers: {
-      'X-CSRFToken': csrfToken,
-    },
-    // Note: Don't set Content-Type - browser sets it automatically with boundary for FormData
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || 'Failed to upload image');
-  }
-
-  return response.json();
-}

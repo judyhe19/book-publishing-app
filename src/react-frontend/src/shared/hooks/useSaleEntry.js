@@ -1,4 +1,3 @@
-// src/shared/hooks/useSaleEntry.js
 import { useState, useCallback, useEffect } from 'react';
 import { useBookSearch } from './useBookSearch';
 import { useRoyaltyCalculation } from './useRoyaltyCalculation';
@@ -6,10 +5,6 @@ import { useRoyaltyCalculation } from './useRoyaltyCalculation';
 /**
  * Custom hook to manage sale entry row logic
  * Handles book search, royalty calculations, and author payment tracking
- * 
- * Note: With the single-author model, book.authors will have at most one entry.
- * The royalty rate comes from the book's distributor_author_royalty_rate.
- * 
  * @param {Object} options
  * @param {number} options.index - Row index
  * @param {Object} options.data - Row data
@@ -55,9 +50,9 @@ export const useSaleEntry = ({ index, data, onChange, fixedBook }) => {
     const handleBookChange = (selectedOption) => {
         onChange(index, 'book', selectedOption);
         setOverrides({});
-        // Clear royalties when book changes - they'll be recalculated
-        onChange(index, 'author_royalties', {});
-        onChange(index, 'author_paid', {});
+        if (selectedOption?.authors) {
+            onChange(index, 'author_royalties', {});
+        }
     };
 
     // Callback for royalty calculation updates

@@ -11,6 +11,7 @@ from .views.book import BookViewSet
 from .views.sales import SaleViewSet, BookSalesTotalsView
 from .views.author import AuthorViewSet
 from .views.author_payments import AuthorPaymentsViewSet
+from .views.cover_upload import CoverImageUploadView
 
 # ----- DRF Router -----
 router = DefaultRouter(trailing_slash=True)
@@ -39,6 +40,13 @@ urlpatterns = [
         "sales/book/<int:book_pk>/totals",
         BookSalesTotalsView.as_view({"get": "retrieve"}),
         name="book-sales-totals",
+    ),
+
+    # Cover image upload
+    path(
+        "books/upload-cover/",
+        CoverImageUploadView.as_view(),
+        name="upload-cover",
     ),
 
     # Router-generated URLs for books, sales, authors

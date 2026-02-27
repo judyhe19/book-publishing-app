@@ -1,16 +1,13 @@
 # views/sales.py
-# Refactored to use ModelViewSet
+# Refactored to use ModelViewSet (Evolution 2: single author per book)
 
 import calendar
-
 from decimal import Decimal, ROUND_HALF_UP
-from math import ceil
 
 from django.db import transaction
 from django.db.models import (
-    F, Sum, Count, Case, When, Value,
-    IntegerField, DecimalField,
-    Subquery, OuterRef,
+    Sum, Case, When, Value,
+    IntegerField, DecimalField, F,
 )
 from django.db.models.functions import Coalesce, NullIf
 
@@ -20,7 +17,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from ..models import Sale, Book, Author
+from ..models import Sale, Book
 from ..serializers.sales import SaleSerializer, SaleWriteSerializer
 from ..config.sort_config import SALES_SORT_FIELD_MAP, SALES_DEFAULT_SORT
 from ..pagination import StandardPagination
@@ -45,7 +42,7 @@ class SaleViewSet(ModelViewSet):
 
     def get_queryset(self):
         qs = Sale.objects.all()
-        qs = qs.select_related("book")
+        qs = qs.select_related("book", "book__author")
 
         # Filtering (only on list)
         if self.action == "list":
@@ -59,7 +56,7 @@ class SaleViewSet(ModelViewSet):
             if user_id:
                 qs = qs.filter(book__publisher_user_id=user_id)
             if author_name:
-                qs = qs.filter(book__authors__name__icontains=author_name)
+                qs = qs.filter(book__author__name__icontains=author_name)
             if sale_source:
                 qs = qs.filter(sale_source=sale_source)
 
@@ -80,12 +77,9 @@ class SaleViewSet(ModelViewSet):
                 qs = qs.filter(date__lte=last_of_month)
 
             # Annotations for sorting
+            # Evolution 2: single author on Book via FK
             qs = qs.annotate(
-                author_name=Subquery(
-                    Author.objects.filter(
-                        authorbook__book=OuterRef("book")
-                    ).values("name")[:1]
-                ),
+                first_author_name=F("book__author__name"),
             )
 
             # Ordering
@@ -112,16 +106,6 @@ class SaleViewSet(ModelViewSet):
                 qs = qs.order_by("-date")
 
         return qs
-
-    # ------------------------------------------------------------------
-    # LIST — uses standard pagination
-    # ------------------------------------------------------------------
-    # Default ModelViewSet.list() handles pagination via StandardPagination
-
-    # ------------------------------------------------------------------
-    # RETRIEVE — single sale by pk
-    # ------------------------------------------------------------------
-    # Default ModelViewSet.retrieve() handles this
 
     # ------------------------------------------------------------------
     # CREATE — single sale
@@ -184,6 +168,7 @@ class SaleViewSet(ModelViewSet):
 
             full_serializer = SaleSerializer(updated_sale)
             return Response(full_serializer.data)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     # Also support PUT as same behavior as PATCH
@@ -217,10 +202,6 @@ class SaleViewSet(ModelViewSet):
             },
             status=status.HTTP_200_OK,
         )
-
-    # ------------------------------------------------------------------
-    # BOOK SALES TOTALS — custom action on books (routed separately)
-    # ------------------------------------------------------------------
 
 
 class BookSalesTotalsView(ModelViewSet):

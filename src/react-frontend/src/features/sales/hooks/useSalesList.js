@@ -18,6 +18,8 @@ export function useSalesList() {
     const [filters, setFilters] = useState({
         start_date: "",
         end_date: "",
+        author_name: "",
+        sale_source: "",
         ordering: SORT_CONFIG.DEFAULT_ORDER,
     });
 
@@ -25,7 +27,7 @@ export function useSalesList() {
     useEffect(() => {
         fetchSales();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filters.start_date, filters.end_date, filters.ordering, page, pageSize, showAll]);
+    }, [filters.start_date, filters.end_date, filters.author_name, filters.sale_source, filters.ordering, page, pageSize, showAll]);
 
     const fetchSales = async () => {
         setLoading(true);
@@ -33,6 +35,8 @@ export function useSalesList() {
             const activeFilters = {};
             if (filters.start_date) activeFilters.start_date = filters.start_date;
             if (filters.end_date) activeFilters.end_date = filters.end_date;
+            if (filters.author_name) activeFilters.author_name = filters.author_name;
+            if (filters.sale_source) activeFilters.sale_source = filters.sale_source.toLowerCase();
             if (filters.ordering) activeFilters.ordering = filters.ordering;
 
             // ✅ show-all param mirrors Books: all=1
@@ -78,7 +82,11 @@ export function useSalesList() {
         setFilters((prev) => ({ ...prev, [name]: value }));
     };
 
-    // ✅ toggle showAll and reset page safely
+    const handleFilterChange = (name, value) => {
+        setPage(1);
+        setFilters((prev) => ({ ...prev, [name]: value }));
+    };
+
     const toggleShowAll = () => {
         setPage(1);
         setShowAll((prev) => !prev);
@@ -90,6 +98,7 @@ export function useSalesList() {
         filters,
         handleSort,
         handleDateChange,
+        handleFilterChange,
         refresh: fetchSales,
 
         page,

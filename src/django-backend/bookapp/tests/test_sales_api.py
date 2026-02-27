@@ -20,8 +20,11 @@ def authed_client(api_client, user):
     api_client.force_authenticate(user=user)
     return api_client
 
+import uuid
+
 def make_author(name="Frank Herbert"):
-    return Author.objects.create(name=name)
+    email = f"{name.lower().replace(' ', '_')}_{uuid.uuid4().hex[:6]}@test.com"
+    return Author.objects.create(name=name, email=email)
 
 def make_book(*, isbn_13, title="T", author=None, royalty_rate="0.10"):
     book = Book.objects.create(
@@ -437,13 +440,13 @@ def test_get_all_sales_ordering_by_total_royalties(authed_client, user):
         author_royalty=Decimal("15.00"), sale_source="distributor", date="2023-03-01"
     )
 
-    # Ascending total_royalties: 5, 15, 30
-    resp = authed_client.get("/api/sales/?ordering=total_royalties")
+    # Ascending author_royalty: 5, 15, 30
+    resp = authed_client.get("/api/sales/?ordering=author_royalty")
     assert resp.status_code == 200
     assert [s['id'] for s in resp.data["results"]] == [s1.id, s3.id, s2.id]
 
-    # Descending total_royalties: 30, 15, 5
-    resp = authed_client.get("/api/sales/?ordering=-total_royalties")
+    # Descending author_royalty: 30, 15, 5
+    resp = authed_client.get("/api/sales/?ordering=-author_royalty")
     assert resp.status_code == 200
     assert [s['id'] for s in resp.data["results"]] == [s2.id, s3.id, s1.id]
 
@@ -486,3 +489,69 @@ def test_get_all_sales_ordering_by_paid_status(authed_client, user):
     resp = authed_client.get("/api/sales/?ordering=-paid_status")
     assert resp.status_code == 200
     assert resp.data["results"][0]['id'] == s1.id  # paid=True is first
+
+
+def test_filter_by_author_name(authed_client, user):
+    """Test filtering sales by author name (case-insensitive partial match)."""
+    a1 = make_author(name="Alice Smith")
+    a2 = make_author(name="Bob Jones")
+    b1 = make_book(isbn_13="9780000000030", title="Book A", author=a1)
+    b2 = make_book(isbn_13="9780000000031", title="Book B", author=a2)
+
+    s1 = Sale.objects.create(
+        book=b1, quantity=10, publisher_revenue=100,
+        author_royalty=10, sale_source="distributor", date="2023-01-01"
+    )
+    s2 = Sale.objects.create(
+        book=b2, quantity=20, publisher_revenue=200,
+        author_royalty=20, sale_source="distributor", date="2023-02-01"
+    )
+
+    # Filter by "alice" (case-insensitive)
+    resp = authed_client.get("/api/sales/?author_name=alice")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["id"] == s1.id
+
+    # Filter by "jones"
+    resp = authed_client.get("/api/sales/?author_name=jones")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["id"] == s2.id
+
+    # No match
+    resp = authed_client.get("/api/sales/?author_name=zzzzz")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 0
+
+
+def test_filter_by_sale_source(authed_client, user):
+    """Test filtering sales by sale_source."""
+    a1 = make_author(name="Charlie")
+    b1 = make_book(isbn_13="9780000000032", title="Source Book", author=a1)
+
+    s1 = Sale.objects.create(
+        book=b1, quantity=10, publisher_revenue=100,
+        author_royalty=10, sale_source="distributor", date="2023-01-01"
+    )
+    s2 = Sale.objects.create(
+        book=b1, quantity=20, publisher_revenue=200,
+        author_royalty=20, sale_source="handsold", date="2023-02-01"
+    )
+
+    # Filter distributor only
+    resp = authed_client.get("/api/sales/?sale_source=distributor")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["id"] == s1.id
+
+    # Filter handsold only
+    resp = authed_client.get("/api/sales/?sale_source=handsold")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["id"] == s2.id
+
+    # No filter returns both
+    resp = authed_client.get("/api/sales/")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 2

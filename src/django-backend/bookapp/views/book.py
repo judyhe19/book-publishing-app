@@ -1,8 +1,7 @@
 # views/book.py
-# Refactored to use ModelViewSet
+# Refactored to use ModelViewSet (Evolution 2: single author per book)
 
-from django.db import transaction
-from django.db.models import Q, Prefetch, OuterRef, Subquery, F, Sum
+from django.db.models import Q, OuterRef, Subquery, F, Sum
 from django.db.models.functions import Coalesce
 from django.db.models import IntegerField
 
@@ -11,14 +10,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from ..models import Book, AuthorBook, Sale
+from ..models import Book, Sale
 from ..serializers.book import (
     BookListSerializer,
     BookDetailSerializer,
     BookCreateSerializer,
     BookUpdateSerializer,
 )
-from ..models import Book, Author, AuthorBook, Sale
 from ..pagination import StandardPagination
 
 
@@ -41,21 +39,12 @@ class BookViewSet(ModelViewSet):
     # ------------------------------------------------------------------
 
     def _base_queryset(self):
-        """Prefetch authors + annotate computed fields."""
-        qs = (
-            Book.objects.all()
-            .prefetch_related(
-                Prefetch(
-                    "authorbook_set",
-                    queryset=AuthorBook.objects.select_related("author").order_by("author_id"),
-                )
-            )
-        )
+        """Select author + annotate computed fields."""
+        qs = Book.objects.all().select_related("author")
 
         # total_sales_to_date via Subquery (avoids JOIN-multiplication)
         sales_total_sq = (
-            Sale.objects
-            .filter(book_id=OuterRef("pk"))
+            Sale.objects.filter(book_id=OuterRef("pk"))
             .values("book_id")
             .annotate(total=Coalesce(Sum("quantity"), 0))
             .values("total")[:1]
@@ -72,20 +61,15 @@ class BookViewSet(ModelViewSet):
         return qs
 
     def _annotate_for_sorting(self, qs):
-        """Add author annotations used for sorting."""
-        qs = qs.annotate(
-            author_name=Subquery(
-                Author.objects.filter(
-                    authorbook__book=OuterRef("pk")
-                ).values("name")[:1]
-            ),
-            author_royalty_rate=Subquery(
-                AuthorBook.objects.filter(
-                    book_id=OuterRef("pk")
-                ).values("royalty_rate")[:1]
-            ),
+        """
+        Add annotations used for sorting.
+        Evolution 2: single author lives on Book.author, and the royalty rate
+        is Book.distributor_author_royalty_rate.
+        """
+        return qs.annotate(
+            first_author_name=F("author__name"),
+            first_author_royalty_rate=F("distributor_author_royalty_rate"),
         )
-        return qs
 
     # get_queryset (used by list / retrieve)
     def get_queryset(self):
@@ -103,8 +87,8 @@ class BookViewSet(ModelViewSet):
                     Q(title__icontains=q)
                     | Q(isbn_13__icontains=c_q)
                     | Q(isbn_10__icontains=c_q)
-                    | Q(authors__name__icontains=q)
-                ).distinct()
+                    | Q(author__name__icontains=q)
+                )
 
             # Optional filter: published_before
             published_before = self.request.query_params.get("published_before")
@@ -114,9 +98,14 @@ class BookViewSet(ModelViewSet):
             # Sorting
             ordering = self.request.query_params.get("ordering", "title")
             allowed_order_fields = {
-                "title", "isbn_13", "isbn_10", "publication_date",
-                "total_sales_to_date", "id",
-                "author_name", "author_royalty_rate",
+                "title",
+                "isbn_13",
+                "isbn_10",
+                "publication_date",
+                "total_sales_to_date",
+                "id",
+                "first_author_name",
+                "first_author_royalty_rate",
             }
 
             sort_field = ordering
@@ -129,8 +118,12 @@ class BookViewSet(ModelViewSet):
                 sort_field = "title"
                 desc = False
 
-            if sort_field in {"author_name", "author_royalty_rate"}:
-                sort_expr = F(sort_field).desc(nulls_last=True) if desc else F(sort_field).asc(nulls_last=True)
+            if sort_field in {"first_author_name", "first_author_royalty_rate"}:
+                sort_expr = (
+                    F(sort_field).desc(nulls_last=True)
+                    if desc
+                    else F(sort_field).asc(nulls_last=True)
+                )
                 qs = qs.order_by(sort_expr, "id")
             else:
                 order_by = f"-{sort_field}" if desc else sort_field
@@ -164,7 +157,7 @@ class BookViewSet(ModelViewSet):
         return data
 
     # ------------------------------------------------------------------
-    # CREATE — wrap in transaction
+    # CREATE — return annotated detail
     # ------------------------------------------------------------------
 
     def create(self, request, *args, **kwargs):
@@ -179,7 +172,6 @@ class BookViewSet(ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
-
     # ------------------------------------------------------------------
     # RETRIEVE — use annotated queryset
     # ------------------------------------------------------------------
@@ -189,7 +181,7 @@ class BookViewSet(ModelViewSet):
         return Response(BookDetailSerializer(book).data)
 
     # ------------------------------------------------------------------
-    # UPDATE (PATCH) — wrap in transaction, return annotated detail
+    # UPDATE (PATCH) — return annotated detail
     # ------------------------------------------------------------------
 
     def partial_update(self, request, *args, **kwargs):

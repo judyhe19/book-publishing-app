@@ -1,10 +1,13 @@
 # serializers/book.py
 from rest_framework import serializers
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
-from ..models import Book, Author
+from ..models import Book, AuthorBook, Author
 from .fields import MonthYearField
 from .validators import (
+    normalize_author_name,
+    validate_royalty_rate,
+    rewrite_royalty_errors,
     validate_isbn_13,
     validate_isbn_10,
 )
@@ -18,18 +21,106 @@ class BookMonthYearField(MonthYearField):
     }
 
 
-class BookListSerializer(serializers.ModelSerializer):
-    publication_date = MonthYearField(read_only=True)
+def _get_or_create_author_by_name(name: str) -> Author:
+    """
+    DB helper (not a pure validator)
+    Case-insensitive "get or create" for Author.name (unique=True).
+    Handles race conditions via IntegrityError fallback.
+    """
+    cleaned = normalize_author_name(name)
+    if not cleaned:
+        raise serializers.ValidationError({"authors": "Author name cannot be blank."})
 
-    # Single-author (Evolution 2)
-    author_id = serializers.IntegerField(source="author.id", read_only=True)
-    author_name = serializers.CharField(source="author.name", read_only=True)
+    existing = Author.objects.filter(name__iexact=cleaned).first()
+    if existing:
+        return existing
+
+    try:
+        return Author.objects.create(name=cleaned)
+    except IntegrityError:
+        # race: another request created it
+        existing = Author.objects.filter(name__iexact=cleaned).first()
+        if existing:
+            return existing
+        raise
+
+
+class AuthorBookSerializer(serializers.ModelSerializer):
+    """
+    Represents the relationship between an Author and a Book,
+    including royalty_rate.
+    """
+    author_id = serializers.IntegerField()
+    name = serializers.CharField(source="author.name", read_only=True)
+    royalty_rate = serializers.DecimalField(max_digits=5, decimal_places=4)
+
+    class Meta:
+        model = AuthorBook
+        fields = [
+            "author_id",
+            "name",
+            "royalty_rate",
+        ]
+
+    def validate_royalty_rate(self, value):
+        return validate_royalty_rate(value)
+
+    def to_internal_value(self, data):
+        """Preserve custom royalty_rate error messages, keyed off author_id."""
+        try:
+            return super().to_internal_value(data)
+        except serializers.ValidationError as exc:
+            if isinstance(exc.detail, dict) and "royalty_rate" in exc.detail:
+                aid = data.get("author_id")
+                try:
+                    author_obj = Author.objects.filter(pk=aid).first()
+                    author_label = author_obj.name if author_obj else str(aid)
+                except Exception:
+                    author_label = str(aid) if aid else "unknown"
+
+                exc.detail["royalty_rate"] = rewrite_royalty_errors(
+                    exc.detail["royalty_rate"], author_label
+                )
+            raise exc
+
+
+class AuthorBookByNameInputSerializer(serializers.Serializer):
+    """
+    Input-only serializer used by BookCreate and BookUpdate to allow:
+      - author_name (create if missing)
+      - royalty_rate
+    """
+    author_name = serializers.CharField()
+    royalty_rate = serializers.DecimalField(max_digits=5, decimal_places=4)
+
+    def validate_author_name(self, value):
+        cleaned = normalize_author_name(value)
+        if not cleaned:
+            raise serializers.ValidationError("Author name cannot be blank.")
+        return cleaned
+
+    def validate_royalty_rate(self, value):
+        return validate_royalty_rate(value)
+
+    def to_internal_value(self, data):
+        """Preserve custom royalty_rate error messages, keyed off author_name."""
+        try:
+            return super().to_internal_value(data)
+        except serializers.ValidationError as exc:
+            if isinstance(exc.detail, dict) and "royalty_rate" in exc.detail:
+                author_label = data.get("author_name") or "unknown"
+                exc.detail["royalty_rate"] = rewrite_royalty_errors(
+                    exc.detail["royalty_rate"], author_label
+                )
+            raise exc
+
+
+class BookListSerializer(serializers.ModelSerializer):
+    authors = AuthorBookSerializer(source="authorbook_set", many=True, read_only=True)
+    publication_date = MonthYearField(read_only=True)
 
     # total_sales_to_date is not a model field; it comes from queryset annotation.
     total_sales_to_date = serializers.IntegerField(read_only=True)
-
-    # Convenience display (optional)
-    series_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Book
@@ -40,46 +131,23 @@ class BookListSerializer(serializers.ModelSerializer):
             "isbn_13",
             "isbn_10",
             "total_sales_to_date",
-            "author_id",
-            "author_name",
-            "distributor_author_royalty_rate",
-            "hand_sold_author_royalty_rate",
-            "cover_price",
-            "print_cost",
-            "cover_image_path",
-            "series_name",
-            "series_position",
-            "series_display",
+            "authors",
         ]
-
-    def get_series_display(self, obj):
-        # Matches: "Lord of the Rings (3)"
-        if obj.series_name and obj.series_position:
-            return f"{obj.series_name} ({obj.series_position})"
-        return None
 
 
 class BookDetailSerializer(BookListSerializer):
     """
     Identical to BookListSerializer for now. Exists as a separate class so the
-    detail view can diverge later without changing the list endpoint.
+    detail view can diverge later (e.g. include extra nested data) without
+    changing the list endpoint.
     """
     pass
 
 
 class BookCreateSerializer(serializers.ModelSerializer):
+    # Input authors by NAME (write-only). Response uses BookDetailSerializer.
+    authors = AuthorBookByNameInputSerializer(many=True, write_only=True)
     publication_date = BookMonthYearField()
-
-    # Accept author_id from frontend
-    author_id = serializers.PrimaryKeyRelatedField(
-        source="author",
-        queryset=Author.objects.all(),
-        write_only=True,
-        error_messages={"does_not_exist": "Author does not exist."},
-    )
-
-    # Read-only display
-    author_name = serializers.CharField(source="author.name", read_only=True)
 
     class Meta:
         model = Book
@@ -88,15 +156,7 @@ class BookCreateSerializer(serializers.ModelSerializer):
             "publication_date",
             "isbn_13",
             "isbn_10",
-            "author_id",
-            "author_name",
-            "distributor_author_royalty_rate",
-            "hand_sold_author_royalty_rate",
-            "cover_price",
-            "print_cost",
-            "cover_image_path",
-            "series_name",
-            "series_position",
+            "authors",
         ]
 
     def validate_isbn_13(self, value):
@@ -117,20 +177,18 @@ class BookCreateSerializer(serializers.ModelSerializer):
         if not attrs.get("isbn_13"):
             error["isbn_13"] = "ISBN-13 is required."
 
-        if not attrs.get("author"):
-            error["author_id"] = "Author is required."
-
-        # Required monetary fields
-        if attrs.get("cover_price") is None:
-            error["cover_price"] = "Cover price is required."
-        if attrs.get("print_cost") is None:
-            error["print_cost"] = "Print cost is required."
-
-        # Series/position pairing (DB constraint also enforces, but this gives friendly API errors)
-        series_name = attrs.get("series_name")
-        series_pos = attrs.get("series_position")
-        if (series_name and series_pos is None) or (series_pos is not None and not series_name):
-            error["series"] = "If a series is specified, both series name and position must be provided."
+        authors = attrs.get("authors", [])
+        if not authors:
+            error["authors"] = "At least one author is required."
+        else:
+            # no duplicates by normalized name
+            seen = set()
+            for entry in authors:
+                nm = normalize_author_name(entry.get("author_name", "")).lower()
+                if nm in seen:
+                    error["authors"] = f"Author {entry.get('author_name')} is added more than once."
+                    break
+                seen.add(nm)
 
         if error:
             raise serializers.ValidationError(error)
@@ -139,28 +197,30 @@ class BookCreateSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        # author comes in via author_id -> source="author"
+        authors_data = validated_data.pop("authors", [])
+
         book = Book.objects.create(**validated_data)
+
+        for entry in authors_data:
+            author = _get_or_create_author_by_name(entry["author_name"])
+            AuthorBook.objects.create(
+                book=book,
+                author=author,
+                royalty_rate=entry["royalty_rate"],
+            )
+
         return book
 
 
 class BookUpdateSerializer(serializers.ModelSerializer):
     """
     PATCH behavior:
-    - Any provided fields are updated.
-    - author_id can be provided to change the author.
+    - If "authors" is provided, treat it as full replacement of AuthorBook rows,
+      and allow new authors via author_name (created in-transaction).
+    - If "authors" is omitted, we do not touch authorbook_set.
     """
+    authors = AuthorBookByNameInputSerializer(many=True, required=False, write_only=True)
     publication_date = BookMonthYearField(required=False)
-
-    author_id = serializers.PrimaryKeyRelatedField(
-        source="author",
-        queryset=Author.objects.all(),
-        write_only=True,
-        required=False,
-        error_messages={"does_not_exist": "Author does not exist."},
-    )
-
-    author_name = serializers.CharField(source="author.name", read_only=True)
 
     class Meta:
         model = Book
@@ -169,15 +229,7 @@ class BookUpdateSerializer(serializers.ModelSerializer):
             "publication_date",
             "isbn_13",
             "isbn_10",
-            "author_id",
-            "author_name",
-            "distributor_author_royalty_rate",
-            "hand_sold_author_royalty_rate",
-            "cover_price",
-            "print_cost",
-            "cover_image_path",
-            "series_name",
-            "series_position",
+            "authors",
         ]
 
     def validate_isbn_13(self, value):
@@ -187,23 +239,41 @@ class BookUpdateSerializer(serializers.ModelSerializer):
         return validate_isbn_10(value)
 
     def validate(self, attrs):
-        # Friendly validation for series/position pairing on PATCH.
-        # Need to consider existing instance values if only one field provided.
-        instance = getattr(self, "instance", None)
+        # Only validate authors block if it's present on PATCH.
+        if "authors" in attrs:
+            authors = attrs.get("authors") or []
+            if not authors:
+                raise serializers.ValidationError({"authors": "At least one author is required."})
 
-        series_name = attrs.get("series_name", getattr(instance, "series_name", None))
-        series_pos = attrs.get("series_position", getattr(instance, "series_position", None))
-
-        if (series_name and series_pos is None) or (series_pos is not None and not series_name):
-            raise serializers.ValidationError(
-                {"series": "If a series is specified, both series name and position must be provided."}
-            )
+            seen = set()
+            for entry in authors:
+                nm = normalize_author_name(entry.get("author_name", "")).lower()
+                if nm in seen:
+                    raise serializers.ValidationError(
+                        {"authors": f"Author {entry.get('author_name')} is added more than once."}
+                    )
+                seen.add(nm)
 
         return attrs
 
     @transaction.atomic
     def update(self, instance, validated_data):
+        authors_data = validated_data.pop("authors", None)
+
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
+
+        if authors_data is not None:
+            # Full replace
+            instance.authorbook_set.all().delete()
+
+            for entry in authors_data:
+                author = _get_or_create_author_by_name(entry["author_name"])
+                AuthorBook.objects.create(
+                    book=instance,
+                    author=author,
+                    royalty_rate=entry["royalty_rate"],
+                )
+
         return instance

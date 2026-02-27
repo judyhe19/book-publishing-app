@@ -1,14 +1,15 @@
 # views/author.py
-# Refactored to use ViewSets (Evolution 2: single author per book)
+# Refactored to use ViewSets
 
 from decimal import Decimal
 
 from django.db import IntegrityError, transaction
 from django.db.models import (
     Sum, Count, Case, When, Value, Q,
-    DecimalField
+    IntegerField, DecimalField
 )
 from django.db.models.functions import Coalesce
+
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -16,11 +17,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-<<<<<<< HEAD
-from ..models import Author, AuthorSale, Book, Sale
-=======
 from ..models import Author, AuthorBook, Book, Sale
->>>>>>> main
 from ..serializers.author import AuthorListSerializer, AuthorCreateSerializer, AuthorUpdateSerializer
 from ..pagination import StandardPagination
 
@@ -36,7 +33,6 @@ AUTHOR_SORT_FIELD_MAP = {
 
 AUTHOR_DEFAULT_SORT = "name"
 
-
 class AuthorViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated]
     pagination_class = StandardPagination
@@ -48,7 +44,7 @@ class AuthorViewSet(ModelViewSet):
         if self.action in ["update", "partial_update"]:
             return AuthorUpdateSerializer
         return AuthorListSerializer
-
+    
     def get_queryset(self):
         qs = Author.objects.all()
 
@@ -57,16 +53,14 @@ class AuthorViewSet(ModelViewSet):
             # --- keyword search (name + email) ---
             q = (self.request.query_params.get("q") or "").strip()
             if q:
-                qs = qs.filter(Q(name__icontains=q) | Q(email__icontains=q))
+                qs = qs.filter(
+                    Q(name__icontains=q) | Q(email__icontains=q)
+                )
 
             # --- annotations for table columns ---
-<<<<<<< HEAD
-            # Evolution 2: authored books come from Book.author FK (related_name="books")
-=======
             # Query royalties through Book → Sale path
->>>>>>> main
             qs = qs.annotate(
-                authored_books_count=Count("books", distinct=True),
+                authored_books_count=Count("authorbook__book", distinct=True),
 
                 total_author_royalty=Coalesce(
                     Sum("books__sales__author_royalty"),
@@ -142,15 +136,15 @@ class AuthorViewSet(ModelViewSet):
             AuthorListSerializer(author).data,
             status=status.HTTP_201_CREATED,
         )
-
+    
     def destroy(self, request, *args, **kwargs):
         author = self.get_object()
 
         with transaction.atomic():
-            # Evolution 2: books reference author directly
             book_ids = list(
-                Book.objects.filter(author_id=author.id)
-                .values_list("id", flat=True)
+                AuthorBook.objects.filter(author_id=author.id)
+                .values_list("book_id", flat=True)
+                .distinct()
             )
 
             sale_count = Sale.objects.filter(book_id__in=book_ids).count()
@@ -168,7 +162,7 @@ class AuthorViewSet(ModelViewSet):
             },
             status=status.HTTP_200_OK,
         )
-
+    
     def update(self, request, *args, **kwargs):
         # Handles PUT
         author = self.get_object()

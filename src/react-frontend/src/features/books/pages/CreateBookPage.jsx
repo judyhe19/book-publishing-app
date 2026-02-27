@@ -1,5 +1,5 @@
 // src/features/books/pages/CreateBookPage.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Card,
@@ -11,12 +11,12 @@ import {
   ErrorAlert,
   FormField,
 } from "../../../shared/components";
-import { AuthorPicker, CoverImageField, SeriesFields } from "../components";
+import { AuthorsEditor } from "../components";
 import { errorMessage } from "../../../shared/utils/errors";
 import * as booksApi from "../api/booksApi";
 
-function cleanIsbn(s) {
-  return (s || "").replaceAll("-", "").trim();
+function normalizeName(s) {
+  return s.trim().replace(/\s+/g, " ");
 }
 
 export default function CreateBookPage() {
@@ -28,33 +28,18 @@ export default function CreateBookPage() {
   const [isbn13, setIsbn13] = useState("");
   const [isbn10, setIsbn10] = useState("");
 
-  // Pricing fields
-  const [coverPrice, setCoverPrice] = useState("");
-  const [printCost, setPrintCost] = useState("");
-
-  // Series fields
-  const [seriesName, setSeriesName] = useState("");
-  const [seriesPosition, setSeriesPosition] = useState("");
-
-  // Cover image
-  const [coverImagePath, setCoverImagePath] = useState("");
-  const [coverImageFile, setCoverImageFile] = useState(null);
-
-  // Author (single author model)
+  // Author options
   const [authorOptions, setAuthorOptions] = useState([]);
   const [authorsLoading, setAuthorsLoading] = useState(true);
   const [authorsErr, setAuthorsErr] = useState(null);
-  const [selectedAuthorId, setSelectedAuthorId] = useState("");
-  const [authorSearch, setAuthorSearch] = useState("");
 
-  // Royalty rates (book-level, not per-author)
-  const [distributorRoyaltyRate, setDistributorRoyaltyRate] = useState("0.50");
-  const [handSoldRoyaltyRate, setHandSoldRoyaltyRate] = useState("0.20");
+  // Author rows
+  const [authors, setAuthors] = useState([{ author_name: "", royalty_rate: "0.50" }]);
+  const [openAuthorIdx, setOpenAuthorIdx] = useState(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
 
-  // Load authors
   useEffect(() => {
     let cancelled = false;
 
@@ -72,7 +57,9 @@ export default function CreateBookPage() {
     }
 
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function onSubmit(e) {
@@ -81,27 +68,17 @@ export default function CreateBookPage() {
     setSubmitting(true);
 
     try {
-      // Upload cover image first if a new file was selected
-      let finalCoverImagePath = coverImagePath.trim() === "" ? null : coverImagePath.trim();
-      
-      if (coverImageFile) {
-        const uploadResult = await booksApi.uploadCoverImage(coverImageFile);
-        finalCoverImagePath = uploadResult.cover_image_path;
-      }
+      const cleanedAuthors = authors.map((r) => ({
+        author_name: normalizeName(r.author_name),
+        royalty_rate: String(r.royalty_rate).trim(),
+      }));
 
       const payload = {
         title: title.trim(),
         publication_date: publicationMonth,
-        isbn_13: cleanIsbn(isbn13),
-        isbn_10: cleanIsbn(isbn10) === "" ? null : cleanIsbn(isbn10),
-        author_id: selectedAuthorId ? Number(selectedAuthorId) : null,
-        distributor_author_royalty_rate: distributorRoyaltyRate,
-        hand_sold_author_royalty_rate: handSoldRoyaltyRate,
-        cover_price: coverPrice,
-        print_cost: printCost,
-        series_name: seriesName.trim() === "" ? null : seriesName.trim(),
-        series_position: seriesName.trim() === "" || seriesPosition === "" ? null : Number(seriesPosition),
-        cover_image_path: finalCoverImagePath,
+        isbn_13: isbn13.replaceAll("-", "").trim(),
+        isbn_10: isbn10.trim() === "" ? null : isbn10.replaceAll("-", "").trim(),
+        authors: cleanedAuthors,
       };
 
       await booksApi.createBook(payload);
@@ -120,12 +97,10 @@ export default function CreateBookPage() {
           <CardHeader title="Create Book" subtitle="Add a new book to the catalog." />
           <CardContent>
             <form className="space-y-5" onSubmit={onSubmit}>
-              {/* Title */}
               <FormField label="Title">
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
               </FormField>
 
-              {/* Publication date */}
               <MonthPicker
                 label="Publication date (month, year)"
                 value={publicationMonth}
@@ -133,7 +108,6 @@ export default function CreateBookPage() {
                 required
               />
 
-              {/* ISBNs */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField label="ISBN-13">
                   <Input
@@ -143,6 +117,7 @@ export default function CreateBookPage() {
                     required
                   />
                 </FormField>
+
                 <FormField label="ISBN-10 (optional)">
                   <Input
                     value={isbn10}
@@ -152,89 +127,23 @@ export default function CreateBookPage() {
                 </FormField>
               </div>
 
-              {/* Pricing */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField label="Cover price">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={coverPrice}
-                    onChange={(e) => setCoverPrice(e.target.value)}
-                    placeholder="19.99"
-                    required
-                  />
-                </FormField>
-                <FormField label="Print cost">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={printCost}
-                    onChange={(e) => setPrintCost(e.target.value)}
-                    placeholder="4.25"
-                    required
-                  />
-                </FormField>
-              </div>
+              {authorsErr && (
+                <ErrorAlert>Failed to load authors: {authorsErr}</ErrorAlert>
+              )}
 
-              {/* Author */}
-              {authorsErr && <ErrorAlert>Failed to load authors: {authorsErr}</ErrorAlert>}
-
-              <AuthorPicker
+              <AuthorsEditor
+                authors={authors}
+                setAuthors={setAuthors}
                 authorOptions={authorOptions}
-                selectedAuthorId={selectedAuthorId}
-                setSelectedAuthorId={setSelectedAuthorId}
-                authorSearch={authorSearch}
-                setAuthorSearch={setAuthorSearch}
+                authorsLoading={authorsLoading}
+                openAuthorIdx={openAuthorIdx}
+                setOpenAuthorIdx={setOpenAuthorIdx}
               />
 
-              {/* Royalty rates */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField label="Distributor royalty rate">
-                  <Input
-                    type="number"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={distributorRoyaltyRate}
-                    onChange={(e) => setDistributorRoyaltyRate(e.target.value)}
-                  />
-                  <p className="mt-1 text-xs text-slate-400">Decimal (0–1), e.g. 0.50 for 50%</p>
-                </FormField>
-                <FormField label="Hand-sold royalty rate">
-                  <Input
-                    type="number"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={handSoldRoyaltyRate}
-                    onChange={(e) => setHandSoldRoyaltyRate(e.target.value)}
-                  />
-                  <p className="mt-1 text-xs text-slate-400">Decimal (0–1), e.g. 0.20 for 20%</p>
-                </FormField>
+              <div className="text-xs text-slate-500">
+                Royalty rate is a decimal (e.g., 0.50 for 50%).
               </div>
 
-              {/* Series */}
-              <SeriesFields
-                seriesName={seriesName}
-                setSeriesName={setSeriesName}
-                seriesPosition={seriesPosition}
-                setSeriesPosition={setSeriesPosition}
-              />
-
-              {/* Cover image */}
-              <CoverImageField
-                value={coverImagePath}
-                onChange={setCoverImagePath}
-                onFileChange={setCoverImageFile}
-                title={title}
-              />
-
-              {/* Error message */}
-              {err && <ErrorAlert>{err}</ErrorAlert>}
-
-              {/* Actions */}
               <div className="flex items-center justify-end gap-2">
                 <Button type="button" variant="secondary" onClick={() => nav("/books")}>
                   Cancel
@@ -243,6 +152,8 @@ export default function CreateBookPage() {
                   {submitting ? "Creating..." : "Create"}
                 </Button>
               </div>
+
+              {err && <ErrorAlert>{err}</ErrorAlert>}
             </form>
           </CardContent>
         </Card>

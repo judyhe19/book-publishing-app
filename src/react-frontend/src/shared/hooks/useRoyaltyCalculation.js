@@ -1,12 +1,8 @@
-// src/shared/hooks/useRoyaltyCalculation.js
 import { useEffect } from 'react';
 
 /**
  * Custom hook to auto-calculate royalties per author based on royalty rate.
  * When an author's royalty is not overridden, it calculates: publisher_revenue × royalty_rate
- * 
- * Note: With the single-author model, the authors array will have at most one entry.
- * The royalty_rate comes from the book's distributor_author_royalty_rate (set in useBookSearch).
  * 
  * @param {Object} options
  * @param {number} options.publisherRevenue - The publisher revenue for this sale

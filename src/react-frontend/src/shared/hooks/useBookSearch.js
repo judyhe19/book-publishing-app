@@ -1,4 +1,3 @@
-// src/shared/hooks/useBookSearch.js
 import { useCallback } from 'react';
 import { apiFetch } from '../api/http';
 import { formatBookLabel } from '../utils/bookUtils';
@@ -6,9 +5,6 @@ import { formatBookLabel } from '../utils/bookUtils';
 /**
  * Custom hook to search for books by title or ISBN
  * Provides a loadOptions function compatible with react-select/async
- * 
- * Transforms the single-author book model into an authors array for
- * backward compatibility with sale entry components.
  * 
  * @param {Object} options
  * @param {string} options.date - Optional date filter in "YYYY-MM" format to filter books published before this month
@@ -32,33 +28,13 @@ export const useBookSearch = ({ date } = {}) => {
 
             if (!json.results) return [];
 
-            return json.results.map(book => {
-                // Transform single author to authors array for backward compatibility
-                // Use distributor_author_royalty_rate as the default royalty rate
-                const authors = book.author_id
-                    ? [{
-                        author_id: book.author_id,
-                        name: book.author_name,
-                        royalty_rate: book.distributor_author_royalty_rate,
-                    }]
-                    : [];
-
-                return {
-                    label: formatBookLabel(book.title, book.isbn_13),
-                    value: book.id,
-                    authors,
-                    publication_date: book.publication_date,
-                    // Include book-level royalty rates for reference
-                    distributor_author_royalty_rate: book.distributor_author_royalty_rate,
-                    hand_sold_author_royalty_rate: book.hand_sold_author_royalty_rate,
-                    // Spread remaining book fields
-                    title: book.title,
-                    isbn_13: book.isbn_13,
-                    isbn_10: book.isbn_10,
-                    author_id: book.author_id,
-                    author_name: book.author_name,
-                };
-            });
+            return json.results.map(book => ({
+                label: formatBookLabel(book.title, book.isbn_13),
+                value: book.id,
+                authors: book.authors,
+                publication_date: book.publication_date,
+                ...book
+            }));
         } catch (error) {
             console.error("Error searching books:", error);
             return [];

@@ -15,14 +15,20 @@ class SaleMonthYearField(MonthYearField):
 class SaleSerializer(serializers.ModelSerializer):
     book_title = serializers.CharField(source="book.title", read_only=True)
     date = MonthYearField(read_only=True)
+    author_names = serializers.SerializerMethodField()
 
     class Meta:
         model = Sale
         fields = [
             "id", "book", "book_title", "date", "quantity",
             "sale_source", "publisher_revenue", "author_royalty",
-            "author_paid", "comment",
+            "author_paid", "comment", "author_names",
         ]
+
+    def get_author_names(self, obj):
+        return list(
+            obj.book.authors.values_list("name", flat=True)
+        )
 
 
 class PlaceholderDecimalField(serializers.DecimalField):

@@ -18,8 +18,8 @@ from ..serializers.book import (
     BookCreateSerializer,
     BookUpdateSerializer,
 )
+from ..models import Book, Author, AuthorBook, Sale
 from ..pagination import StandardPagination
-from ..utils import get_first_author_name_subquery
 
 
 class BookViewSet(ModelViewSet):
@@ -72,16 +72,18 @@ class BookViewSet(ModelViewSet):
         return qs
 
     def _annotate_for_sorting(self, qs):
-        """Add first-author annotations used for sorting."""
-        first_ab = (
-            AuthorBook.objects
-            .filter(book_id=OuterRef("pk")) # pk = primary key of the book (outer query primary key)
-            .order_by("author_id")
-        )
-
+        """Add author annotations used for sorting."""
         qs = qs.annotate(
-            first_author_name=get_first_author_name_subquery("pk"), 
-            first_author_royalty_rate=Subquery(first_ab.values("royalty_rate")[:1]),
+            author_name=Subquery(
+                Author.objects.filter(
+                    authorbook__book=OuterRef("pk")
+                ).values("name")[:1]
+            ),
+            author_royalty_rate=Subquery(
+                AuthorBook.objects.filter(
+                    book_id=OuterRef("pk")
+                ).values("royalty_rate")[:1]
+            ),
         )
         return qs
 
@@ -114,7 +116,7 @@ class BookViewSet(ModelViewSet):
             allowed_order_fields = {
                 "title", "isbn_13", "isbn_10", "publication_date",
                 "total_sales_to_date", "id",
-                "first_author_name", "first_author_royalty_rate",
+                "author_name", "author_royalty_rate",
             }
 
             sort_field = ordering
@@ -127,7 +129,7 @@ class BookViewSet(ModelViewSet):
                 sort_field = "title"
                 desc = False
 
-            if sort_field in {"first_author_name", "first_author_royalty_rate"}:
+            if sort_field in {"author_name", "author_royalty_rate"}:
                 sort_expr = F(sort_field).desc(nulls_last=True) if desc else F(sort_field).asc(nulls_last=True)
                 qs = qs.order_by(sort_expr, "id")
             else:

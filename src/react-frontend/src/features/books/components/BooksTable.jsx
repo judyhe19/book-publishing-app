@@ -17,8 +17,8 @@ const BOOKS_COLUMNS = [
     render: (b) => <span className="font-medium text-slate-700">{b.title}</span>,
   },
   {
-    label: "Author(s)",
-    sortKey: "first_author_name",
+    label: "Author",
+    sortKey: "author_name",
     className: "align-top whitespace-nowrap",
     render: (b) => {
       const authors = b.authors || [];
@@ -51,7 +51,7 @@ const BOOKS_COLUMNS = [
   },
   {
     label: "Royalty Rate",
-    sortKey: "first_author_royalty_rate",
+    sortKey: "author_royalty_rate",
     className: "align-top whitespace-nowrap",
     render: (b) => {
       const authors = b.authors || [];

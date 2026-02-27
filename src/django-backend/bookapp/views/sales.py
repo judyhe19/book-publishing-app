@@ -16,6 +16,7 @@ from django.db.models.functions import Coalesce, NullIf
 
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -24,7 +25,7 @@ from ..models import Sale, Book, Author
 from ..serializers.sales import SaleSerializer, SaleWriteSerializer
 from ..config.sort_config import SALES_SORT_FIELD_MAP, SALES_DEFAULT_SORT
 from ..pagination import StandardPagination
-
+from ..utils.ingram_csv import parse_and_validate as parse_ingram_csv
 
 def money(x):
     return Decimal(x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
@@ -163,6 +164,50 @@ class SaleViewSet(ModelViewSet):
 
         full_serializer = SaleSerializer(created_sales, many=True)
         return Response(full_serializer.data, status=status.HTTP_201_CREATED)
+
+    # ------------------------------------------------------------------
+    # IMPORT INGRAM CSV — validate + preview (custom action)
+    # ------------------------------------------------------------------
+
+    @action(detail=False, methods=["post"], url_path="import-ingram-csv",
+            parser_classes=[MultiPartParser, FormParser])
+    def import_ingram_csv(self, request):
+        csv_file = request.FILES.get("file")
+        if not csv_file:
+            return Response(
+                {"errors": ["No file uploaded."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            month = int(request.data.get("month", 0))
+            year = int(request.data.get("year", 0))
+        except (ValueError, TypeError):
+            return Response(
+                {"errors": ["Month and year must be integers."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not (1 <= month <= 12):
+            return Response(
+                {"errors": ["Month must be between 1 and 12."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if year < 1:
+            return Response(
+                {"errors": ["Year must be a positive integer."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        preview_rows, errors, metadata = parse_ingram_csv(csv_file, month, year)
+
+        if errors:
+            return Response({"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {"preview": preview_rows, **metadata},
+            status=status.HTTP_200_OK,
+        )
 
     # ------------------------------------------------------------------
     # UPDATE (PATCH) — edit a sale

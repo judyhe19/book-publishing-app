@@ -140,6 +140,28 @@ class TestIngramCSVColumnValidation:
         assert resp.status_code == 400
         assert any("Unexpected columns" in e for e in resp.data["errors"])
 
+    def test_extra_field_on_single_row(self, authed_client):
+        """No extra header, but one specific row has extra trailing data."""
+        make_book("9781473619814", title="Book A", royalty_rate="0.10")
+        csv_content = (
+            SAMPLE_CSV_HEADER + "\n"
+            '9781473619814,"Book A","Author",Paperback,5,0,5,18.05,US,oops_extra_data\n'
+        )
+        resp = upload(authed_client, csv_content)
+        assert resp.status_code == 400
+        assert any("unexpected extra column" in e for e in resp.data["errors"])
+
+    def test_trailing_empty_columns_fail(self, authed_client):
+        """Excel/Numbers sometimes append empty trailing columns; we strictly reject them."""
+        make_book("9781473619814", title="Book A", royalty_rate="0.10")
+        csv_content = (
+            SAMPLE_CSV_HEADER + ",\n"
+            '9781473619814,"Book A","Author",Paperback,5,0,5,18.05,US,\n'
+        )
+        resp = upload(authed_client, csv_content)
+        assert resp.status_code == 400
+        assert any("Unexpected columns" in e for e in resp.data["errors"])
+
     def test_wrong_column_order(self, authed_client):
         wrong_header = "Title,ISBN,Author,Format,Gross Qty,Returned Qty,Net Qty,Net Compensation,Sales Market"
         csv_content = wrong_header + "\n" + "T,9781473619814,A,Paperback,5,0,5,18.05,US\n"
@@ -221,6 +243,24 @@ class TestIngramCSVRowValidation:
         resp = upload(authed_client, csv)
         assert resp.status_code == 400
         assert len(resp.data["errors"]) >= 2
+
+    def test_empty_textual_fields(self, authed_client):
+        """Values like Title, Author, Format, Sales Market cannot be completely empty."""
+        make_book("9781473619814", title="Book")
+        csv = build_csv(
+            '9781473619814,"","Author",Paperback,5,0,5,18.05,US',        # Empty Title
+            '9781473619814,"Book","",Paperback,5,0,5,18.05,US',          # Empty Author
+            '9781473619814,"Book","Author","",5,0,5,18.05,US',           # Empty Format
+            '9781473619814,"Book","Author",Paperback,5,0,5,18.05,""',    # Empty Sales Market
+        )
+        resp = upload(authed_client, csv)
+        assert resp.status_code == 400
+        
+        errors = "".join(resp.data["errors"])
+        assert "Title cannot be empty" in errors
+        assert "Author cannot be empty" in errors
+        assert "Format cannot be empty" in errors
+        assert "Sales Market cannot be empty" in errors
 
 
 class TestIngramCSVRequestValidation:

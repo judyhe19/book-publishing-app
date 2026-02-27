@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { DataTable } from "../../../shared/components/DataTable";
+import { formatMonthYear } from "../../../shared/utils/salesUtils";
 
 // Table columns for book sales (excludes Book Title since we're already on the book page)
 const BOOK_SALES_COLUMNS = [
@@ -25,7 +26,7 @@ const BOOK_SALES_COLUMNS = [
                                 {auth.paid ? (
                                     <span className="w-2 h-2 rounded-full bg-green-500" title="Paid"></span>
                                 ) : (
-                                    <span className="w-2 h-2 bg-red-500" title="Unpaid"></span>
+                                    <span className="w-2 h-2 rounded-full bg-red-500" title="Unpaid"></span>
                                 )}
                             </div>
                         </div>
@@ -37,11 +38,7 @@ const BOOK_SALES_COLUMNS = [
     {
         label: 'Date',
         sortKey: 'date',
-        render: (sale) => {
-            const [year, month] = sale.date.split('-').map(Number);
-            const date = new Date(year, month - 1);
-            return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        },
+        render: (sale) => formatMonthYear(sale.date),
     },
     {
         label: 'Quantity',

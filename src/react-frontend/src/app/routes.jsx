@@ -12,6 +12,9 @@ import { RequireAuth } from "../features/auth/routes/RequireAuth";
 import BooksListPage from "../features/books/pages/BooksListPage";
 import CreateBookPage from "../features/books/pages/CreateBookPage";
 import BookDetailPage from "../features/books/pages/BookDetailPage";
+import AuthorListPage from "../features/author/pages/AuthorListPage";
+import AuthorCreatePage from "../features/author/pages/AuthorCreatePage";
+import AuthorModifyPage from "../features/author/pages/AuthorModifyPage";
 
 
 export function AppRoutes() {
@@ -82,6 +85,33 @@ export function AppRoutes() {
         element={
           <RequireAuth>
             <SalesInputPage />
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/authors"
+        element={
+          <RequireAuth>
+            <AuthorListPage />
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/authors/:authorId/modify"
+        element={
+          <RequireAuth>
+            <AuthorModifyPage />
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/authors/create"
+        element={
+          <RequireAuth>
+            <AuthorCreatePage />
           </RequireAuth>
         }
       />

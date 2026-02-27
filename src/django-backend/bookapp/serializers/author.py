@@ -26,12 +26,6 @@ def _validate_author_email(value: str) -> str:
     return cleaned
 
 
-class AuthorListSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Author
-        fields = ["id", "name", "email"]
-
-
 class AuthorCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Author

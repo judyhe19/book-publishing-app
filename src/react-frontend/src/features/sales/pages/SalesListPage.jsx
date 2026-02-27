@@ -20,6 +20,7 @@ export default function SalesListPage() {
     filters,
     handleSort,
     handleDateChange,
+    handleFilterChange,
     page,
     totalPages,
     setPage,
@@ -47,7 +48,11 @@ export default function SalesListPage() {
         <CardContent>
           {/* Filters + Show All toggle */}
           <div className="flex items-center justify-between gap-3">
-            <SalesFilters filters={filters} onDateChange={handleDateChange} />
+            <SalesFilters
+              filters={filters}
+              onDateChange={handleDateChange}
+              onFilterChange={handleFilterChange}
+            />
             <ShowAllToggle showAll={showAll} onToggle={toggleShowAll} />
           </div>
 

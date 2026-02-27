@@ -24,7 +24,6 @@ export default function SalesListPage() {
     page,
     totalPages,
     setPage,
-    count,
     showAll,
     toggleShowAll,
   } = useSalesList();
@@ -39,6 +38,9 @@ export default function SalesListPage() {
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => navigate("/sales/authors")}>
             Author Payments
+          </Button>
+          <Button variant="success" onClick={() => navigate("/sales/import-csv")}>
+            Import from CSV
           </Button>
           <Button onClick={() => navigate("/sales/input")}>Input New Sales</Button>
         </div>

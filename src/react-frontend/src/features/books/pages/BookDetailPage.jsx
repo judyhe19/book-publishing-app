@@ -25,6 +25,7 @@ import { useBookSales } from "../hooks/useBookSales";
 import { EMPTY_ROW, transformRowToSaleData, isRowComplete } from "../../../shared/utils/salesUtils";
 import { createManySales } from "../../sales/api/salesApi";
 import { formatMonthYear } from "../../../shared/utils/dateUtils";
+import { formatMoney } from "../../../shared/utils/formatUtils";
 
 function normalizeName(s) {
   return (s || "").trim().replace(/\s+/g, " ");
@@ -38,10 +39,6 @@ function pct(x) {
   const n = Number(x);
   if (Number.isNaN(n)) return "—";
   return `${(n * 100).toFixed(1)}%`;
-}
-
-function formatMoney(x) {
-  return `$${Number(x || 0).toFixed(2)}`;
 }
 
 export default function BookDetailPage() {

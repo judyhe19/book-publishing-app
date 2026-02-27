@@ -8,6 +8,7 @@ import {
 import { Card } from "../../../shared/components/Card";
 import { useBookSearch } from "../../../shared/hooks/useBookSearch";
 import { computeAuthorRoyalty, computeHandsoldRevenue } from "../../../shared/utils/salesUtils";
+import { formatMoney } from "../../../shared/utils/formatUtils";
 
 const selectStyles = {
   menuPortal: (base) => ({ ...base, zIndex: 9999 }),
@@ -19,11 +20,6 @@ const selectStyles = {
     "&:hover": { borderColor: "#e2e8f0" },
   }),
 };
-
-function formatMoney(x) {
-  const n = Number(x);
-  return Number.isNaN(n) || !n ? "—" : `$${n.toFixed(2)}`;
-}
 
 export default function SaleInputRow({ index, row, onChange, onRemove, isFirst }) {
   const { loadOptions } = useBookSearch({ date: row.date });

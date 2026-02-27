@@ -12,6 +12,7 @@ from .views.sales import SaleViewSet, BookSalesTotalsView
 from .views.author import AuthorViewSet
 from .views.author_payments import AuthorPaymentsViewSet
 from .views.cover_upload import CoverImageUploadView
+from .views.cover_thumbnail import CoverThumbnailView
 
 # ----- DRF Router -----
 router = DefaultRouter(trailing_slash=True)
@@ -47,6 +48,13 @@ urlpatterns = [
         "books/upload-cover/",
         CoverImageUploadView.as_view(),
         name="upload-cover",
+    ),
+
+    # Cover image thumbnail (resized for table/list views)
+    path(
+        "books/cover-thumbnail/",
+        CoverThumbnailView.as_view(),
+        name="cover-thumbnail",
     ),
 
     # Router-generated URLs for books, sales, authors

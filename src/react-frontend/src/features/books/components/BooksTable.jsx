@@ -1,15 +1,23 @@
 // src/features/books/components/BooksTable.jsx
-import React from "react";
 import { DataTable } from "../../../shared/components";
 import { formatMonthYear } from "../../../shared/utils/dateUtils";
 
-function pct(x) {
-  const n = Number(x);
-  if (Number.isNaN(n)) return "";
-  return `${(n * 100).toFixed(1)}%`;
-}
-
 const BOOKS_COLUMNS = [
+  {
+    label: "",
+    className: "w-16 pr-0",
+    render: (b) => {
+      if (!b.cover_image_path) return null;
+      const src = `/api/books/cover-thumbnail/?path=${encodeURIComponent(b.cover_image_path)}`;
+      return (
+        <img
+          src={src}
+          alt={`Cover of ${b.title}`}
+          className="h-16 w-auto object-contain rounded"
+        />
+      );
+    },
+  },
   {
     label: "Title",
     sortKey: "title",
@@ -19,20 +27,20 @@ const BOOKS_COLUMNS = [
   {
     label: "Author",
     sortKey: "author_name",
-    className: "align-top whitespace-nowrap",
-    render: (b) => {
-      const authors = b.authors || [];
-      if (authors.length === 0) return <div className="text-slate-400">—</div>;
-      return (
-        <div className="space-y-1">
-          {authors.map((a) => (
-            <div key={a.author_id} className="text-slate-700">
-              {a.name}
-            </div>
-          ))}
-        </div>
-      );
-    },
+    className: "whitespace-nowrap",
+    render: (b) => (
+      <span className="text-slate-700">{b.author_name || <span className="text-slate-400">—</span>}</span>
+    ),
+  },
+  {
+    label: "Series",
+    sortKey: "series_name",
+    render: (b) =>
+      b.series_display ? (
+        <span className="text-slate-700">{b.series_display}</span>
+      ) : (
+        <span className="text-slate-400">—</span>
+      ),
   },
   {
     label: "ISBN-13",
@@ -40,32 +48,9 @@ const BOOKS_COLUMNS = [
     render: (b) => <span className="font-mono text-slate-700">{b.isbn_13 || "—"}</span>,
   },
   {
-    label: "ISBN-10",
-    sortKey: "isbn_10",
-    render: (b) => <span className="font-mono text-slate-700">{b.isbn_10 || "—"}</span>,
-  },
-  {
     label: "Publication",
     sortKey: "publication_date",
     render: (b) => formatMonthYear(b.publication_date),
-  },
-  {
-    label: "Royalty Rate",
-    sortKey: "author_royalty_rate",
-    className: "align-top whitespace-nowrap",
-    render: (b) => {
-      const authors = b.authors || [];
-      if (authors.length === 0) return <div className="text-slate-400">—</div>;
-      return (
-        <div className="space-y-1">
-          {authors.map((a) => (
-            <div key={a.author_id} className="text-slate-700">
-              {pct(a.royalty_rate)}
-            </div>
-          ))}
-        </div>
-      );
-    },
   },
   {
     label: "Total Sales",

@@ -221,6 +221,68 @@ def generate_sales(session, books, count=500):
         print(f"Failed to create sales: {resp.status_code} {resp.text}")
 
 
+# Books referenced in data/ev2/Ingram-202509.csv
+# Note: The "Author" column in the CSV is ignored during import — only ISBN matters.
+# We assign existing system authors to these books.
+INGRAM_BOOKS = [
+    {"isbn_13": "9781473619814", "title": "The Long Way to a Small, Angry Planet",
+     "pub_date": "2015-08", "royalty_rate": 0.10},
+    {"isbn_13": "9780062569400", "title": "A Closed and Common Orbit",
+     "pub_date": "2016-10", "royalty_rate": 0.10},
+    {"isbn_13": "9780062699220", "title": "Record of a Spaceborn Few",
+     "pub_date": "2018-07", "royalty_rate": 0.10},
+    {"isbn_13": "9780062936042", "title": "The Galaxy, and the Ground Within",
+     "pub_date": "2021-04", "royalty_rate": 0.10},
+    {"isbn_13": "9780765397539", "title": "All Systems Red",
+     "pub_date": "2017-05", "royalty_rate": 0.15},
+    {"isbn_13": "9781250186928", "title": "Artificial Condition",
+     "pub_date": "2018-05", "royalty_rate": 0.15},
+    {"isbn_13": "9781250191786", "title": "Ancillary Justice",
+     "pub_date": "2013-10", "royalty_rate": 0.12},
+    {"isbn_13": "9780316565172", "title": "Ancillary Justice (Trade Paperback)",
+     "pub_date": "2013-10", "royalty_rate": 0.12},
+]
+
+
+def ensure_ingram_books(session, authors):
+    """Create the books referenced in the sample Ingram CSV (skip if ISBN already exists)."""
+    print("Ensuring Ingram CSV sample books exist...")
+
+    url = f"{BASE_URL}/api/books/"
+    created = 0
+    skipped = 0
+
+    for i, entry in enumerate(INGRAM_BOOKS):
+        # Pick an existing author (round-robin through available authors)
+        author = authors[i % len(authors)]
+        payload = {
+            "title": entry["title"],
+            "publication_date": entry["pub_date"],
+            "isbn_13": entry["isbn_13"],
+            "isbn_10": None,
+            "authors": [
+                {"author_name": author["name"], "royalty_rate": entry["royalty_rate"]}
+            ],
+        }
+        resp = session.post(url, json=payload)
+        if resp.status_code == 201:
+            created += 1
+            sys.stdout.write(".")
+            sys.stdout.flush()
+        elif resp.status_code == 400:
+            err_text = resp.text[:300]
+            if "isbn_13" in err_text.lower() and "unique" in err_text.lower():
+                skipped += 1
+            else:
+                print(f"\n  Rejected '{entry['title']}' ({entry['isbn_13']}): {err_text}")
+        else:
+            print(f"\n  Failed '{entry['title']}' ({entry['isbn_13']}): HTTP {resp.status_code} {resp.text}")
+
+    if created:
+        print()
+    print(f"Ingram books: {created} created, {skipped} already existed.")
+
+
 # ── Main ───────────────────────────────────────────────────────────────────────
 
 def main():
@@ -234,6 +296,9 @@ def main():
         session = get_session()
 
         authors = ensure_authors(session, min_count=args.authors)
+
+        # Always create Ingram CSV sample books (using existing authors)
+        ensure_ingram_books(session, authors)
 
         if args.books > 0:
             generate_books(session, authors, count=args.books)
@@ -251,3 +316,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

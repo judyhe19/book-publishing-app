@@ -28,6 +28,7 @@ export const useSaleEntry = ({ index, data, onChange, fixedBook }) => {
         if (fixedBook && !data.book) {
             onChange(index, 'book', fixedBook);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fixedBook]);
 
     const handleDateChange = (newDate) => {

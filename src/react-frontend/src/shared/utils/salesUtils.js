@@ -79,7 +79,7 @@ export const computeAuthorRoyalty = (saleSource, publisherRevenue, book) => {
  * @param {number|string} quantity - quantity sold
  * @returns {string} computed revenue or '' (placeholder)
  */
-export const computeHandsoldRevenue = (book, quantity) => {
+export const computeHandsoldRevenue = (/* book, quantity */) => {
     // TODO: Uncomment once Book model has cover_price and print_cost:
     // const coverPrice = Number(book?.cover_price ?? 0);
     // const printCost = Number(book?.print_cost ?? 0);
@@ -87,4 +87,16 @@ export const computeHandsoldRevenue = (book, quantity) => {
     // if (!coverPrice || Number.isNaN(qty) || !qty) return '';
     // return ((coverPrice - printCost) * qty).toFixed(2);
     return '';
+};
+
+/**
+ * Formats a YYYY-MM string into "Month Year" format (e.g., "January 2026").
+ * @param {string} dateStr - The YYYY-MM string, e.g. "2026-01"
+ * @returns {string} Formatted month and year, or "—" if invalid
+ */
+export const formatMonthYear = (dateStr) => {
+    if (!dateStr) return "—";
+    const [year, month] = dateStr.split("-");
+    const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1);
+    return date.toLocaleString("en-US", { month: "long", year: "numeric" });
 };

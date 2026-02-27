@@ -92,3 +92,43 @@ export async function apiFetch(path, { method = "GET", headers, body } = {}) {
 
   return data;
 }
+
+/**
+ * Like apiFetch, but for multipart/form-data requests (file uploads).
+ * Pass a FormData object as `body` — the browser sets Content-Type automatically.
+ */
+export async function apiFormFetch(path, formData) {
+  await ensureCsrf();
+  const csrfToken = getCookie("csrftoken");
+
+  const res = await fetch(path, {
+    method: "POST",
+    credentials: "include",
+    headers: csrfToken ? { "X-CSRFToken": csrfToken } : {},
+    body: formData,
+  });
+
+  const contentType = res.headers.get("content-type") || "";
+  const data = contentType.includes("application/json") ? await res.json().catch(() => null) : await res.text();
+
+  if (!res.ok) {
+    let msg = "Request failed";
+    if (data) {
+      if (typeof data === "string") {
+        msg = data;
+      } else if (data.errors && Array.isArray(data.errors)) {
+        msg = data.errors.join("\n");
+      } else if (data.detail) {
+        msg = data.detail;
+      } else if (typeof data === "object") {
+        msg = formatSimpleErrors(data);
+      }
+    }
+    const err = new Error(msg);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+
+  return data;
+}

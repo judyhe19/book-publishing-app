@@ -1,4 +1,4 @@
-import { apiFetch } from "../../../shared/api/http";
+import { apiFetch, apiFormFetch } from "../../../shared/api/http";
 
 export function getAllSales(queryParams = "") {
     const qs = queryParams ? `?${queryParams}` : "";
@@ -36,4 +36,15 @@ export function getSalesRecord(saleId) {
 export function getAuthorPaymentsGrouped(queryParams = "") {
   const qs = queryParams ? `?${queryParams}` : "";
   return apiFetch(`/api/author/payments/grouped${qs}`);
+}
+
+/**
+ * Upload an Ingram Spark CSV for validation + preview.
+ */
+export async function validateIngramCSV(file, month, year) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("month", month);
+  formData.append("year", year);
+  return apiFormFetch("/api/sales/import-ingram-csv/", formData);
 }

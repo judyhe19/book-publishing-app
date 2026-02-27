@@ -14,11 +14,7 @@ import { useBookSearch } from "../../../shared/hooks/useBookSearch";
 import { formatBookLabel } from "../../../shared/utils/bookUtils";
 import { useSalesDetails } from "../hooks/useSalesDetails";
 import { DeleteSalesRecordDialog } from "../components";
-
-function formatMoney(x) {
-  const n = Number(x);
-  return Number.isNaN(n) ? "0.00" : n.toFixed(2);
-}
+import { formatMoney } from "../../../shared/utils/formatUtils";
 
 const selectStyles = {
   menuPortal: (base) => ({ ...base, zIndex: 9999 }),
@@ -48,6 +44,7 @@ export default function SalesDetailPage() {
   const { loadOptions } = useBookSearch({ date: form?.date });
 
   // Initialize form from loaded sale
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (!sale || !book) return;
     setForm({
@@ -73,6 +70,7 @@ export default function SalesDetailPage() {
   // Auto-calculate author_royalty when publisher_revenue changes
   // for distributor sales: author_royalty = royalty_rate × revenue
   // ---------------------------------------------------------------
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (!form || !isDistributor) return;
 
@@ -88,7 +86,7 @@ export default function SalesDetailPage() {
     if (computed !== String(form.author_royalty)) {
       setForm((prev) => ({ ...prev, author_royalty: computed }));
     }
-  }, [form?.publisher_revenue, selectedBook, isDistributor]);
+  }, [form, selectedBook, isDistributor]);
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -258,7 +256,7 @@ export default function SalesDetailPage() {
                 </div>
               ) : (
                 <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200">
-                  ${formatMoney(form.publisher_revenue)}
+                  {formatMoney(form.publisher_revenue, "$0.00")}
                 </div>
               )}
             </div>
@@ -269,7 +267,7 @@ export default function SalesDetailPage() {
                 Author Royalty
               </label>
               <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200">
-                ${formatMoney(form.author_royalty)}
+                {formatMoney(form.author_royalty, "$0.00")}
               </div>
             </div>
           </div>

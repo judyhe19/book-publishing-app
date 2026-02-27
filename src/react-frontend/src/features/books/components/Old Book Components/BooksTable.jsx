@@ -30,8 +30,8 @@ export default function BooksTable({
       render: (b) => <span className="font-medium text-slate-700">{b.title}</span>
     },
     {
-      label: "Author(s)",
-      sortKey: "first_author_name",
+      label: "Author",
+      sortKey: "author_name",
       className: "align-top whitespace-nowrap",
       render: (b) => {
         const authors = b.authors || [];

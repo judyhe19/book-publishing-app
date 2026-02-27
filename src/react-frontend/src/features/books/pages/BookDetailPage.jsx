@@ -16,7 +16,9 @@ import {
   ShowAllToggle,
   SaleEntryRow,
 } from "../../../shared/components";
-import { DeleteBookDialog, AuthorsEditor, BookSalesTable } from "../components";
+import { DeleteBookDialog, AuthorsEditor } from "../components";
+import SalesTable from "../../sales/components/SalesTable";
+import { BOOK_DETAIL_COLUMNS } from "../../sales/config/salesTableConfig";
 import { errorMessage } from "../../../shared/utils/errors";
 import * as booksApi from "../api/booksApi";
 import { useBookSales } from "../hooks/useBookSales";
@@ -514,11 +516,12 @@ export default function BookDetailPage() {
               <ShowAllToggle showAll={salesShowAll} onToggle={toggleSalesShowAll} />
             </div>
 
-            <BookSalesTable
+            <SalesTable
               data={bookSales}
               loading={salesLoading}
               ordering={salesOrdering}
               onSort={handleSalesSort}
+              columns={BOOK_DETAIL_COLUMNS}
             />
 
             {!salesShowAll && (

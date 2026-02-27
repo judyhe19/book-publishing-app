@@ -8,10 +8,11 @@ from math import ceil
 
 from django.db import transaction
 from django.db.models import (
-    Sum, Count, Case, When, Value,
+    F, Sum, Count, Case, When, Value,
     IntegerField, DecimalField,
+    Subquery, OuterRef,
 )
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce, NullIf
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -19,11 +20,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from ..models import Sale, Book
+from ..models import Sale, Book, Author
 from ..serializers.sales import SaleSerializer, SaleWriteSerializer
 from ..config.sort_config import SALES_SORT_FIELD_MAP, SALES_DEFAULT_SORT
 from ..pagination import StandardPagination
-from ..utils import get_first_author_name_subquery
 
 
 def money(x):
@@ -75,7 +75,11 @@ class SaleViewSet(ModelViewSet):
 
             # Annotations for sorting
             qs = qs.annotate(
-                first_author_name=get_first_author_name_subquery("book"),
+                author_name=Subquery(
+                    Author.objects.filter(
+                        authorbook__book=OuterRef("book")
+                    ).values("name")[:1]
+                ),
             )
 
             # Ordering
@@ -84,8 +88,20 @@ class SaleViewSet(ModelViewSet):
             field = ordering[1:] if is_desc else ordering
 
             if field in SALES_SORT_FIELD_MAP:
-                order_field = ("-" if is_desc else "") + SALES_SORT_FIELD_MAP[field]
-                qs = qs.order_by(order_field)
+                db_field = SALES_SORT_FIELD_MAP[field]
+                # Treat empty strings as NULL for comment sorting
+                if field == 'comment':
+                    expr = NullIf(F(db_field), Value(''))
+                    qs = qs.annotate(_comment_sort=expr)
+                    if is_desc:
+                        # null/empty first if descending
+                        qs = qs.order_by(F('_comment_sort').desc(nulls_first=True))
+                    else:
+                        # null/empty last if ascending
+                        qs = qs.order_by(F('_comment_sort').asc(nulls_last=True))
+                else:
+                    order_field = ("-" if is_desc else "") + db_field
+                    qs = qs.order_by(order_field)
             else:
                 qs = qs.order_by("-date")
 

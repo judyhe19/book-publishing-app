@@ -23,34 +23,12 @@ export const TABLE_COLUMNS = [
         ),
     },
     {
-        label: 'Author(s)',
+        label: 'Author',
         sortKey: 'authors',
-        sortValue: (sale) => sale.author_details?.[0]?.name || '', // sort by first author's name
         render: (sale) => {
-            const authors = sale.author_details || [];
-            if (authors.length === 0) {
-                return Object.keys(sale.author_royalties || {}).length > 0
-                    ? <span className="text-gray-500 italic">Authors (IDs only)</span>
-                    : <span className="text-gray-400">-</span>;
-            }
-
-            return (
-                <div className="flex flex-col gap-2">
-                    {authors.map((auth, idx) => (
-                        <div key={idx} className="flex items-center justify-between gap-4">
-                            <span className="font-medium whitespace-nowrap">{auth.name}</span>
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm text-gray-600">${auth.royalty_amount}</span>
-                                {auth.paid ? (
-                                    <span className="w-2 h-2 rounded-full bg-green-500" title="Paid"></span>
-                                ) : (
-                                    <span className="w-2 h-2 bg-red-500" title="Unpaid"></span>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            );
+            const name = sale.author_names?.[0];
+            if (!name) return <span className="text-gray-400">—</span>;
+            return <span className="font-medium whitespace-nowrap">{name}</span>;
         },
     },
     {
@@ -58,6 +36,21 @@ export const TABLE_COLUMNS = [
         sortKey: 'date',
         render: (sale) => {
             return formatMonthYear(sale.date);
+        },
+    },
+    {
+        label: 'Source',
+        sortKey: 'sale_source',
+        render: (sale) => {
+            const label = sale.sale_source === 'handsold' ? 'Handsold' : 'Distributor';
+            const color = sale.sale_source === 'handsold'
+                ? 'bg-purple-100 text-purple-700'
+                : 'bg-blue-100 text-blue-700';
+            return (
+                <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${color}`}>
+                    {label}
+                </span>
+            );
         },
     },
     {
@@ -73,52 +66,23 @@ export const TABLE_COLUMNS = [
         render: (sale) => `$${sale.publisher_revenue}`,
     },
     {
-        label: 'Total Royalties',
-        sortKey: 'total_royalties',
+        label: 'Author Royalty',
+        sortKey: 'author_royalty',
         type: 'number',
-        sortValue: (sale) => sale.author_details?.reduce((sum, a) => sum + Number(a.royalty_amount), 0) || 0,
-        render: (sale) => {
-            const total = sale.author_details?.reduce((sum, a) => sum + Number(a.royalty_amount), 0) || 0;
-            return <span className="font-medium">${total.toFixed(2)}</span>;
-        },
+        render: (sale) => <span className="font-medium">${Number(sale.author_royalty || 0).toFixed(2)}</span>,
     },
     {
         label: 'Status',
         sortKey: 'paid_status',
-        sortValue: (sale) => {
-            const authors = sale.author_details || [];
-            if (authors.length === 0) return 2; // Treat no authors as unpaid
-            const paidCount = authors.filter(a => a.paid).length;
-            if (paidCount === authors.length) return 0; // Fully Paid
-            if (paidCount > 0) return 1; // Partially Paid
-            return 2; // Unpaid
-        },
         render: (sale) => {
-            const authors = sale.author_details || [];
-            const paidCount = authors.filter(a => a.paid).length;
-            const totalCount = authors.length;
-            
-            // Fully Paid: all authors are paid
-            if (totalCount > 0 && paidCount === totalCount) {
+            if (sale.author_paid) {
                 return (
                     <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
                         <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                        Fully Paid
+                        Paid
                     </span>
                 );
             }
-            
-            // Partially Paid: some authors are paid
-            if (paidCount > 0) {
-                return (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
-                        <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                        Partially Paid
-                    </span>
-                );
-            }
-            
-            // Unpaid: no authors are paid
             return (
                 <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-medium">
                     <span className="w-2 h-2 rounded-full bg-red-500"></span>
@@ -126,6 +90,16 @@ export const TABLE_COLUMNS = [
                 </span>
             );
         },
+    },
+
+    {
+        label: 'Comment',
+        sortKey: 'comment',
+        render: (sale) => (
+            <span className="text-sm text-gray-600 max-w-xs truncate block" title={sale.comment || ''}>
+                {sale.comment || '—'}
+            </span>
+        ),
     },
 
     {
@@ -137,3 +111,17 @@ export const TABLE_COLUMNS = [
         ],
     },
 ];
+
+// Columns for BookDetailPage — no "Book Title" column, no "Book Details" action
+export const BOOK_DETAIL_COLUMNS = TABLE_COLUMNS
+    .filter((col) => col.sortKey !== 'book_title' && col.sortKey !== 'authors')
+    .map((col) => {
+        if (col.type === 'actions') {
+            return {
+                ...col,
+                getActions: (sale) =>
+                    col.getActions(sale).filter((a) => a.label !== 'Book Details'),
+            };
+        }
+        return col;
+    });

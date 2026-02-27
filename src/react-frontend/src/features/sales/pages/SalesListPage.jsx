@@ -51,7 +51,7 @@ export default function SalesListPage() {
             <ShowAllToggle showAll={showAll} onToggle={toggleShowAll} />
           </div>
 
-          <DualScrollContainer contentWidth={1800} className="mt-4">
+          <DualScrollContainer contentWidth={2200} className="mt-4">
             <SalesTable
               data={sales}
               loading={loading}

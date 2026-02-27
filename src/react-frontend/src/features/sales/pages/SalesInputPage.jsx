@@ -1,8 +1,9 @@
 // src/features/sales/pages/SalesInputPage.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, ErrorAlert, SaleEntryRow } from "../../../shared/components";
+import { Button, ErrorAlert } from "../../../shared/components";
 import { useSalesInputPage } from "../hooks/useSalesInputPage";
+import SaleInputRow from "../components/SaleInputRow";
 
 export default function SalesInputPage() {
   const navigate = useNavigate();
@@ -23,10 +24,10 @@ export default function SalesInputPage() {
 
       <div className="space-y-4">
         {rows.map((row, index) => (
-          <SaleEntryRow
+          <SaleInputRow
             key={index}
             index={index}
-            data={row}
+            row={row}
             onChange={handleRowChange}
             onRemove={handleRemoveRow}
             isFirst={index === 0}

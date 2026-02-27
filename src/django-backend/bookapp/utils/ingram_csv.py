@@ -13,7 +13,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from django.utils import timezone
 
-from ..models import Book, AuthorBook
+from ..models import Book
 from ..serializers.sales import SaleWriteSerializer
 
 EXPECTED_COLUMNS = [
@@ -158,7 +158,7 @@ def _validate_row(row, csv_line, isbn_raw, month, year):
     # Net Qty equals Gross Qty
     gross_qty_raw = (row.get("Gross Qty") or "").strip()
     net_qty_raw = (row.get("Net Qty") or "").strip()
-    
+
     if gross_qty_raw and net_qty_raw:
         try:
             gross_qty = int(gross_qty_raw)
@@ -193,20 +193,18 @@ def _validate_row(row, csv_line, isbn_raw, month, year):
     # All proposed sales records must be legal to import: each row's ISBN must match a book in the system and each row must result in a sales record that meets def 16.
     validated_data = None
     if not row_errors and book:
-        # Calculate author royalty based on the Net Compensation string so the 
-        # serializer sees both the publisher_revenue and the author_royalty
-        author_book = AuthorBook.objects.filter(book=book).select_related("author").first()
-        rate = author_book.royalty_rate if author_book else Decimal("0")
-        
+        # Use distributor royalty rate directly from the book
+        rate = book.distributor_author_royalty_rate
+
         # Try to parse net_comp so we can calculate the royalty
         try:
             net_comp_val = Decimal(net_comp_raw)
             author_royalty_val = str(money(rate * net_comp_val))
         except (InvalidOperation, ValueError, TypeError):
-            author_royalty_val = "" # Let the serializer catch the invalid decimal format
-            
+            author_royalty_val = ""  # Let the serializer catch the invalid decimal format
+
         sale_date_str = f"{year}-{month:02d}"
-            
+
         payload = {
             "book": book.id,
             "date": sale_date_str,
@@ -221,11 +219,9 @@ def _validate_row(row, csv_line, isbn_raw, month, year):
             # Format DRF validation errors for the CSV row
             for field, field_errors in serializer.errors.items():
                 for error in field_errors:
-                    # Clean up error messages like "publisher_revenue: Publisher revenue is required"
-                    # into a user-friendly "Net Compensation: ..."
                     label_map = {
                         "publisher_revenue": "Net Compensation",
-                        "quantity": "Net Qty", 
+                        "quantity": "Net Qty",
                         "book": "Book",
                         "date": "Sale date"
                     }
@@ -239,8 +235,8 @@ def _validate_row(row, csv_line, isbn_raw, month, year):
 
     # Passed all rules + serializer validation! Return the native python objects.
     return [], {
-        "book": validated_data["book"], 
-        "net_qty": validated_data["quantity"], 
+        "book": validated_data["book"],
+        "net_qty": validated_data["quantity"],
         "net_comp": validated_data["publisher_revenue"]
     }
 
@@ -251,17 +247,16 @@ def _build_preview_row(row_data, csv_row, sale_date_str, filename, timestamp):
     net_qty = row_data["net_qty"]
     net_comp = row_data["net_comp"]
 
-    # Compute author royalty (each book has exactly one author)
-    author_book = AuthorBook.objects.filter(book=book).select_related("author").first()
-    rate = author_book.royalty_rate if author_book else Decimal("0")
+    # Use distributor royalty rate and author directly from the book
+    rate = book.distributor_author_royalty_rate
     author_royalty = money(rate * net_comp)
 
     fmt = (csv_row.get("Format") or "").strip()
     market = (csv_row.get("Sales Market") or "").strip()
-    
+
     from django.conf import settings
     tz_name = settings.TIME_ZONE
-    
+
     comment = (
         f"Ingram: Format='{fmt}' Market='{market}' "
         f"File='{filename}' ({timestamp} {tz_name})"
@@ -271,7 +266,7 @@ def _build_preview_row(row_data, csv_row, sale_date_str, filename, timestamp):
         "book": book.id,
         "book_title": book.title,
         "book_label": f"{book.title} ({book.isbn_13})",
-        "author_name": author_book.author.name if author_book else "",
+        "author_name": book.author.name,
         "royalty_rate": str(rate),
         "publication_date": book.publication_date.strftime("%Y-%m"),
         "date": sale_date_str,

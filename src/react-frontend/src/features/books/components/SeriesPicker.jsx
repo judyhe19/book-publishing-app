@@ -15,12 +15,14 @@ import { FormField, Input } from "../../../shared/components";
  *                                      (null when creating a new book)
  *
  * Position autopopulation rules:
- *   - Only fires when a series is *explicitly selected* from the dropdown.
- *   - If the selected series is the same as originalSeriesName, the position
+ *   - Fires when a series is selected from the dropdown OR when the typed text
+ *     exactly matches a known series name.
+ *   - If the matched series is the same as originalSeriesName, the position
  *     is left unchanged (the book is already placed there).
+ *   - Once autofilled for a series in this session, re-selecting/re-typing
+ *     that same series never overwrites the position again (preserves manual edits).
  *   - If the selected series differs (or this is a new book), position is set
  *     to count + 1 (append at end of the target series).
- *   - Typing in the series name field never changes the position.
  */
 export default function SeriesPicker({
   seriesName,
@@ -76,10 +78,32 @@ export default function SeriesPicker({
     }
   }
 
-  // Typing only updates the text and opens the dropdown — never touches position.
+  // Typing updates the text and opens the dropdown. If the typed value exactly
+  // matches a known series, autofill position using the same guards as
+  // applySeriesName so position isn't reset after the user manually edits it.
   function onSeriesInputChange(e) {
-    setSeriesName(e.target.value);
+    const value = e.target.value;
+    setSeriesName(value);
     setDropdownOpen(true);
+
+    const valueTrimmedLower = value.trim().toLowerCase();
+    if (valueTrimmedLower) {
+      const match = seriesOptions.find(
+        (s) => s.name.toLowerCase() === valueTrimmedLower
+      );
+      if (match) {
+        const isSameAsOriginal =
+          originalSeriesName &&
+          originalSeriesName.toLowerCase() === match.name.toLowerCase();
+        const alreadyFilledForThis =
+          positionAutofilledFor.current !== null &&
+          positionAutofilledFor.current.toLowerCase() === match.name.toLowerCase();
+        if (!isSameAsOriginal && !alreadyFilledForThis) {
+          setSeriesPosition(String(match.count + 1));
+          positionAutofilledFor.current = match.name;
+        }
+      }
+    }
   }
 
   function onClear() {

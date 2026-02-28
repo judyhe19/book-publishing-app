@@ -241,7 +241,7 @@ class TestIngramCSVRowValidation:
         )
         resp = upload(authed_client, csv)
         assert resp.status_code == 400
-        assert any("Net Qty must be at least 1" in e for e in resp.data["errors"])
+        assert any("Quantity must be a positive integer" in e for e in resp.data["errors"])
 
     def test_sale_date_before_publication(self, authed_client):
         make_book("9781473619814", title="Book", pub_date="2026-06-01")

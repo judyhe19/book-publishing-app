@@ -20,10 +20,16 @@ def authed_client(api_client, user):
 
 @pytest.fixture
 def sample_book(user):
+    author = Author.objects.create(name="Test Author", email="test@test.com")
     return Book.objects.create(
         title="Valid Book",
         publication_date="2020-01-01",
         isbn_13="9780000000123",
+        author=author,
+        cover_price="20.00",
+        print_cost="10.00",
+        distributor_author_royalty_rate="0.10",
+        hand_sold_author_royalty_rate="0.20",
     )
 
 def test_missing_quantity_message(authed_client, sample_book):
@@ -56,14 +62,13 @@ def test_missing_revenue_message(authed_client, sample_book):
     payload = {
         "book": sample_book.id,
         "quantity": 10,
-        "author_royalty": "10.00",
         "sale_source": "distributor",
         # "publisher_revenue": "100.00", # Missing
         "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
-    assert resp.data["publisher_revenue"] == ["Publisher revenue is required."]
+    assert resp.data["publisher_revenue"] == ["Publisher revenue is required for distributor sales."]
 
 def test_missing_date_message(authed_client, sample_book):
     payload = {
@@ -92,17 +97,19 @@ def test_missing_sale_source_message(authed_client, sample_book):
     assert resp.data["sale_source"] == ["Sale source is required."]
 
 def test_missing_author_royalty_message(authed_client, sample_book):
+    """author_royalty is computed server-side (read_only), so omitting it should succeed."""
     payload = {
         "book": sample_book.id,
         "quantity": 10,
         "publisher_revenue": "100.00",
         "sale_source": "distributor",
-        # "author_royalty": missing
+        # "author_royalty": omitted — computed from publisher_revenue * rate
         "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
-    assert resp.status_code == 400
-    assert resp.data["author_royalty"] == ["Author royalty is required."]
+    assert resp.status_code == 201
+    # Royalty is auto-calculated: 100.00 * 0.10 = 10.00
+    assert resp.data["author_royalty"] == "10.00"
 
 def test_null_value_message(authed_client, sample_book):
     # Test sending explicit null
@@ -117,7 +124,7 @@ def test_null_value_message(authed_client, sample_book):
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
     assert resp.data["quantity"] == ["Quantity is required."]
-    assert resp.data["publisher_revenue"] == ["Publisher revenue is required."]
-    assert resp.data["author_royalty"] == ["Author royalty is required."]
+    # publisher_revenue allows null (required=False, allow_null=True)
+    # author_royalty is read_only (computed server-side)
     assert resp.data["sale_source"] == ["Sale source is required."]
     assert resp.data["date"] == ["Date is required."]

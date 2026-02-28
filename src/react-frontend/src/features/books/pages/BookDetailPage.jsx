@@ -197,7 +197,11 @@ export default function BookDetailPage() {
           />
           <CardContent>
             {/* Action buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <Button variant="secondary" onClick={() => nav("/books")}>
+                All Books
+              </Button>
+              <div className="flex items-center gap-2">
               {!editing ? (
                 <>
                   <Button variant="secondary" onClick={() => setEditing(true)}>
@@ -224,6 +228,7 @@ export default function BookDetailPage() {
                   </Button>
                 </>
               )}
+              </div>
             </div>
 
             {err && <ErrorAlert className="mt-4">{err}</ErrorAlert>}

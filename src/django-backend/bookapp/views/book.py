@@ -142,6 +142,11 @@ class BookViewSet(ModelViewSet):
             if published_before:
                 qs = qs.filter(publication_date__lte=published_before)
 
+            # Optional filter: series_name (used by Series Editor page)
+            series_filter = self.request.query_params.get("series_name")
+            if series_filter:
+                qs = qs.filter(series_name=series_filter)
+
             # Sorting — comma-separated multi-column, e.g. "first_author_name,series_position,title"
             ordering_param = self.request.query_params.get("ordering", _DEFAULT_ORDERING)
             qs = qs.order_by(*_parse_ordering(ordering_param))

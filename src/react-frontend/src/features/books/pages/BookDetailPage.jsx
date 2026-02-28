@@ -52,6 +52,7 @@ export default function BookDetailPage() {
   const [coverImageFile, setCoverImageFile] = useState(null);
   const [seriesName, setSeriesName] = useState("");
   const [seriesPosition, setSeriesPosition] = useState("");
+  const [seriesOptions, setSeriesOptions] = useState([]);
 
   // Populate form from book data
   function populateFormFromBook(b) {
@@ -81,9 +82,10 @@ export default function BookDetailPage() {
       setErr(null);
 
       try {
-        const [b, a] = await Promise.all([
+        const [b, a, s] = await Promise.all([
           booksApi.getBook(bookId),
           booksApi.listAuthors().catch(() => []),
+          booksApi.listSeries().catch(() => []),
         ]);
 
         if (cancelled) return;
@@ -91,6 +93,7 @@ export default function BookDetailPage() {
         setBook(b);
         populateFormFromBook(b);
         setAuthorOptions(Array.isArray(a) ? a : []);
+        setSeriesOptions(Array.isArray(s) ? s : []);
       } catch (e) {
         if (!cancelled) setErr(errorMessage(e));
       } finally {
@@ -146,8 +149,9 @@ export default function BookDetailPage() {
       populateFormFromBook(updated);
       setEditing(false);
 
-      // Refresh author list
+      // Refresh author and series lists
       booksApi.listAuthors().then((a) => setAuthorOptions(Array.isArray(a) ? a : [])).catch(() => {});
+      booksApi.listSeries().then((s) => setSeriesOptions(Array.isArray(s) ? s : [])).catch(() => {});
     } catch (e) {
       setErr(errorMessage(e));
     } finally {
@@ -266,6 +270,8 @@ export default function BookDetailPage() {
                 setSeriesName={setSeriesName}
                 seriesPosition={seriesPosition}
                 setSeriesPosition={setSeriesPosition}
+                seriesOptions={seriesOptions}
+                originalSeriesName={book.series_name}
               />
             )}
           </CardContent>

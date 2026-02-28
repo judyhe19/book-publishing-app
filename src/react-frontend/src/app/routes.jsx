@@ -16,6 +16,7 @@ import BookDetailPage from "../features/books/pages/BookDetailPage";
 import AuthorListPage from "../features/author/pages/AuthorListPage";
 import AuthorCreatePage from "../features/author/pages/AuthorCreatePage";
 import AuthorModifyPage from "../features/author/pages/AuthorModifyPage";
+import SeriesEditorPage from "../features/books/pages/SeriesEditorPage";
 
 
 export function AppRoutes() {
@@ -95,6 +96,15 @@ export function AppRoutes() {
         element={
           <RequireAuth>
             <IngramCSVImportPage />
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/series"
+        element={
+          <RequireAuth>
+            <SeriesEditorPage />
           </RequireAuth>
         }
       />

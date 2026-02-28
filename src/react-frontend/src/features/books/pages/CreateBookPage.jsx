@@ -11,7 +11,7 @@ import {
   ErrorAlert,
   FormField,
 } from "../../../shared/components";
-import { AuthorPicker, CoverImageField, SeriesFields } from "../components";
+import { AuthorPicker, CoverImageField, SeriesPicker } from "../components";
 import { errorMessage } from "../../../shared/utils/errors";
 import * as booksApi from "../api/booksApi";
 
@@ -47,6 +47,9 @@ export default function CreateBookPage() {
   const [selectedAuthorId, setSelectedAuthorId] = useState("");
   const [authorSearch, setAuthorSearch] = useState("");
 
+  // Series options for autocomplete
+  const [seriesOptions, setSeriesOptions] = useState([]);
+
   // Royalty rates (book-level, not per-author)
   const [distributorRoyaltyRate, setDistributorRoyaltyRate] = useState("0.50");
   const [handSoldRoyaltyRate, setHandSoldRoyaltyRate] = useState("0.20");
@@ -54,7 +57,7 @@ export default function CreateBookPage() {
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
 
-  // Load authors
+  // Load authors and series options
   useEffect(() => {
     let cancelled = false;
 
@@ -62,8 +65,14 @@ export default function CreateBookPage() {
       setAuthorsLoading(true);
       setAuthorsErr(null);
       try {
-        const data = await booksApi.listAuthors();
-        if (!cancelled) setAuthorOptions(Array.isArray(data) ? data : []);
+        const [authorsData, seriesData] = await Promise.all([
+          booksApi.listAuthors(),
+          booksApi.listSeries().catch(() => []),
+        ]);
+        if (!cancelled) {
+          setAuthorOptions(Array.isArray(authorsData) ? authorsData : []);
+          setSeriesOptions(Array.isArray(seriesData) ? seriesData : []);
+        }
       } catch (e) {
         if (!cancelled) setAuthorsErr(errorMessage(e));
       } finally {
@@ -229,11 +238,13 @@ export default function CreateBookPage() {
               </div>
 
               {/* Series */}
-              <SeriesFields
+              <SeriesPicker
                 seriesName={seriesName}
                 setSeriesName={setSeriesName}
                 seriesPosition={seriesPosition}
                 setSeriesPosition={setSeriesPosition}
+                seriesOptions={seriesOptions}
+                originalSeriesName={null}
               />
 
               {/* Cover image */}

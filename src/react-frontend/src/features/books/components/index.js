@@ -11,3 +11,4 @@ export { default as CoverImage } from "./CoverImage";
 export { default as CoverImageField } from "./CoverImageField";
 export { default as DeleteBookDialog } from "./DeleteBookDialog";
 export { default as SeriesFields } from "./SeriesFields";
+export { default as SeriesPicker } from "./SeriesPicker";

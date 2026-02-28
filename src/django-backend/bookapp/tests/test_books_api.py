@@ -2,7 +2,7 @@ import pytest
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 
-from bookapp.models import Book, Author, AuthorBook, Sale
+from bookapp.models import Book, Author, Sale
 
 pytestmark = pytest.mark.django_db
 

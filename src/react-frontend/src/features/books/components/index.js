@@ -3,7 +3,6 @@ export { default as AuthorsEditor } from "./AuthorsEditor";
 export { default as AuthorPicker } from "./AuthorPicker";
 export { default as BookEditMode } from "./BookEditMode";
 export { default as BookSalesSection } from "./BookSalesSection";
-export { default as BookSalesTable } from "./BookSalesTable";
 export { default as BooksTable } from "./BooksTable";
 export { default as BooksToolbar } from "./BooksToolbar";
 export { default as BookViewMode } from "./BookViewMode";

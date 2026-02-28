@@ -181,13 +181,26 @@ export default function CreateBookPage() {
               {/* Author */}
               {authorsErr && <ErrorAlert>Failed to load authors: {authorsErr}</ErrorAlert>}
 
-              <AuthorPicker
-                authorOptions={authorOptions}
-                selectedAuthorId={selectedAuthorId}
-                setSelectedAuthorId={setSelectedAuthorId}
-                authorSearch={authorSearch}
-                setAuthorSearch={setAuthorSearch}
-              />
+              <div className="flex items-end justify-center gap-3 w-full">
+                <div className="flex-1 min-w-0">
+                  <AuthorPicker
+                    authorOptions={authorOptions}
+                    selectedAuthorId={selectedAuthorId}
+                    setSelectedAuthorId={setSelectedAuthorId}
+                    authorSearch={authorSearch}
+                    setAuthorSearch={setAuthorSearch}
+                  />
+                </div>
+
+                <Button
+                  type="button"
+                  className="shrink-0 whitespace-nowrap"
+                  onClick={() => nav("/authors/create")}
+                >
+                  New Author
+                </Button>
+              </div>
+
 
               {/* Royalty rates */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

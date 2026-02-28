@@ -23,12 +23,12 @@ export default function BooksListPage() {
     totalPages,
     q,
     setQ,
-    ordering,
+    uiOrdering,
     toggleOrdering,
     setPage,
     showAll,
     setShowAll,
-  } = useBooksList({ pageSize: 50, ordering: "title" });
+  } = useBooksList({ pageSize: 50, ordering: "first_author_name,series_position,title" });
 
   const onGoBook = (book) => {
     navigate(`/books/${book.id}`);
@@ -58,7 +58,7 @@ export default function BooksListPage() {
       <DualScrollContainer contentWidth={1400}>
         <BooksTable
           books={books}
-          ordering={ordering}
+          ordering={uiOrdering}
           onToggleOrdering={toggleOrdering}
           onGoBook={onGoBook}
         />

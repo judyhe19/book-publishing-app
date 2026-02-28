@@ -25,10 +25,15 @@ export function useBooksList(initial = {}) {
     results: [],
   });
 
+  const DEFAULT_ORDERING = "first_author_name,series_position,title";
+
   // UI state
   const [page, setPage] = useState(initial.page ?? 1);
   const [pageSize, setPageSize] = useState(initial.pageSize ?? 10);
-  const [ordering, setOrdering] = useState(initial.ordering ?? "title");
+  // ordering: sent to the backend (starts as default so data arrives pre-sorted)
+  const [ordering, setOrdering] = useState(initial.ordering ?? DEFAULT_ORDERING);
+  // uiOrdering: drives column header arrows; empty on load so no arrows show by default
+  const [uiOrdering, setUiOrdering] = useState("");
   const [q, setQ] = useState(initial.q ?? "");
 
   // NEW: show all toggle
@@ -93,17 +98,29 @@ export function useBooksList(initial = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryParams]);
 
-  // Helpers for table header clicks:
-  // toggleOrdering("title") => "title" / "-title"
+  // Multi-column sort toggle.
+  // Operates on uiOrdering (what arrows show). When cleared, falls back to DEFAULT_ORDERING for the API.
+  // Cycle per field: not present → prepend as primary (asc) → flip to desc → remove.
   const toggleOrdering = (field) => {
-    setPage(1); // changing sort should reset to first page
-    setOrdering((prev) => {
-      const prevField = prev?.startsWith("-") ? prev.slice(1) : prev;
-      const prevDesc = prev?.startsWith("-");
+    setPage(1);
+    const parts = (uiOrdering || "")
+      .split(",")
+      .filter(Boolean)
+      .map((p) => ({ field: p.startsWith("-") ? p.slice(1) : p, desc: p.startsWith("-") }));
 
-      if (prevField !== field) return field; // new field asc
-      return prevDesc ? field : `-${field}`; // toggle
-    });
+    const idx = parts.findIndex((p) => p.field === field);
+    let next;
+    if (idx === -1) {
+      next = [{ field, desc: false }, ...parts];
+    } else if (!parts[idx].desc) {
+      next = parts.map((p, i) => (i === idx ? { ...p, desc: true } : p));
+    } else {
+      next = parts.filter((_, i) => i !== idx);
+    }
+
+    const nextUi = next.map((p) => (p.desc ? `-${p.field}` : p.field)).join(",");
+    setUiOrdering(nextUi);
+    setOrdering(nextUi || DEFAULT_ORDERING);
   };
 
   // Searching should usually reset to page 1
@@ -132,6 +149,7 @@ export function useBooksList(initial = {}) {
     q,
     setQ: setSearch,
     ordering,
+    uiOrdering,
     setOrdering: (o) => {
       setPage(1);
       setOrdering(o);

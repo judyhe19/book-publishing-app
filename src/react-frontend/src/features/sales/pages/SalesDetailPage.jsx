@@ -61,32 +61,37 @@ export default function SalesDetailPage() {
       label: formatBookLabel(book.title, book.isbn_13),
       authors: book.authors || [],
       publication_date: book.publication_date,
+      distributor_author_royalty_rate: book.distributor_author_royalty_rate,
+      hand_sold_author_royalty_rate: book.hand_sold_author_royalty_rate,
+      cover_price: book.cover_price,
+      print_cost: book.print_cost,
     });
   }, [sale, book]);
 
   const isDistributor = sale?.sale_source === "distributor";
+  const isHandsold = sale?.sale_source === "handsold";
 
   // ---------------------------------------------------------------
   // Auto-calculate author_royalty when publisher_revenue changes
-  // for distributor sales: author_royalty = royalty_rate × revenue
+  // author_royalty = royalty_rate × publisher_revenue
   // ---------------------------------------------------------------
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
-    if (!form || !isDistributor) return;
+    if (!form || !sale?.sale_source || !selectedBook) return;
 
-    // TODO: Once the Book model has a dedicated `distributor_royalty_rate`
-    //       field, use that instead of `authors[0].royalty_rate`.
-    const royaltyRate = Number(selectedBook?.authors?.[0]?.royalty_rate ?? 0);
+    const rate = isHandsold
+      ? Number(selectedBook?.hand_sold_author_royalty_rate ?? 0)
+      : Number(selectedBook?.distributor_author_royalty_rate ?? 0);
     const revenue = Number(form.publisher_revenue);
 
-    if (Number.isNaN(royaltyRate) || Number.isNaN(revenue)) return;
+    if (Number.isNaN(rate) || Number.isNaN(revenue)) return;
 
-    const computed = (royaltyRate * revenue).toFixed(2);
+    const computed = (rate * revenue).toFixed(2);
 
     if (computed !== String(form.author_royalty)) {
       setForm((prev) => ({ ...prev, author_royalty: computed }));
     }
-  }, [form, selectedBook, isDistributor]);
+  }, [form?.publisher_revenue, selectedBook, isDistributor, isHandsold, sale?.sale_source]);
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -97,9 +102,10 @@ export default function SalesDetailPage() {
     handleChange("book_id", option?.value || null);
 
     // Recalculate author_royalty for the new book's royalty rate
-    if (isDistributor && option?.authors?.[0]?.royalty_rate && form) {
-      // TODO: Use `option.distributor_royalty_rate` once available
-      const rate = Number(option.authors[0].royalty_rate);
+    if (sale?.sale_source && form) {
+      const rate = isHandsold
+        ? Number(option?.hand_sold_author_royalty_rate ?? 0)
+        : Number(option?.distributor_author_royalty_rate ?? 0);
       const revenue = Number(form.publisher_revenue);
       if (!Number.isNaN(rate) && !Number.isNaN(revenue)) {
         handleChange("author_royalty", (rate * revenue).toFixed(2));

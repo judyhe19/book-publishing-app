@@ -26,6 +26,11 @@ def sample_book(user):
         title="Valid Book",
         publication_date="2020-01-01",
         isbn_13="9780000000123",
+        author=author,
+        distributor_author_royalty_rate=Decimal("0.10"),
+        hand_sold_author_royalty_rate=Decimal("0.20"),
+        cover_price=Decimal("20.00"),
+        print_cost=Decimal("10.00"),
     )
     return book
 
@@ -34,7 +39,6 @@ def test_create_sale_negative_quantity(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": -5,
         "publisher_revenue": "100.00",
-        "author_royalty": "10.00",
         "sale_source": "distributor",
         "date": "2023-01"
     }
@@ -47,7 +51,6 @@ def test_create_sale_zero_quantity(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 0,
         "publisher_revenue": "100.00",
-        "author_royalty": "10.00",
         "sale_source": "distributor",
         "date": "2023-01"
     }
@@ -60,7 +63,6 @@ def test_create_sale_negative_revenue(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 10,
         "publisher_revenue": "-50.00",
-        "author_royalty": "10.00",
         "sale_source": "distributor",
         "date": "2023-01"
     }
@@ -68,26 +70,12 @@ def test_create_sale_negative_revenue(authed_client, sample_book):
     assert resp.status_code == 400
     assert "publisher_revenue" in resp.data
 
-def test_create_sale_negative_author_royalty(authed_client, sample_book):
-    payload = {
-        "book": sample_book.id,
-        "quantity": 10,
-        "publisher_revenue": "100.00",
-        "author_royalty": "-10.00",
-        "sale_source": "distributor",
-        "date": "2023-01"
-    }
-    resp = authed_client.post("/api/sales/", payload, format="json")
-    assert resp.status_code == 400
-    assert "author_royalty" in resp.data
-
 def test_create_sale_date_before_publication(authed_client, sample_book):
     # Book pub date is 2020-01-01
     payload = {
         "book": sample_book.id,
         "quantity": 10,
         "publisher_revenue": "100.00",
-        "author_royalty": "10.00",
         "sale_source": "distributor",
         "date": "2019-12" # Before publication
     }
@@ -100,7 +88,6 @@ def test_create_sale_invalid_source(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 10,
         "publisher_revenue": "100.00",
-        "author_royalty": "10.00",
         "sale_source": "invalid",
         "date": "2023-01"
     }
@@ -113,7 +100,6 @@ def test_create_sale_valid(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 10,
         "publisher_revenue": "100.00",
-        "author_royalty": "10.00",
         "sale_source": "distributor",
         "date": "2023-01"
     }
@@ -147,7 +133,6 @@ def test_create_sale_year_zero_date(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 10,
         "publisher_revenue": "100.00",
-        "author_royalty": "10.00",
         "sale_source": "distributor",
         "date": "0000-01"
     }

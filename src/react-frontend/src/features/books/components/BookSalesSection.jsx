@@ -9,9 +9,10 @@ import {
   StatCard,
   Pagination,
   ShowAllToggle,
-  SaleEntryRow,
 } from "../../../shared/components";
-import BookSalesTable from "./BookSalesTable";
+import SaleInputRow from "../../sales/components/SaleInputRow";
+import SalesTable from "../../sales/components/SalesTable";
+import { BOOK_DETAIL_COLUMNS } from "../../sales/config/salesTableConfig";
 import { useBookSales } from "../hooks/useBookSales";
 import * as booksApi from "../api/booksApi";
 import { createManySales } from "../../sales/api/salesApi";
@@ -63,6 +64,10 @@ export default function BookSalesSection({ bookId, book, onSaleCreated }) {
         value: book.id,
         label: book.title,
         publication_date: book.publication_date,
+        distributor_author_royalty_rate: book.distributor_author_royalty_rate,
+        hand_sold_author_royalty_rate: book.hand_sold_author_royalty_rate,
+        cover_price: book.cover_price,
+        print_cost: book.print_cost,
       }
     : null;
 
@@ -95,13 +100,19 @@ export default function BookSalesSection({ bookId, book, onSaleCreated }) {
 
   const handleSubmitSale = async () => {
     setSaleError(null);
-    if (!isRowComplete(saleRow)) {
+
+    // If a fixedBook is provided, inject it into the row for validation/transform
+    const rowToSubmit = fixedBook
+      ? { ...saleRow, book: fixedBook }
+      : saleRow;
+
+    if (!isRowComplete(rowToSubmit)) {
       setSaleError("Please fill in all fields.");
       return;
     }
     setSaleSubmitting(true);
     try {
-      const saleData = transformRowToSaleData(saleRow);
+      const saleData = transformRowToSaleData(rowToSubmit);
       await createManySales([saleData]);
       setSaleRow({ ...EMPTY_ROW });
       setShowSaleEntry(false);
@@ -137,9 +148,9 @@ export default function BookSalesSection({ bookId, book, onSaleCreated }) {
           <div className="mb-6">
             {saleError && <ErrorAlert className="mb-4">{saleError}</ErrorAlert>}
 
-            <SaleEntryRow
+            <SaleInputRow
               index={0}
-              data={saleRow}
+              row={saleRow}
               onChange={handleSaleRowChange}
               onRemove={() => {}}
               isFirst={true}
@@ -191,8 +202,9 @@ export default function BookSalesSection({ bookId, book, onSaleCreated }) {
         </div>
 
         {/* Sales table */}
-        <BookSalesTable
+        <SalesTable
           data={bookSales}
+          columns={BOOK_DETAIL_COLUMNS}
           loading={salesLoading}
           ordering={salesOrdering}
           onSort={handleSalesSort}

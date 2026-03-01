@@ -47,18 +47,15 @@ export default function SalesFilters({ filters, onDateChange, onFilterChange }) 
       </div>
       <div className="flex-1 max-w-sm">
         <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
-        <input
-          type="text"
-          list="source-options"
-          placeholder="All Sources"
+        <select
           value={filters.sale_source}
           onChange={(e) => onFilterChange("sale_source", e.target.value)}
           className={inputClass}
-        />
-        <datalist id="source-options">
-          <option value="Distributor" />
-          <option value="Handsold" />
-        </datalist>
+        >
+          <option value="">All Sources</option>
+          <option value="Distributor">Distributor</option>
+          <option value="Handsold">Handsold</option>
+        </select>
       </div>
     </div>
   );

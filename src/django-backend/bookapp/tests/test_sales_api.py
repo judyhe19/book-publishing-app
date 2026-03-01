@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from decimal import Decimal
 
-from bookapp.models import Book, Author, Sale, AuthorBook
+from bookapp.models import Book, Author, Sale
 
 pytestmark = pytest.mark.django_db
 
@@ -26,16 +26,18 @@ def make_author(name="Frank Herbert"):
     email = f"{name.lower().replace(' ', '_')}_{uuid.uuid4().hex[:6]}@test.com"
     return Author.objects.create(name=name, email=email)
 
-def make_book(*, isbn_13, title="T", author=None, royalty_rate="0.10"):
+def make_book(*, isbn_13, title="T", author=None, royalty_rate="0.10", cover_price="20.00", print_cost="10.00"):
     book = Book.objects.create(
         title=title,
         publication_date="2000-01-01",
         isbn_13=isbn_13,
         isbn_10=None,
+        author=author,
+        distributor_author_royalty_rate=Decimal(royalty_rate),
+        hand_sold_author_royalty_rate=Decimal("0.20"),
+        cover_price=Decimal(cover_price),
+        print_cost=Decimal(print_cost),
     )
-    if author is not None:
-        # Create AuthorBook with specific rate
-        AuthorBook.objects.create(author=author, book=book, royalty_rate=Decimal(royalty_rate))
     return book
 
 def test_create_sale(authed_client, user):
@@ -46,7 +48,6 @@ def test_create_sale(authed_client, user):
         "book": b1.id,
         "quantity": 100,
         "publisher_revenue": "1000.00",
-        "author_royalty": "100.00",
         "sale_source": "distributor",
         "date": "2023-01"
     }
@@ -64,13 +65,11 @@ def test_create_sale(authed_client, user):
 
 def test_create_sale_handsold(authed_client, user):
     a1 = make_author()
-    b1 = make_book(isbn_13="9780000000002", author=a1, royalty_rate="0.10")
+    b1 = make_book(isbn_13="9780000000002", author=a1, royalty_rate="0.10", cover_price="20.00", print_cost="10.00")
 
     payload = {
         "book": b1.id,
         "quantity": 50,
-        "publisher_revenue": "500.00",
-        "author_royalty": "100.00",
         "sale_source": "handsold",
         "date": "2023-01",
     }
@@ -80,6 +79,9 @@ def test_create_sale_handsold(authed_client, user):
 
     sale = Sale.objects.first()
     assert sale.sale_source == "handsold"
+    # Handsold revenue is 50 * (20 - 10) = 500
+    assert sale.publisher_revenue == Decimal("500.00")
+    # Royalty is 500 * handsold diff rate (0.20) = 100
     assert sale.author_royalty == Decimal("100.00")
 
 def test_create_many_sales(authed_client, user):
@@ -91,7 +93,6 @@ def test_create_many_sales(authed_client, user):
             "book": b1.id,
             "quantity": 10,
             "publisher_revenue": "100.00",
-            "author_royalty": "10.00",
             "sale_source": "distributor",
             "date": "2023-01"
         },
@@ -99,7 +100,6 @@ def test_create_many_sales(authed_client, user):
             "book": b1.id,
             "quantity": 20,
             "publisher_revenue": "200.00",
-            "author_royalty": "20.00",
             "sale_source": "distributor",
             "date": "2023-02"
         }
@@ -146,7 +146,6 @@ def test_edit_sale_updates_fields(authed_client, user):
     payload = {
         "quantity": 20,
         "publisher_revenue": "200.00",
-        "author_royalty": "50.00",
     }
     
     resp = authed_client.patch(f"/api/sales/{sale.id}/", payload, format="json")
@@ -155,7 +154,8 @@ def test_edit_sale_updates_fields(authed_client, user):
     sale.refresh_from_db()
     assert sale.quantity == 20
     assert sale.publisher_revenue == Decimal("200.00")
-    assert sale.author_royalty == Decimal("50.00")
+    # Should recompute royalty: 200 * 0.10 = 20.00
+    assert sale.author_royalty == Decimal("20.00")
 
 def test_edit_sale_updates_author_paid(authed_client, user):
     a1 = make_author()

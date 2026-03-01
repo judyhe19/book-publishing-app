@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 
-from bookapp.models import Book, Author, AuthorBook
+from bookapp.models import Book, Author, Sale
 
 pytestmark = pytest.mark.django_db
 
@@ -38,8 +38,27 @@ def make_book(isbn_13, title="Test Book", author_name="Test Author", royalty_rat
     book = Book.objects.create(
         title=title, publication_date=pub_date,
         isbn_13=isbn_13, isbn_10=isbn_10,
+        author=author,
+        distributor_author_royalty_rate=Decimal(royalty_rate),
+        hand_sold_author_royalty_rate=Decimal("0.20"), # Default for tests
+        cover_price=Decimal("20.00"), # Default for tests
+        print_cost=Decimal("10.00"), # Default for tests
     )
-    AuthorBook.objects.create(author=author, book=book, royalty_rate=Decimal(royalty_rate))
+    return book
+
+@pytest.fixture
+def sample_book():
+    a = Author.objects.create(name="Frank Herbert")
+    book = Book.objects.create(
+        title="Dune",
+        publication_date="1965-08-01",
+        isbn_13="9780441172719",
+        author=a,
+        distributor_author_royalty_rate=Decimal("0.10"),
+        hand_sold_author_royalty_rate=Decimal("0.20"),
+        cover_price=Decimal("20.00"),
+        print_cost=Decimal("10.00"),
+    )
     return book
 
 
@@ -222,7 +241,7 @@ class TestIngramCSVRowValidation:
         )
         resp = upload(authed_client, csv)
         assert resp.status_code == 400
-        assert any("Net Qty must be at least 1" in e for e in resp.data["errors"])
+        assert any("Quantity must be a positive integer" in e for e in resp.data["errors"])
 
     def test_sale_date_before_publication(self, authed_client):
         make_book("9781473619814", title="Book", pub_date="2026-06-01")

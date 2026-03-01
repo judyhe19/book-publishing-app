@@ -15,6 +15,7 @@ from .views.cover_upload import CoverImageUploadView
 from .views.cover_thumbnail import CoverThumbnailView
 from .views.cover_image import CoverImageView
 from .views.series import SeriesListView, SeriesReorderView
+from .views.royalty_report import AuthorRoyaltyReportView
 
 # ----- DRF Router -----
 router = DefaultRouter(trailing_slash=True)
@@ -69,6 +70,14 @@ urlpatterns = [
     # Series list and bulk reorder
     path("series/", SeriesListView.as_view(), name="series-list"),
     path("series/reorder/", SeriesReorderView.as_view(), name="series-reorder"),
+
+    # Author royalty report
+    path(
+        "authors/<int:author_id>/royalty-report/",
+        AuthorRoyaltyReportView.as_view(),
+        name="author-royalty-report",
+    ),
+
 
     # Router-generated URLs for books, sales, authors
     path("", include(router.urls)),

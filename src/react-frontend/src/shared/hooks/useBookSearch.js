@@ -57,6 +57,8 @@ export const useBookSearch = ({ date } = {}) => {
                     isbn_10: book.isbn_10,
                     author_id: book.author_id,
                     author_name: book.author_name,
+                    cover_price: book.cover_price,
+                    print_cost: book.print_cost,
                 };
             });
         } catch (error) {

@@ -5,6 +5,7 @@ django-cors-headers
 whitenoise
 djangorestframework
 django-cors-headers
+Pillow
 pytest
 pytest-django
 pylint

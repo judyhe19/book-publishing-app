@@ -3,12 +3,6 @@ import React, { useMemo } from "react";
 import { DataTable } from "../../../shared/components";
 import { formatMonthYear } from "../../../shared/utils/dateUtils";
 
-function pct(x) {
-  const n = Number(x);
-  if (Number.isNaN(n)) return "";
-  return `${(n * 100).toFixed(1)}%`;
-}
-
 function money(x) {
   const n = Number(x);
   if (Number.isNaN(n)) return "—";
@@ -20,43 +14,16 @@ function getNum(x) {
   return Number.isNaN(n) ? 0 : n;
 }
 
-function authorNameForBook(b) {
-  const authors = b.authors || [];
-  if (authors.length === 0) return "";
-  return (authors[0]?.name || "").toLowerCase();
-}
-
-function seriesNameForBook(b) {
-  const s =
-    b.series?.name ||
-    b.series_name ||
-    b.seriesTitle ||
-    b.series ||
-    "";
-  return String(s || "").toLowerCase();
-}
-
-function seriesPosForBook(b) {
-  const p = b.series_position ?? b.series_pos ?? b.seriesPosition;
-  const n = Number(p);
-  return Number.isNaN(n) ? Number.POSITIVE_INFINITY : n;
-}
-
-function titleForBook(b) {
-  return (b.title || "").toLowerCase();
-}
-
 export function sortBooksDefault(books) {
   const arr = [...(books || [])];
   arr.sort((a, b) => {
-    const aa = authorNameForBook(a);
-    const ab = authorNameForBook(b);
+    const aa = (a.author_name || "").toLowerCase();
+    const ab = (b.author_name || "").toLowerCase();
     if (aa < ab) return -1;
     if (aa > ab) return 1;
 
-    const sa = seriesNameForBook(a);
-    const sb = seriesNameForBook(b);
-
+    const sa = (a.series_name || "").toLowerCase();
+    const sb = (b.series_name || "").toLowerCase();
     const aHasSeries = sa.trim().length > 0;
     const bHasSeries = sb.trim().length > 0;
 
@@ -66,13 +33,13 @@ export function sortBooksDefault(books) {
     if (sa < sb) return -1;
     if (sa > sb) return 1;
 
-    const pa = seriesPosForBook(a);
-    const pb = seriesPosForBook(b);
+    const pa = a.series_position ?? Number.POSITIVE_INFINITY;
+    const pb = b.series_position ?? Number.POSITIVE_INFINITY;
     if (pa < pb) return -1;
     if (pa > pb) return 1;
 
-    const ta = titleForBook(a);
-    const tb = titleForBook(b);
+    const ta = (a.title || "").toLowerCase();
+    const tb = (b.title || "").toLowerCase();
     if (ta < tb) return -1;
     if (ta > tb) return 1;
     return 0;
@@ -82,6 +49,21 @@ export function sortBooksDefault(books) {
 
 function buildBooksColumns({ showAuthor, extraColumns }) {
   const cols = [
+    {
+      label: "",
+      className: "w-16 pr-0",
+      render: (b) => {
+        if (!b.cover_image_path) return null;
+        const src = `/api/books/cover-thumbnail/?path=${encodeURIComponent(b.cover_image_path)}`;
+        return (
+          <img
+            src={src}
+            alt={`Cover of ${b.title}`}
+            className="h-16 w-auto object-contain rounded"
+          />
+        );
+      },
+    },
     {
       label: "Title",
       sortKey: "title",
@@ -94,56 +76,35 @@ function buildBooksColumns({ showAuthor, extraColumns }) {
     cols.push({
       label: "Author",
       sortKey: "author_name",
-      className: "align-top whitespace-nowrap",
-      render: (b) => {
-        const authors = b.authors || [];
-        if (authors.length === 0) return <div className="text-slate-400">—</div>;
-        return (
-          <div className="space-y-1">
-            {authors.map((a) => (
-              <div key={a.author_id} className="text-slate-700">
-                {a.name}
-              </div>
-            ))}
-          </div>
-        );
-      },
+      className: "whitespace-nowrap",
+      render: (b) => (
+        <span className="text-slate-700">
+          {b.author_name || <span className="text-slate-400">—</span>}
+        </span>
+      ),
     });
   }
 
   cols.push(
+    {
+      label: "Series",
+      sortKey: "series_name",
+      render: (b) =>
+        b.series_display ? (
+          <span className="text-slate-700">{b.series_display}</span>
+        ) : (
+          <span className="text-slate-400">—</span>
+        ),
+    },
     {
       label: "ISBN-13",
       sortKey: "isbn_13",
       render: (b) => <span className="font-mono text-slate-700">{b.isbn_13 || "—"}</span>,
     },
     {
-      label: "ISBN-10",
-      sortKey: "isbn_10",
-      render: (b) => <span className="font-mono text-slate-700">{b.isbn_10 || "—"}</span>,
-    },
-    {
       label: "Publication",
       sortKey: "publication_date",
       render: (b) => formatMonthYear(b.publication_date),
-    },
-    {
-      label: "Royalty Rate",
-      sortKey: "author_royalty_rate",
-      className: "align-top whitespace-nowrap",
-      render: (b) => {
-        const authors = b.authors || [];
-        if (authors.length === 0) return <div className="text-slate-400">—</div>;
-        return (
-          <div className="space-y-1">
-            {authors.map((a) => (
-              <div key={a.author_id} className="text-slate-700">
-                {pct(a.royalty_rate)}
-              </div>
-            ))}
-          </div>
-        );
-      },
     },
     {
       label: "Total Sales",
@@ -165,40 +126,25 @@ export function buildAuthorRoyaltyColumns() {
       label: "Total Author Royalty",
       sortKey: "total_author_royalty",
       className: "whitespace-nowrap",
-      render: (b) => {
-        const v =
-          b.total_author_royalty ??
-          b.total_author_royalty_to_date ??
-          b.totalRoyalty ??
-          0;
-        return <span className="tabular-nums">{money(getNum(v))}</span>;
-      },
+      render: (b) => (
+        <span className="tabular-nums">{money(getNum(b.total_author_royalty ?? 0))}</span>
+      ),
     },
     {
       label: "Paid Author Royalty",
       sortKey: "paid_author_royalty",
       className: "whitespace-nowrap",
-      render: (b) => {
-        const v =
-          b.paid_author_royalty ??
-          b.paid_author_royalty_to_date ??
-          b.paidRoyalty ??
-          0;
-        return <span className="tabular-nums">{money(getNum(v))}</span>;
-      },
+      render: (b) => (
+        <span className="tabular-nums">{money(getNum(b.paid_author_royalty ?? 0))}</span>
+      ),
     },
     {
       label: "Unpaid Author Royalty",
       sortKey: "unpaid_author_royalty",
       className: "whitespace-nowrap",
-      render: (b) => {
-        const v =
-          b.unpaid_author_royalty ??
-          b.unpaid_author_royalty_to_date ??
-          b.unpaidRoyalty ??
-          0;
-        return <span className="tabular-nums">{money(getNum(v))}</span>;
-      },
+      render: (b) => (
+        <span className="tabular-nums">{money(getNum(b.unpaid_author_royalty ?? 0))}</span>
+      ),
     },
   ];
 }

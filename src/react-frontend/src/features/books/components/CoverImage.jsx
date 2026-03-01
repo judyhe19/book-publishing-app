@@ -17,9 +17,14 @@ export default function CoverImage({ path, title, className = "" }) {
     );
   }
 
+  // Stored covers are served via the API endpoint; local blob/data previews are used directly.
+  const src = path.startsWith("/static/")
+    ? `/api/books/cover-image/?path=${encodeURIComponent(path)}`
+    : path;
+
   return (
     <img
-      src={path}
+      src={src}
       alt={`Cover of ${title}`}
       className={`h-64 w-auto max-w-[12rem] flex-shrink-0 rounded-lg object-cover shadow-md ${className}`}
       onError={() => setErrored(true)}

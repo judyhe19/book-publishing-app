@@ -5,6 +5,53 @@ from django.db.models import Q, OuterRef, Subquery, F, Sum, Value
 from django.db.models.functions import Coalesce
 from django.db.models import IntegerField, DecimalField
 
+# Fields that are nullable and should always sort nulls last
+_NULLS_LAST_FIELDS = {"series_name", "series_position", "first_author_name", "first_author_royalty_rate"}
+
+_ALLOWED_ORDER_FIELDS = {
+    "title",
+    "isbn_13",
+    "publication_date",
+    "total_sales_to_date",
+    "first_author_name",
+    "series_name",
+    "series_position",
+}
+
+_DEFAULT_ORDERING = "first_author_name,series_position,title"
+
+
+def _parse_ordering(ordering_param):
+    """
+    Parse a comma-separated ordering string (e.g. "first_author_name,-series_position,title")
+    into a list of Django ORM order expressions, with nulls_last on nullable fields.
+    Ignores unknown or duplicate fields. Falls back to the default if nothing valid is found.
+    Always appends 'id' as the final tiebreaker.
+    """
+    raw_fields = [f.strip() for f in ordering_param.split(",") if f.strip()]
+    seen = set()
+    exprs = []
+    for raw in raw_fields:
+        desc = raw.startswith("-")
+        field = raw.lstrip("-")
+        if field not in _ALLOWED_ORDER_FIELDS or field in seen:
+            continue
+        seen.add(field)
+        if field in _NULLS_LAST_FIELDS:
+            exprs.append(F(field).desc(nulls_last=True) if desc else F(field).asc(nulls_last=True))
+        else:
+            exprs.append(F(field).desc() if desc else F(field).asc())
+
+    if not exprs:
+        exprs = [
+            F("first_author_name").asc(nulls_last=True),
+            F("series_position").asc(nulls_last=True),
+            F("title").asc(),
+        ]
+
+    exprs.append(F("id").asc())
+    return exprs
+
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -136,39 +183,14 @@ class BookViewSet(ModelViewSet):
             if published_before:
                 qs = qs.filter(publication_date__lte=published_before)
 
-            # Sorting
-            ordering = self.request.query_params.get("ordering", "title")
-            allowed_order_fields = {
-                "title",
-                "isbn_13",
-                "isbn_10",
-                "publication_date",
-                "total_sales_to_date",
-                "id",
-                "first_author_name",
-                "first_author_royalty_rate",
-            }
+            # Optional filter: series_name (used by Series Editor page)
+            series_filter = self.request.query_params.get("series_name")
+            if series_filter:
+                qs = qs.filter(series_name=series_filter)
 
-            sort_field = ordering
-            desc = False
-            if sort_field.startswith("-"):
-                desc = True
-                sort_field = sort_field[1:]
-
-            if sort_field not in allowed_order_fields:
-                sort_field = "title"
-                desc = False
-
-            if sort_field in {"first_author_name", "first_author_royalty_rate"}:
-                sort_expr = (
-                    F(sort_field).desc(nulls_last=True)
-                    if desc
-                    else F(sort_field).asc(nulls_last=True)
-                )
-                qs = qs.order_by(sort_expr, "id")
-            else:
-                order_by = f"-{sort_field}" if desc else sort_field
-                qs = qs.order_by(order_by, "id")
+            # Sorting — comma-separated multi-column, e.g. "first_author_name,series_position,title"
+            ordering_param = self.request.query_params.get("ordering", _DEFAULT_ORDERING)
+            qs = qs.order_by(*_parse_ordering(ordering_param))
 
         return qs
 

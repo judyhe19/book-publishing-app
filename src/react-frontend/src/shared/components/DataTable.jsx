@@ -14,11 +14,29 @@ export function DataTable({
   emptyMessage = "No data found.",
   loadingMessage = "Loading data...",
 }) {
+  // Parse comma-separated multi-sort string into [{field, desc, position}]
+  const sortParts = (ordering || "")
+    .split(",")
+    .filter(Boolean)
+    .map((p, i) => ({
+      field: p.startsWith("-") ? p.slice(1) : p,
+      desc: p.startsWith("-"),
+      position: i + 1,
+    }));
+  const multiSort = sortParts.length > 1;
+
   const renderSortIcon = (field) => {
     if (!field) return null;
-    if (ordering === field) return " ↑";
-    if (ordering === `-${field}`) return " ↓";
-    return "";
+    const entry = sortParts.find((p) => p.field === field);
+    if (!entry) return null;
+    const arrow = entry.desc ? " ↓" : " ↑";
+    return multiSort ? (
+      <span className="text-blue-500 text-xs">
+        {arrow}<sup>{entry.position}</sup>
+      </span>
+    ) : (
+      <span className="text-blue-500">{arrow}</span>
+    );
   };
 
   return (

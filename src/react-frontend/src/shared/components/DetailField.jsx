@@ -9,7 +9,7 @@ export function DetailField({ label, children, className = "" }) {
   return (
     <div className={className}>
       <div className="text-xs font-semibold uppercase text-slate-500">{label}</div>
-      <div className="text-slate-900">{children || "—"}</div>
+      <div className="text-slate-900">{children != null && children !== "" ? children : "—"}</div>
     </div>
   );
 }

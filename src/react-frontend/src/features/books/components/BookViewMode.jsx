@@ -87,13 +87,6 @@ export default function BookViewMode({ book }) {
           </DetailField>
         )}
 
-        {book.cover_image_path && (
-          <DetailField label="Cover Image Path">
-            <span className="break-all font-mono text-xs text-slate-500">
-              {book.cover_image_path}
-            </span>
-          </DetailField>
-        )}
       </div>
     </div>
   );

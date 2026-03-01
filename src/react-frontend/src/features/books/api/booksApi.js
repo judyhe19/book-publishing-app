@@ -54,6 +54,18 @@ export function createBook(payload) {
   });
 }
 
+// SERIES
+export function listSeries() {
+  return apiFetch("/api/series/");
+}
+
+export function reorderSeries(seriesName, bookIds) {
+  return apiFetch("/api/series/reorder/", {
+    method: "POST",
+    body: { series_name: seriesName, book_ids: bookIds },
+  });
+}
+
 export function getBookSalesTotals(bookId) {
   return apiFetch(`/api/sales/book/${bookId}/totals`);
 }

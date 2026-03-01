@@ -3,7 +3,7 @@ import React from "react";
 import { FormField, Input, MonthPicker } from "../../../shared/components";
 import CoverImageField from "./CoverImageField";
 import AuthorPicker from "./AuthorPicker";
-import SeriesFields from "./SeriesFields";
+import SeriesPicker from "./SeriesPicker";
 
 /**
  * Edit form for book details.
@@ -44,6 +44,8 @@ export default function BookEditMode({
   setSeriesName,
   seriesPosition,
   setSeriesPosition,
+  seriesOptions,
+  originalSeriesName,
 }) {
   return (
     <div className="mt-6 space-y-5">
@@ -151,11 +153,13 @@ export default function BookEditMode({
       />
 
       {/* Series */}
-      <SeriesFields
+      <SeriesPicker
         seriesName={seriesName}
         setSeriesName={setSeriesName}
         seriesPosition={seriesPosition}
         setSeriesPosition={setSeriesPosition}
+        seriesOptions={seriesOptions || []}
+        originalSeriesName={originalSeriesName}
       />
     </div>
   );

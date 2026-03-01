@@ -1,22 +1,33 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getAuthorPaymentsGrouped, payUnpaidSalesForAuthor } from "../api/salesApi";
 
 export function useAuthorPayments() {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ backend pagination state
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
 
   const [count, setCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
-  // ✅ show-all toggle (only time we allow unbounded)
   const [showAll, setShowAll] = useState(false);
 
   const [confirm, setConfirm] = useState({ open: false, author: null });
   const [paying, setPaying] = useState(false);
+
+  const scrollYRef = useRef(0);
+
+  const captureScroll = () => {
+    scrollYRef.current = window.scrollY || 0;
+  };
+
+  const restoreScroll = () => {
+    const y = scrollYRef.current || 0;
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: y, left: 0, behavior: "auto" });
+    });
+  };
 
   const fetchGroups = async () => {
     setLoading(true);
@@ -63,14 +74,25 @@ export function useAuthorPayments() {
 
   const payAllUnpaidForAuthor = async () => {
     if (!confirm.author) return;
+
+    captureScroll();
     setPaying(true);
+
     try {
       await payUnpaidSalesForAuthor(confirm.author.id);
+
+      // Close modal first so layout doesn't change after we restore scroll
+      setConfirm({ open: false, author: null });
+
       await fetchGroups();
-      closeConfirm();
+
+      // Restore after DOM updates from refetch
+      restoreScroll();
     } catch (e) {
       console.error(e);
       alert("Failed to mark unpaid sales as paid for this author.");
+      // if it failed, still restore (user expects to stay put)
+      restoreScroll();
     } finally {
       setPaying(false);
     }

@@ -219,6 +219,7 @@ class AuthorViewSet(ModelViewSet):
     @action(detail=True, methods=["post"], url_path="pay-unpaid-sales")
     def pay_unpaid_sales(self, request, pk=None):
         author = self.get_object()
+        DEC2 = DecimalField(max_digits=12, decimal_places=2)
 
         with transaction.atomic():
             qs = (
@@ -227,9 +228,11 @@ class AuthorViewSet(ModelViewSet):
                 .filter(book__author=author, author_paid=False)
             )
 
-            total_to_pay = qs.aggregate(total=Sum("author_royalty")).get("total") or Decimal("0.00")
+            sale_ids = list(qs.values_list("id", flat=True))
 
-            sale_ids = list(qs.values_list("id", flat=True).distinct())
+            total_to_pay = qs.aggregate(
+                total=Coalesce(Sum("author_royalty"), Value(0), output_field=DEC2)
+            )["total"] or Decimal("0.00")
 
             updated_count = qs.update(author_paid=True)
 

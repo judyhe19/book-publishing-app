@@ -1,9 +1,9 @@
 # views/book.py
 # Refactored to use ModelViewSet (Evolution 2: single author per book)
 
-from django.db.models import Q, OuterRef, Subquery, F, Sum
+from django.db.models import Q, OuterRef, Subquery, F, Sum, Value
 from django.db.models.functions import Coalesce
-from django.db.models import IntegerField
+from django.db.models import IntegerField, DecimalField
 
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -42,20 +42,57 @@ class BookViewSet(ModelViewSet):
         """Select author + annotate computed fields."""
         qs = Book.objects.all().select_related("author")
 
-        # total_sales_to_date via Subquery (avoids JOIN-multiplication)
+        DEC2 = DecimalField(max_digits=12, decimal_places=2)
+
         sales_total_sq = (
             Sale.objects.filter(book_id=OuterRef("pk"))
             .values("book_id")
-            .annotate(total=Coalesce(Sum("quantity"), 0))
+            .annotate(total=Coalesce(Sum("quantity"), Value(0), output_field=IntegerField()))
+            .values("total")[:1]
+        )
+
+        royalty_total_sq = (
+            Sale.objects.filter(book_id=OuterRef("pk"))
+            .values("book_id")
+            .annotate(total=Coalesce(Sum("author_royalty"), Value(0), output_field=DEC2))
+            .values("total")[:1]
+        )
+
+        royalty_paid_sq = (
+            Sale.objects.filter(book_id=OuterRef("pk"), author_paid=True)
+            .values("book_id")
+            .annotate(total=Coalesce(Sum("author_royalty"), Value(0), output_field=DEC2))
+            .values("total")[:1]
+        )
+
+        royalty_unpaid_sq = (
+            Sale.objects.filter(book_id=OuterRef("pk"), author_paid=False)
+            .values("book_id")
+            .annotate(total=Coalesce(Sum("author_royalty"), Value(0), output_field=DEC2))
             .values("total")[:1]
         )
 
         qs = qs.annotate(
             total_sales_to_date=Coalesce(
                 Subquery(sales_total_sq, output_field=IntegerField()),
-                0,
+                Value(0),
                 output_field=IntegerField(),
-            )
+            ),
+            total_author_royalty=Coalesce(
+                Subquery(royalty_total_sq, output_field=DEC2),
+                Value(0),
+                output_field=DEC2,
+            ),
+            paid_author_royalty=Coalesce(
+                Subquery(royalty_paid_sq, output_field=DEC2),
+                Value(0),
+                output_field=DEC2,
+            ),
+            unpaid_author_royalty=Coalesce(
+                Subquery(royalty_unpaid_sq, output_field=DEC2),
+                Value(0),
+                output_field=DEC2,
+            ),
         )
 
         return qs
@@ -78,6 +115,10 @@ class BookViewSet(ModelViewSet):
         # Only add sorting annotations and filters for list action
         if self.action == "list":
             qs = self._annotate_for_sorting(qs)
+
+            author_id = self.request.query_params.get("author_id")
+            if author_id:
+                qs = qs.filter(author_id=author_id)
 
             # Search (title, author name, ISBN-13, ISBN-10)
             q = self.request.query_params.get("q")

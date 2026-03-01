@@ -27,6 +27,9 @@ class BookListSerializer(serializers.ModelSerializer):
 
     # total_sales_to_date is not a model field; it comes from queryset annotation.
     total_sales_to_date = serializers.IntegerField(read_only=True)
+    total_author_royalty = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    paid_author_royalty = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    unpaid_author_royalty = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
     # Convenience display (optional)
     series_display = serializers.SerializerMethodField()
@@ -40,6 +43,9 @@ class BookListSerializer(serializers.ModelSerializer):
             "isbn_13",
             "isbn_10",
             "total_sales_to_date",
+            "total_author_royalty",
+            "paid_author_royalty",
+            "unpaid_author_royalty",
             "author_id",
             "author_name",
             "distributor_author_royalty_rate",

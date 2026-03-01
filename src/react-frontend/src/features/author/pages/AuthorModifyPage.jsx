@@ -10,6 +10,7 @@ import {
   CardContent,
 } from "../../../shared/components";
 import { useAuthorModify } from "../hooks/useAuthorModify";
+import { useAuthorBooks } from "../hooks/useAuthorBooks";
 import DeleteAuthorDialog from "../components/DeleteAuthorDialog";
 
 export default function AuthorModifyPage() {
@@ -17,6 +18,7 @@ export default function AuthorModifyPage() {
   const navigate = useNavigate();
 
   const { author, loading, saving, error, save, remove } = useAuthorModify(authorId);
+  const { books, hasSales, loadingBooks } = useAuthorBooks(authorId);
 
   const [form, setForm] = useState({ name: "", email: "" });
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -115,17 +117,11 @@ export default function AuthorModifyPage() {
         open={deleteOpen}
         onConfirm={onConfirmDelete}
         onCancel={() => setDeleteOpen(false)}
-        disabled={saving}
+        disabled={saving || loadingBooks}
         authorName={author.name}
         authorEmail={author.email}
-        books={author.books || author.authored_books || []}
-        hasSales={
-          typeof author.has_sales_records === "boolean"
-            ? author.has_sales_records
-            : (author.books || author.authored_books || []).some(
-                (b) => b?.has_sales_records || Number(b?.sales_count ?? 0) > 0
-              )
-        }
+        books={books}
+        hasSales={hasSales}
         deletionBehaviorText={
           author.deletion_behavior ||
           "This will delete the author. Any existing books/sales with this author will also be deleted."

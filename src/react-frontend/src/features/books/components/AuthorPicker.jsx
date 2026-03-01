@@ -31,9 +31,13 @@ export default function AuthorPicker({
         <Input
           value={authorSearch}
           onChange={(e) => {
-            setAuthorSearch(e.target.value);
+            const value = e.target.value;
+            setAuthorSearch(value);
             setDropdownOpen(true);
-            if (!e.target.value) setSelectedAuthorId("");
+            const match = authorOptions.find(
+              (a) => (a.name || "").toLowerCase() === value.toLowerCase()
+            );
+            setSelectedAuthorId(match ? String(match.id) : "");
           }}
           onFocus={() => setDropdownOpen(true)}
           onBlur={() => {

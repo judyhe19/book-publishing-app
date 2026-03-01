@@ -129,10 +129,11 @@ def generate_books(session, authors, count=150):
             "publication_date": pub_date.strftime("%Y-%m"),
             "isbn_13": generate_isbn13(),
             "isbn_10": None,
-            "authors": [
-                {"author_name": a["name"], "royalty_rate": round(random.uniform(0.05, 0.20), 2)}
-                for a in selected
-            ],
+            "author_id": selected[0]["id"] if "id" in selected[0] else selected[0].get("author_id"),
+            "distributor_author_royalty_rate": str(round(random.uniform(0.05, 0.20), 2)),
+            "hand_sold_author_royalty_rate": "0.20",
+            "cover_price": str(round(random.uniform(15.00, 35.00), 2)),
+            "print_cost": str(round(random.uniform(3.00, 10.00), 2)),
         }
 
         resp = session.post(url, json=payload)
@@ -260,9 +261,11 @@ def ensure_ingram_books(session, authors):
             "publication_date": entry["pub_date"],
             "isbn_13": entry["isbn_13"],
             "isbn_10": None,
-            "authors": [
-                {"author_name": author["name"], "royalty_rate": entry["royalty_rate"]}
-            ],
+            "author_id": author["id"] if "id" in author else author.get("author_id"),
+            "distributor_author_royalty_rate": str(entry["royalty_rate"]),
+            "hand_sold_author_royalty_rate": "0.20",
+            "cover_price": "20.00",
+            "print_cost": "10.00",
         }
         resp = session.post(url, json=payload)
         if resp.status_code == 201:
@@ -271,7 +274,7 @@ def ensure_ingram_books(session, authors):
             sys.stdout.flush()
         elif resp.status_code == 400:
             err_text = resp.text[:300]
-            if "isbn_13" in err_text.lower() and "unique" in err_text.lower():
+            if "isbn_13" in err_text.lower() and ("unique" in err_text.lower() or "already exists" in err_text.lower()):
                 skipped += 1
             else:
                 print(f"\n  Rejected '{entry['title']}' ({entry['isbn_13']}): {err_text}")

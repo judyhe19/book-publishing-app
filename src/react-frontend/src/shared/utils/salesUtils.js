@@ -6,7 +6,7 @@ export const EMPTY_ROW = {
     date: '',
     book: null,
     quantity: '',
-    sale_source: 'distributor',
+    sale_source: '',
     publisher_revenue: '',
     author_royalty: '',
     author_paid: false,
@@ -46,10 +46,6 @@ export const isRowComplete = (row) => {
 /**
  * Computes author royalty based on sale source and book data.
  *
- * TODO: Once the Book model has dedicated `distributor_royalty_rate`
- *       and `hand_sold_royalty_rate` fields, use those instead of
- *       `authors[0].royalty_rate`.
- *
  * @param {string} saleSource - 'distributor' or 'handsold'
  * @param {number} publisherRevenue - the publisher revenue amount
  * @param {Object} book - the selected book option (from AsyncSelect)
@@ -57,11 +53,12 @@ export const isRowComplete = (row) => {
  */
 export const computeAuthorRoyalty = (saleSource, publisherRevenue, book) => {
     const revenue = Number(publisherRevenue);
-    if (Number.isNaN(revenue) || !revenue) return '';
+    if (Number.isNaN(revenue) || !revenue || !book) return '';
 
-    // TODO: Use book.distributor_royalty_rate or book.hand_sold_royalty_rate
-    //       based on saleSource once those fields exist on the Book model.
-    const rate = Number(book?.authors?.[0]?.royalty_rate ?? 0);
+    const rate = saleSource === 'handsold' 
+        ? Number(book.hand_sold_author_royalty_rate) 
+        : Number(book.distributor_author_royalty_rate);
+        
     if (Number.isNaN(rate)) return '';
 
     return (rate * revenue).toFixed(2);
@@ -71,22 +68,16 @@ export const computeAuthorRoyalty = (saleSource, publisherRevenue, book) => {
  * Computes publisher revenue for handsold books.
  * Formula: (cover_price - print_cost) × quantity_sold
  *
- * TODO: Once the Book model has `cover_price` and `print_cost`,
- *       compute as: (cover_price - print_cost) × quantity.
- *       For now returns a placeholder empty string.
- *
  * @param {Object} book - the selected book option
  * @param {number|string} quantity - quantity sold
  * @returns {string} computed revenue or '' (placeholder)
  */
-export const computeHandsoldRevenue = (/* book, quantity */) => {
-    // TODO: Uncomment once Book model has cover_price and print_cost:
-    // const coverPrice = Number(book?.cover_price ?? 0);
-    // const printCost = Number(book?.print_cost ?? 0);
-    // const qty = Number(quantity);
-    // if (!coverPrice || Number.isNaN(qty) || !qty) return '';
-    // return ((coverPrice - printCost) * qty).toFixed(2);
-    return '';
+export const computeHandsoldRevenue = (book, quantity) => {
+    const coverPrice = Number(book?.cover_price ?? 0);
+    const printCost = Number(book?.print_cost ?? 0);
+    const qty = Number(quantity);
+    if (!coverPrice || Number.isNaN(qty) || qty < 1) return '';
+    return ((coverPrice - printCost) * qty).toFixed(2);
 };
 
 /**

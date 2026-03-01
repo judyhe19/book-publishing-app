@@ -21,10 +21,14 @@ const selectStyles = {
   }),
 };
 
-export default function SaleInputRow({ index, row, onChange, onRemove, isFirst }) {
+export default function SaleInputRow({ index, row, onChange, onRemove, isFirst, fixedBook }) {
   const { loadOptions } = useBookSearch({ date: row.date });
 
+  // If a fixedBook is provided, use it as the effective book for calculations
+  const effectiveBook = fixedBook || row.book;
+
   const isDistributor = row.sale_source === "distributor";
+  const isHandsold = row.sale_source === "handsold";
 
   const handleField = (field, value) => onChange(index, field, value);
 
@@ -37,14 +41,13 @@ export default function SaleInputRow({ index, row, onChange, onRemove, isFirst }
         onChange(index, "publisher_revenue", revenue);
       }
     },
-    [index, onChange, row.sale_source]
+    [index, onChange, row.sale_source, row.quantity]
   );
 
   const handleSaleSourceChange = (source) => {
     handleField("sale_source", source);
     if (source === "handsold") {
-      // TODO: auto-compute publisher revenue once Book has cover_price / print_cost
-      const revenue = computeHandsoldRevenue(row.book, row.quantity);
+      const revenue = computeHandsoldRevenue(effectiveBook, row.quantity);
       handleField("publisher_revenue", revenue);
     } else {
       // Clear publisher revenue so user can enter it manually
@@ -65,7 +68,7 @@ export default function SaleInputRow({ index, row, onChange, onRemove, isFirst }
   };
 
   // Compute auto-royalty for display
-  const autoRoyalty = computeAuthorRoyalty(row.sale_source, row.publisher_revenue, row.book);
+  const autoRoyalty = computeAuthorRoyalty(row.sale_source, row.publisher_revenue, effectiveBook);
 
   return (
     <Card>
@@ -84,17 +87,23 @@ export default function SaleInputRow({ index, row, onChange, onRemove, isFirst }
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Book (Title or ISBN)
             </label>
-            <AsyncSelect
-              key={row.date || "default"}
-              cacheOptions
-              loadOptions={loadOptions}
-              defaultOptions
-              onChange={handleBookChange}
-              value={row.book}
-              placeholder="Search..."
-              menuPortalTarget={document.body}
-              styles={selectStyles}
-            />
+            {fixedBook ? (
+              <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 h-[38px] flex items-center">
+                {fixedBook.label}
+              </div>
+            ) : (
+              <AsyncSelect
+                key={row.date || "default"}
+                cacheOptions
+                loadOptions={loadOptions}
+                defaultOptions
+                onChange={handleBookChange}
+                value={row.book}
+                placeholder="Search..."
+                menuPortalTarget={document.body}
+                styles={selectStyles}
+              />
+            )}
           </div>
         </div>
 
@@ -117,18 +126,29 @@ export default function SaleInputRow({ index, row, onChange, onRemove, isFirst }
           </div>
 
           {/* Quantity */}
-          <div className="w-28">
+          <div className="w-28 relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
             <Input
               type="number"
               min="1"
               step="1"
               value={row.quantity}
-              onChange={(e) => handleField("quantity", e.target.value)}
+              onChange={(e) => {
+                const qty = e.target.value;
+                handleField("quantity", qty);
+                // Recompute revenue when quantity changes for handsold
+                if (isHandsold && effectiveBook) {
+                  const revenue = computeHandsoldRevenue(effectiveBook, qty);
+                  handleField("publisher_revenue", revenue);
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === "." || e.key === "e" || e.key === "E") e.preventDefault();
               }}
             />
+            {row.quantity !== "" && Number(row.quantity) < 1 && (
+              <p className="absolute text-xs text-red-500 mt-0.5">Must be ≥ 1</p>
+            )}
           </div>
 
           {/* Publisher Revenue */}
@@ -150,7 +170,6 @@ export default function SaleInputRow({ index, row, onChange, onRemove, isFirst }
               </div>
             ) : (
               <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 h-[38px] flex items-center">
-                {/* TODO: Will show computed revenue once Book has cover_price / print_cost */}
                 {row.publisher_revenue ? formatMoney(row.publisher_revenue) : "—"}
               </div>
             )}

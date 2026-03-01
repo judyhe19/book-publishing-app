@@ -1,0 +1,211 @@
+/* AuthorRoyaltyReportPage.css — Print-to-PDF styles */
+
+/* ===== Screen styles ===== */
+.royalty-report-controls {
+  margin-bottom: 1.5rem;
+}
+
+
+/* ===== Report content (screen) ===== */
+.royalty-report {
+  font-family:
+    "Inter",
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #1e293b;
+}
+
+.report-header {
+  border-bottom: 3px solid #1e293b;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.report-header .brand {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.25rem;
+  letter-spacing: 0.02em;
+}
+
+.report-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0.5rem 0 0.25rem;
+  color: #0f172a;
+}
+
+.report-header .report-meta {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Quarter section */
+.quarter-section {
+  margin-bottom: 2rem;
+}
+
+.quarter-section h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  padding: 0.375rem 0.5rem;
+  background: #f1f5f9;
+  border-left: 4px solid #1e293b;
+  color: #0f172a;
+}
+
+/* Data table */
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.report-table th {
+  text-align: left;
+  padding: 0.375rem 0.5rem;
+  border-bottom: 2px solid #334155;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.report-table td {
+  padding: 0.375rem 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+}
+
+.report-table th.num,
+.report-table td.num {
+  text-align: right;
+}
+
+.report-table .series-label {
+  font-size: 0.6875rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+.report-table .book-title {
+  font-weight: 500;
+}
+
+.report-table tr.totals-row td {
+  border-top: 2px solid #334155;
+  font-weight: 700;
+  background: #f8fafc;
+}
+
+.report-table tr.totals-row td:first-child {
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.75rem;
+}
+
+/* ===== Print styles ===== */
+@media print {
+  /* Hide everything not part of the report */
+  body > *:not(#root) {
+    display: none !important;
+  }
+
+  .royalty-report-controls,
+  .print-btn,
+  nav,
+  .sticky,
+  [class*="Navbar"],
+  [class*="navbar"] {
+    display: none !important;
+  }
+
+  /* Reset page margins */
+  @page {
+    margin: 0.75in 0.6in;
+    size: landscape;
+  }
+
+  .royalty-report {
+    font-size: 10pt;
+    color: black;
+  }
+
+  .report-header {
+    border-bottom: 2pt solid black;
+    padding-bottom: 8pt;
+    margin-bottom: 12pt;
+  }
+
+  .report-header .brand {
+    font-size: 14pt;
+    color: black;
+  }
+
+  .report-header h1 {
+    font-size: 16pt;
+    color: black;
+  }
+
+  .report-header .report-meta {
+    font-size: 9pt;
+    color: #333;
+  }
+
+  /* Quarter sections — avoid page breaks inside */
+  .quarter-section {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 14pt;
+  }
+
+  .quarter-section h2 {
+    font-size: 11pt;
+    background: #eee;
+    border-left: 3pt solid black;
+    padding: 3pt 6pt;
+    color: black;
+  }
+
+  .report-table {
+    font-size: 9pt;
+  }
+
+  .report-table th {
+    border-bottom: 1.5pt solid black;
+    font-size: 8pt;
+    color: black;
+  }
+
+  .report-table td {
+    border-bottom: 0.5pt solid #999;
+    padding: 2pt 4pt;
+  }
+
+  .report-table tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .report-table tr.totals-row td {
+    border-top: 1.5pt solid black;
+    background: #f5f5f5 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Page container resets */
+  .p-6,
+  [class*="max-w-"] {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}

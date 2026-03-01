@@ -12,6 +12,7 @@ from .views.sales import SaleViewSet, BookSalesTotalsView
 from .views.author import AuthorViewSet
 from .views.author_payments import AuthorPaymentsViewSet
 from .views.cover_upload import CoverImageUploadView
+from .views.royalty_report import AuthorRoyaltyReportView
 
 # ----- DRF Router -----
 router = DefaultRouter(trailing_slash=True)
@@ -47,6 +48,13 @@ urlpatterns = [
         "books/upload-cover/",
         CoverImageUploadView.as_view(),
         name="upload-cover",
+    ),
+
+    # Author royalty report
+    path(
+        "authors/<int:author_id>/royalty-report/",
+        AuthorRoyaltyReportView.as_view(),
+        name="author-royalty-report",
     ),
 
     # Router-generated URLs for books, sales, authors

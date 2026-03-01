@@ -16,6 +16,7 @@ import BookDetailPage from "../features/books/pages/BookDetailPage";
 import AuthorListPage from "../features/author/pages/AuthorListPage";
 import AuthorCreatePage from "../features/author/pages/AuthorCreatePage";
 import AuthorModifyPage from "../features/author/pages/AuthorModifyPage";
+import AuthorRoyaltyReportPage from "../features/reports/pages/AuthorRoyaltyReportPage";
 
 
 export function AppRoutes() {
@@ -122,6 +123,15 @@ export function AppRoutes() {
         element={
           <RequireAuth>
             <AuthorCreatePage />
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/reports/royalty"
+        element={
+          <RequireAuth>
+            <AuthorRoyaltyReportPage />
           </RequireAuth>
         }
       />

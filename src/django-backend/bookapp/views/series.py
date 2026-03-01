@@ -48,24 +48,15 @@ class SeriesReorderView(APIView):
             return Response({"error": "book_ids must be a list."}, status=400)
 
         existing_books = Book.objects.filter(series_name=series_name)
-        existing_ids = set(existing_books.values_list("id", flat=True))
 
-        # Validate that all provided ids actually belong to this series
-        invalid_ids = [bid for bid in book_ids if bid not in existing_ids]
-        if invalid_ids:
-            return Response(
-                {"error": f"Book IDs not in series '{series_name}': {invalid_ids}"},
-                status=400,
-            )
-
-        # Step 1: offset all positions by 10000 to avoid uniqueness conflicts
-        # during reassignment. Use F() for a single bulk UPDATE.
+        # Step 1: offset all existing series positions by 10000 to avoid
+        # uniqueness conflicts during reassignment.
         existing_books.update(series_position=F("series_position") + 10000)
 
-        # Step 2: assign new sequential positions to kept books
-        ids_to_keep = set(book_ids)
+        # Step 2: assign new sequential positions to all provided books,
+        # also setting series_name so books new to this series are added.
         for i, book_id in enumerate(book_ids, start=1):
-            Book.objects.filter(pk=book_id).update(series_position=i)
+            Book.objects.filter(pk=book_id).update(series_name=series_name, series_position=i)
 
         # Step 3: remove books not in book_ids from the series
         Book.objects.filter(

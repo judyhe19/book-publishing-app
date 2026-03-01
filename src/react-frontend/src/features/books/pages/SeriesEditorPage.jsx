@@ -10,6 +10,7 @@ import {
 } from "../../../shared/components";
 import { errorMessage } from "../../../shared/utils/errors";
 import * as booksApi from "../api/booksApi";
+import AddBookToSeriesModal from "../components/AddBookToSeriesModal";
 
 export default function SeriesEditorPage() {
   const nav = useNavigate();
@@ -26,6 +27,8 @@ export default function SeriesEditorPage() {
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState(null);
   const [saveOk, setSaveOk] = useState(false);
+
+  const [addModalOpen, setAddModalOpen] = useState(false);
 
   // Drag state
   const dragIndex = useRef(null);
@@ -122,6 +125,17 @@ export default function SeriesEditorPage() {
     setDirty(true);
   }
 
+  // --- Add a book to the series at a given position (locally only) ---
+
+  function onAddBook(book, position) {
+    const insertIdx = Math.max(0, Math.min(position - 1, books.length));
+    const updated = [...books];
+    updated.splice(insertIdx, 0, { id: book.id, title: book.title });
+    setBooks(updated);
+    setDirty(true);
+    setAddModalOpen(false);
+  }
+
   // --- Save ---
 
   async function onSave() {
@@ -162,6 +176,7 @@ export default function SeriesEditorPage() {
   }
 
   return (
+    <>
     <div className="min-h-screen flex items-start justify-center p-6">
       <div className="w-full max-w-3xl">
         <Card>
@@ -209,6 +224,12 @@ export default function SeriesEditorPage() {
             {/* Books table */}
             {selectedSeries && (
               <>
+                <div className="flex justify-end mb-3">
+                  <Button variant="secondary" onClick={() => setAddModalOpen(true)}>
+                    Add Book
+                  </Button>
+                </div>
+
                 {booksLoading ? (
                   <p className="text-sm text-slate-500">Loading books…</p>
                 ) : books.length === 0 ? (
@@ -295,5 +316,14 @@ export default function SeriesEditorPage() {
         </Card>
       </div>
     </div>
+
+    <AddBookToSeriesModal
+      open={addModalOpen}
+      onClose={() => setAddModalOpen(false)}
+      onAdd={onAddBook}
+      currentSeriesBookIds={books.map((b) => b.id)}
+      currentSeriesCount={books.length}
+    />
+    </>
   );
 }

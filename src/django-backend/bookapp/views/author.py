@@ -116,18 +116,12 @@ class AuthorViewSet(ModelViewSet):
         name = serializer.validated_data["name"]
         email = serializer.validated_data["email"]
 
-        # Email must be unique
-        if Author.objects.filter(email__iexact=email).exists():
-            return Response(
-                {"email": "An author with this email already exists."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
         try:
             author = Author.objects.create(name=name, email=email)
         except IntegrityError:
             return Response(
-                {"email": "An author with this email already exists."},
+                {"name": "An author with this name already exists."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

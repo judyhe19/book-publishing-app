@@ -95,7 +95,7 @@ export const TABLE_COLUMNS = [
     {
         label: 'Comment',
         sortKey: 'comment',
-        className: 'whitespace-normal min-w-[200px] max-w-sm',
+        className: 'whitespace-normal break-all min-w-[200px] max-w-sm',
         render: (sale) => (
             <span className="text-sm text-gray-600" title={sale.comment || ''}>
                 {sale.comment || '—'}

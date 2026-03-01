@@ -110,7 +110,13 @@ class SaleWriteSerializer(serializers.ModelSerializer):
     author_paid = serializers.BooleanField(required=False, default=False)
 
     comment = serializers.CharField(
-        max_length=256, required=False, allow_blank=True, allow_null=True,
+        max_length=256,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        error_messages={
+            "max_length": "Comment cannot exceed 256 characters."
+        },
     )
 
     class Meta:

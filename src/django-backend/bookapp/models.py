@@ -24,7 +24,6 @@ class Author(models.Model):
     name = models.CharField(max_length=255, unique=True)
     email = models.EmailField(
         max_length=254,
-        unique=True,
         blank=True,
         null=True,
         help_text="Author's primary contact email"

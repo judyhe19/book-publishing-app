@@ -43,13 +43,10 @@ class AuthorCreateSerializer(serializers.ModelSerializer):
         Keeps behavior consistent with your other serializers.
         """
         name = attrs.get("name")
-        email = attrs.get("email")
 
         errors = {}
         if name and Author.objects.filter(name__iexact=name).exists():
             errors["name"] = "An author with this name already exists."
-        if email and Author.objects.filter(email__iexact=email).exists():
-            errors["email"] = "An author with this email already exists."
 
         if errors:
             raise serializers.ValidationError(errors)
@@ -74,7 +71,6 @@ class AuthorUpdateSerializer(serializers.ModelSerializer):
         instance = getattr(self, "instance", None)
 
         name = attrs.get("name")
-        email = attrs.get("email")
 
         errors = {}
 
@@ -82,9 +78,6 @@ class AuthorUpdateSerializer(serializers.ModelSerializer):
             if Author.objects.filter(name__iexact=name).exclude(pk=instance.pk).exists():
                 errors["name"] = "An author with this name already exists."
 
-        if instance and email is not None:
-            if Author.objects.filter(email__iexact=email).exclude(pk=instance.pk).exists():
-                errors["email"] = "An author with this email already exists."
 
         if errors:
             raise serializers.ValidationError(errors)

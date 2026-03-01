@@ -1,6 +1,6 @@
 // src/features/books/pages/SeriesEditorPage.jsx
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Button,
   Card,
@@ -13,11 +13,12 @@ import * as booksApi from "../api/booksApi";
 
 export default function SeriesEditorPage() {
   const nav = useNavigate();
+  const location = useLocation();
 
   const [seriesOptions, setSeriesOptions] = useState([]);
   const [seriesLoading, setSeriesLoading] = useState(true);
 
-  const [selectedSeries, setSelectedSeries] = useState("");
+  const [selectedSeries, setSelectedSeries] = useState(location.state?.series ?? "");
   const [books, setBooks] = useState([]); // [{id, title, series_position}]
   const [booksLoading, setBooksLoading] = useState(false);
   const [dirty, setDirty] = useState(false);

@@ -205,7 +205,7 @@ export default function SeriesPicker({
           />
           {typed && maxPos !== null && (
             <p className="mt-1 text-xs text-slate-400">
-              Valid range: 1–{maxPos}
+              Valid range: 1–{maxPos}. Other books shift to make room.
             </p>
           )}
         </FormField>

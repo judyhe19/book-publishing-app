@@ -202,9 +202,19 @@ export default function BookDetailPage() {
           <CardContent>
             {/* Action buttons */}
             <div className="flex items-center justify-between gap-2">
-              <Button variant="secondary" onClick={() => nav("/books")}>
-                All Books
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" onClick={() => nav("/books")}>
+                  All Books
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    nav("/series", book.series_name ? { state: { series: book.series_name } } : {})
+                  }
+                >
+                  Manage Series
+                </Button>
+              </div>
               <div className="flex items-center gap-2">
               {!editing ? (
                 <>

@@ -178,6 +178,7 @@ class BookViewSet(ModelViewSet):
                     | Q(isbn_13__icontains=c_q)
                     | Q(isbn_10__icontains=c_q)
                     | Q(author__name__icontains=q)
+                    | Q(series_name__icontains=q)
                 )
 
             # Optional filter: published_before

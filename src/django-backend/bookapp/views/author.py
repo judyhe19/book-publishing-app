@@ -1,6 +1,7 @@
 # views/author.py
 # Refactored to use ViewSets (Evolution 2: single author per book)
 
+from collections import defaultdict
 from decimal import Decimal
 
 from django.db import IntegrityError, transaction
@@ -18,6 +19,7 @@ from rest_framework.viewsets import ModelViewSet
 
 from ..models import Author, Book, Sale
 from ..serializers.author import AuthorListSerializer, AuthorCreateSerializer, AuthorUpdateSerializer
+from ..serializers.book import _shift_positions_down
 from ..pagination import StandardPagination
 
 AUTHOR_SORT_FIELD_MAP = {
@@ -143,9 +145,20 @@ class AuthorViewSet(ModelViewSet):
 
             sale_count = Sale.objects.filter(book_id__in=book_ids).count()
 
+            # Capture series positions before deletion so we can compact afterwards.
+            # Group by series_name; within each series sort descending so each
+            # _shift_positions_down call doesn't interfere with the next.
+            series_positions = defaultdict(list)
+            for book in Book.objects.filter(id__in=book_ids).exclude(series_name__isnull=True):
+                series_positions[book.series_name].append(book.series_position)
+
             books_deleted, _ = Book.objects.filter(id__in=book_ids).delete()
 
             author.delete()
+
+            for series_name, positions in series_positions.items():
+                for pos in sorted(positions, reverse=True):
+                    _shift_positions_down(series_name, pos)
 
         return Response(
             {

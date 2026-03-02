@@ -11,7 +11,7 @@ export default function AccountPage() {
         <CardHeader title="Account" subtitle="Your current session details." />
         <CardContent>
           <div className="grid gap-2 text-sm text-slate-700">
-            <div><span className="font-medium text-slate-900">ID:</span> {user?.id}</div>
+            {/* <div><span className="font-medium text-slate-900">ID:</span> {user?.id}</div> */}
             <div><span className="font-medium text-slate-900">Username:</span> {user?.username}</div>
           </div>
         </CardContent>

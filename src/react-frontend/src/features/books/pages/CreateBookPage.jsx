@@ -90,6 +90,15 @@ export default function CreateBookPage() {
     setSubmitting(true);
 
     try {
+      if (!selectedAuthorId) {
+        setErr(
+          authorSearch.trim()
+            ? `Author "${authorSearch.trim()}" does not exist.`
+            : "Author field may not be empty."
+        );
+        return;
+      }
+
       // Upload cover image first if a new file was selected
       let finalCoverImagePath = coverImagePath.trim() === "" ? null : coverImagePath.trim();
       

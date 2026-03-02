@@ -134,7 +134,11 @@ class BookCreateSerializer(serializers.ModelSerializer):
         source="author",
         queryset=Author.objects.all(),
         write_only=True,
-        error_messages={"does_not_exist": "Author does not exist."},
+        error_messages={
+            "null": "Author field may not be empty.",
+            "required": "Author field may not be empty.",
+            "does_not_exist": "Author {pk_value} does not exist.",
+        },
     )
 
     # Read-only display

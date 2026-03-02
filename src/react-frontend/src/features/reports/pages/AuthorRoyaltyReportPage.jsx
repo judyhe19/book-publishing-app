@@ -37,13 +37,6 @@ function getDefaultRange() {
 
 const QUARTER_OPTIONS = [1, 2, 3, 4];
 
-function yearOptions() {
-  const curYear = new Date().getFullYear();
-  const years = [];
-  for (let y = curYear - 10; y <= curYear + 1; y++) years.push(y);
-  return years;
-}
-
 const selectClass =
   "rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-900";
 
@@ -53,9 +46,9 @@ export default function AuthorRoyaltyReportPage() {
   // Controls state
   const [authors, setAuthors] = useState([]);
   const [selectedAuthor, setSelectedAuthor] = useState(null);
-  const [startYear, setStartYear] = useState(defaults.startYear);
+  const [startYear, setStartYear] = useState(String(defaults.startYear));
   const [startQuarter, setStartQuarter] = useState(defaults.startQ);
-  const [endYear, setEndYear] = useState(defaults.endYear);
+  const [endYear, setEndYear] = useState(String(defaults.endYear));
   const [endQuarter, setEndQuarter] = useState(defaults.endQ);
 
   // Report state
@@ -77,20 +70,30 @@ export default function AuthorRoyaltyReportPage() {
 
   async function handleGenerate() {
     if (!selectedAuthor) return;
+    const startYearNum = Number(startYear);
+    const endYearNum = Number(endYear);
+    if (!startYear || !endYear || startYearNum < 1 || endYearNum < 1) {
+      setError("Please enter a valid year.");
+      return;
+    }
     setLoading(true);
     setError("");
     setReport(null);
     try {
       const data = await getAuthorRoyaltyReport(
         selectedAuthor.value,
-        startYear,
+        startYearNum,
         startQuarter,
-        endYear,
+        endYearNum,
         endQuarter
       );
       setReport(data);
     } catch (err) {
-      setError(err.message || "Failed to generate report.");
+      setError(
+        err.status === 500
+          ? "Too many entries to display, please narrow your search."
+          : err.message || "Failed to generate report."
+      );
     } finally {
       setLoading(false);
     }
@@ -133,15 +136,14 @@ export default function AuthorRoyaltyReportPage() {
                   Start Quarter
                 </label>
                 <div className="flex gap-1">
-                  <select
-                    className={selectClass}
+                  <input
+                    type="number"
+                    className={`${selectClass} year-input`}
                     value={startYear}
-                    onChange={(e) => setStartYear(Number(e.target.value))}
-                  >
-                    {yearOptions().map((y) => (
-                      <option key={y} value={y}>{y}</option>
-                    ))}
-                  </select>
+                    onChange={(e) => setStartYear(e.target.value)}
+                    onWheel={(e) => e.target.blur()}
+                    style={{ width: "80px" }}
+                  />
                   <select
                     className={selectClass}
                     value={startQuarter}
@@ -159,15 +161,14 @@ export default function AuthorRoyaltyReportPage() {
                   End Quarter
                 </label>
                 <div className="flex gap-1">
-                  <select
-                    className={selectClass}
+                  <input
+                    type="number"
+                    className={`${selectClass} year-input`}
                     value={endYear}
-                    onChange={(e) => setEndYear(Number(e.target.value))}
-                  >
-                    {yearOptions().map((y) => (
-                      <option key={y} value={y}>{y}</option>
-                    ))}
-                  </select>
+                    onChange={(e) => setEndYear(e.target.value)}
+                    onWheel={(e) => e.target.blur()}
+                    style={{ width: "80px" }}
+                  />
                   <select
                     className={selectClass}
                     value={endQuarter}

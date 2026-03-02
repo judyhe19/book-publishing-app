@@ -26,7 +26,7 @@ QUARTER_RANGES = {
 def _quarter_date_range(year, quarter):
     """Return (start_date, end_date) strings for a given year/quarter."""
     start_md, end_md = QUARTER_RANGES[quarter]
-    return f"{year}-{start_md}", f"{year}-{end_md}"
+    return f"{year:04d}-{start_md}", f"{year:04d}-{end_md}"
 
 
 def _enumerate_quarters(start_year, start_quarter, end_year, end_quarter):

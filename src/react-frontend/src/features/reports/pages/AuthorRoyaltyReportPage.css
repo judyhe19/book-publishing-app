@@ -5,6 +5,16 @@
   margin-bottom: 1.5rem;
 }
 
+/* Hide number input spinners on year fields */
+.year-input::-webkit-inner-spin-button,
+.year-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.year-input {
+  -moz-appearance: textfield;
+}
+
 
 /* ===== Report content (screen) ===== */
 .royalty-report {

@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
 
-ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'gif', 'png', 'webp', 'jxl'}
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'gif', 'png', 'webp'}
 UPLOAD_DIR = os.path.join(settings.BASE_DIR, 'static', 'img', 'covers')
 
 

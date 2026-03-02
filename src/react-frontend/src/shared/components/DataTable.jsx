@@ -13,6 +13,7 @@ export function DataTable({
   onRowClick,
   emptyMessage = "No data found.",
   loadingMessage = "Loading data...",
+  fixedLayout = false,
 }) {
   // Parse comma-separated multi-sort string into [{field, desc, position}]
   const sortParts = (ordering || "")
@@ -41,7 +42,7 @@ export function DataTable({
 
   return (
     <div className="rounded-lg border border-slate-200">
-      <table className="min-w-full divide-y divide-gray-200">
+      <table className={`${fixedLayout ? "w-full table-fixed" : "min-w-full"} divide-y divide-gray-200`}>
         <thead className="bg-gray-50">
           <tr>
             {columns.map((col, idx) => {
@@ -56,7 +57,7 @@ export function DataTable({
                   onClick={col.sortKey && onSort ? () => onSort(col.sortKey) : undefined}
                   className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${alignClass} ${
                     col.sortKey && onSort ? "cursor-pointer hover:bg-gray-100" : ""
-                  }`}
+                  } ${fixedLayout ? (col.className || "") : ""}`}
                 >
                   {col.label} {renderSortIcon(col.sortKey)}
                 </th>

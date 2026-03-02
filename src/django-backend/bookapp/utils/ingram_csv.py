@@ -261,6 +261,8 @@ def _build_preview_row(row_data, csv_row, sale_date_str, filename, timestamp):
         f"Ingram: Format='{fmt}' Market='{market}' "
         f"File='{filename}' ({timestamp} {tz_name})"
     )
+    if len(comment) > 256:
+        comment = comment[:253] + "..."
 
     return {
         "book": book.id,

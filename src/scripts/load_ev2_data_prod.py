@@ -196,7 +196,9 @@ def import_books(session, base_url, books_csv_path):
             book_obj = resp.json()
 
             if book["cover_image"]:
-                 upload_cover_image(session, base_url, book_obj["id"], book["cover_image"])
+                 cover_filename = book["cover_image"]
+                 if not cover_filename.endswith(".jxl"):
+                     upload_cover_image(session, base_url, book_obj["id"], cover_filename)
         else:
             print(f"✗ Failed: {book['title']} - {resp.text}")
 

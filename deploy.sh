@@ -3,9 +3,9 @@
 # ==========================================
 # CONFIGURATION
 # ==========================================
-HUB_USER="judyhe19" # change this to your docker hub username
-NETID="yh381" # change this to your netid                  
-VM_HOST="vcm-51984.vm.duke.edu" # change this to your vm host
+HUB_USER="ryant1322" # change this to your docker hub username
+NETID="rlt42" # change this to your netid                  
+VM_HOST="vcm-51887.vm.duke.edu" # change this to your vm host
 PROJECT_DIR="~/book-app-deployment"       # Directory on VM to store config
 
 # Image Names
@@ -64,7 +64,7 @@ scp docker-compose.yml .env $NETID@$VM_HOST:$PROJECT_DIR/
 echo -e "${GREEN}[4/4] Restarting Containers on Remote Server...${NC}"
 
 # Run docker-compose on the VM
-ssh $NETID@$VM_HOST "cd $PROJECT_DIR && docker-compose down && docker-compose up -d --pull always"
+ssh $NETID@$VM_HOST "cd $PROJECT_DIR && docker compose down && docker compose up -d --pull always"
 
 echo -e "${CYAN}Deployment Complete!${NC}"
 echo -e "Visit: http://$VM_HOST"

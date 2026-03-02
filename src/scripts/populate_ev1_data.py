@@ -11,7 +11,7 @@ Default: Connect to production server
     python src/scripts/populate_ev1_data.py
 
 Custom options:
-    python src/scripts/populate_ev1_data.py --url https://vcm-51984.vm.duke.edu
+    python src/scripts/populate_ev1_data.py --url https://vcm-51887.vm.duke.edu
     python src/scripts/populate_ev1_data.py --skip-books  # Only import sales
     python src/scripts/populate_ev1_data.py --skip-sales  # Only import books
 """
@@ -23,7 +23,7 @@ import os
 from datetime import datetime
 
 # Configuration - Update these to match your production server
-BASE_URL = "https://vcm-51984.vm.duke.edu"
+BASE_URL = "https://vcm-51887.vm.duke.edu"
 USERNAME = "admin"
 PASSWORD = "password"  # CHANGE THIS WHEN THE PROD PASSWORD CHANGES
 

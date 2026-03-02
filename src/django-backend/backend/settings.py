@@ -88,13 +88,13 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 # Allow requests from your domain
 CORS_ALLOWED_ORIGINS = [
-    "http://vcm-51984.vm.duke.edu",
-    "https://vcm-51984.vm.duke.edu",
+    "http://vcm-51887.vm.duke.edu",
+    "https://vcm-51887.vm.duke.edu",
     "http://localhost",
 ]
 CSRF_TRUSTED_ORIGINS = [
-    "http://vcm-51984.vm.duke.edu",
-    "https://vcm-51984.vm.duke.edu",
+    "http://vcm-51887.vm.duke.edu",
+    "https://vcm-51887.vm.duke.edu",
     "http://localhost",
     "http://127.0.0.1",
 ]

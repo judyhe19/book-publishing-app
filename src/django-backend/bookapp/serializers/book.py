@@ -189,6 +189,12 @@ class BookCreateSerializer(serializers.ModelSerializer):
         if attrs.get("print_cost") is None:
             error["print_cost"] = "Print cost is required."
 
+        # Cover price must be >= print cost
+        cover_price = attrs.get("cover_price")
+        print_cost = attrs.get("print_cost")
+        if cover_price is not None and print_cost is not None and cover_price < print_cost:
+            error["cover_price"] = "Cover price must be equal to or greater than the print cost."
+
         # Series/position pairing
         series_name = attrs.get("series_name")
         series_pos = attrs.get("series_position")
@@ -274,6 +280,14 @@ class BookUpdateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         instance = getattr(self, "instance", None)
+
+        # Cover price must be >= print cost (resolve effective values for PATCH)
+        cover_price = attrs.get("cover_price", getattr(instance, "cover_price", None))
+        print_cost = attrs.get("print_cost", getattr(instance, "print_cost", None))
+        if cover_price is not None and print_cost is not None and cover_price < print_cost:
+            raise serializers.ValidationError(
+                {"cover_price": "Cover price must be equal to or greater than the print cost."}
+            )
 
         new_name = attrs.get("series_name", getattr(instance, "series_name", None))
         new_pos = attrs.get("series_position", getattr(instance, "series_position", None))

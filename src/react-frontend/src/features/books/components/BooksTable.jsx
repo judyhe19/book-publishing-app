@@ -161,6 +161,7 @@ export default function BooksTable({
   showAuthor = true,
   extraColumns = [],
   sortable = true,
+  fixedLayout = true,
 }) {
   const columns = useMemo(
     () => buildBooksColumns({ showAuthor, extraColumns }),
@@ -176,7 +177,7 @@ export default function BooksTable({
       onSort={sortable ? onToggleOrdering : undefined}
       onRowClick={(b) => onGoBook?.(b)}
       emptyMessage="No books found."
-      fixedLayout
+      fixedLayout={fixedLayout}
     />
   );
 }

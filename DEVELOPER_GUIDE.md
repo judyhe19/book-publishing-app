@@ -96,35 +96,35 @@ For detailed setup and deployment instructions, please examine the `README.md` f
 
 The core data model revolves around Books, Authors, and Sales. The schema is defined in `src/django-backend/bookapp/models.py`.
 
+Each book has exactly **one** author (a direct foreign key). Royalty rates are stored on the book, not on a join table.
+
 ### Entity Relationship Diagram (ERD)
 
 ```mermaid
 erDiagram
-    AUTHOR ||--o{ AUTHOR_BOOK : writes
-    BOOK ||--o{ AUTHOR_BOOK : written_by
+    AUTHOR ||--o{ BOOK : writes
     BOOK ||--o{ SALE : generates
-    SALE ||--o{ AUTHOR_SALE : earns_royalties_for
-    AUTHOR ||--o{ AUTHOR_SALE : receives_royalties_from
 
     AUTHOR {
         int id PK
         string name
+        string email
     }
 
     BOOK {
         int id PK
+        int author_id FK
         string title
         date publication_date
         string isbn_13
         string isbn_10
-        int total_sales_to_date
-    }
-
-    AUTHOR_BOOK {
-        int id PK
-        int author_id FK
-        int book_id FK
-        decimal royalty_rate
+        decimal cover_price
+        decimal print_cost
+        decimal distributor_author_royalty_rate
+        decimal hand_sold_author_royalty_rate
+        string series_name
+        int series_position
+        string cover_image_path
     }
 
     SALE {
@@ -132,15 +132,11 @@ erDiagram
         int book_id FK
         date date
         int quantity
+        string sale_source
         decimal publisher_revenue
-    }
-
-    AUTHOR_SALE {
-        int id PK
-        int sale_id FK
-        int author_id FK
-        decimal royalty_amount
+        decimal author_royalty
         boolean author_paid
+        string comment
     }
 ```
 
@@ -148,38 +144,34 @@ erDiagram
 
 1.  **Author**
     - Represents a book author.
-    - `name`: Unique name of the author.
+    - `name`: Unique.
+    - `email`: Optional.
 
 2.  **Book**
-    - Represents a published book.
-    - `title`: Title of the book.
-    - `publication_date`: Date the book was published.
-    - `isbn_13`: 13-digit ISBN (Unique, Validated).
-    - `isbn_10`: 10-digit ISBN (Optional, Validated).
-    - `total_sales_to_date`: Cached field tracking total quantity sold (updated via `update_total_sales` method).
+    - Represents a published book. Each book belongs to exactly one author.
+    - `isbn_13`: 13-digit ISBN (unique, validated).
+    - `isbn_10`: 10-digit ISBN (optional, validated).
+    - `cover_price` / `print_cost`: Used to compute publisher revenue for handsold sales.
+    - `distributor_author_royalty_rate`: Royalty rate applied to distributor sales.
+    - `hand_sold_author_royalty_rate`: Royalty rate applied to handsold sales.
+    - `series_name` / `series_position`: Optional. When set, both must be present and `(series_name, series_position)` must be unique. Series positions are automatically compacted on insert and delete.
+    - `cover_image_path`: Optional path to the cover image file.
+    - `total_sales_to_date`: Not a stored column — computed at query time via a `Sum` annotation on related `Sale.quantity` records. Returned as a read-only field by the API.
 
-3.  **AuthorBook** (Join Table)
-    - Links `Author` and `Book` (Many-to-Many).
-    - `royalty_rate`: The specific royalty rate for _this_ author on _this_ book.
-    - Validates that `royalty_rate` is between 0 and 1.
-
-4.  **Sale**
-    - Represents a sales transaction for a specific book.
-    - `quantity`: Number of books sold.
-    - `publisher_revenue`: Total revenue for the publisher from this sale.
-    - `date`: Date of the sale.
-    - **Logic**: When a sale is created, it triggers the creation of `AuthorSale` records for all authors associated with the book.
-
-5.  **AuthorSale** (Join Table)
-    - Links `Sale` and `Author` (Many-to-Many).
-    - `royalty_amount`: The calculated royalty amount for the author for this specific sale.
-    - `author_paid`: Boolean flag indicating if the author has been paid for this sale.
+3.  **Sale**
+    - Represents a single sales record for a book.
+    - `sale_source`: Either `"distributor"` or `"handsold"`.
+    - `publisher_revenue`: For distributor sales, provided by the user. For handsold sales, computed as `(cover_price − print_cost) × quantity`.
+    - `author_royalty`: Computed at write time as `publisher_revenue × royalty_rate` (rate chosen based on `sale_source`). Stored as a snapshot — unaffected by future rate changes on the book.
+    - `author_paid`: Boolean, tracks whether the author has been paid for this specific sale.
+    - `comment`: Optional free-text field (max 256 characters). Populated automatically on Ingram CSV imports.
 
 ### Key Logic Flow
 
-- When a `Sale` is recorded, the system calculates royalties based on the `AuthorBook.royalty_rate` and `Sale.publisher_revenue`.
-- These calculations are stored in `AuthorSale` records.
-- `Book.total_sales_to_date` is updated to reflect the new `Sale.quantity`.
+- Each `Book` stores two royalty rates (distributor and handsold) directly — there is no join table.
+- When a `Sale` is created or updated, `author_royalty` is computed and stored as `publisher_revenue × royalty_rate`. This snapshot means historical royalty figures are unaffected if rates are later changed.
+- For handsold sales, `publisher_revenue` is computed server-side from `(cover_price − print_cost) × quantity`; the client-provided value is ignored.
+- Payment status is tracked per-sale via `author_paid`. Authors can be batch-paid (all unpaid sales marked paid at once) or individually.
 
 ## 5. Production Deployment
 

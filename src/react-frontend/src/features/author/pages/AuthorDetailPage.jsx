@@ -50,6 +50,7 @@ export default function AuthorDetailPage() {
           onToggleOrdering={null}
           onGoBook={onGoBook}
           extraColumns={buildAuthorRoyaltyColumns()}
+          fixedLayout={false}
         />
       </DualScrollContainer>
     </div>

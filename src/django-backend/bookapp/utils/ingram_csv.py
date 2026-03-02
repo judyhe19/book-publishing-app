@@ -72,7 +72,7 @@ def parse_and_validate(csv_file, month, year):
     sale_date_str = f"{year}-{month:02d}"
 
     for row_idx, row in enumerate(reader):
-        csv_line = row_idx + 1  # 1-indexed data row number
+        csv_line = row_idx + 2  # file line number (header is line 1, first data row is line 2)
 
         # Stop at blank row (Ingram format: blank + totals at end)
         isbn_raw = (row.get("ISBN") or "").strip()
@@ -155,20 +155,34 @@ def _validate_row(row, csv_line, isbn_raw, month, year):
                 f"Row {csv_line}: Returned Qty '{returned_qty_raw}' is not a valid integer."
             )
 
-    # Net Qty equals Gross Qty
+    # Gross Qty and Net Qty: validate types, then check equality
     gross_qty_raw = (row.get("Gross Qty") or "").strip()
     net_qty_raw = (row.get("Net Qty") or "").strip()
 
-    if gross_qty_raw and net_qty_raw:
+    gross_qty = None
+    net_qty = None
+
+    if not gross_qty_raw:
+        row_errors.append(f"Row {csv_line}: Gross Qty cannot be empty.")
+    else:
         try:
             gross_qty = int(gross_qty_raw)
-            net_qty = int(net_qty_raw)
-            if net_qty != gross_qty:
-                row_errors.append(
-                    f"Row {csv_line}: Net Qty ({net_qty}) does not equal Gross Qty ({gross_qty})."
-                )
         except (ValueError, TypeError):
-            pass  # Handled by serializer below if it's completely invalid
+            row_errors.append(
+                f"Row {csv_line}: Gross Qty '{gross_qty_raw}' is not a valid integer."
+            )
+
+    # Net Qty type/range is also validated by the serializer below; parse here only for equality check
+    if net_qty_raw:
+        try:
+            net_qty = int(net_qty_raw)
+        except (ValueError, TypeError):
+            pass  # Serializer will report the type error with line number
+
+    if gross_qty is not None and net_qty is not None and net_qty != gross_qty:
+        row_errors.append(
+            f"Row {csv_line}: Net Qty ({net_qty}) does not equal Gross Qty ({gross_qty})."
+        )
 
     # ISBN lookup
     book = None
@@ -254,12 +268,9 @@ def _build_preview_row(row_data, csv_row, sale_date_str, filename, timestamp):
     fmt = (csv_row.get("Format") or "").strip()
     market = (csv_row.get("Sales Market") or "").strip()
 
-    from django.conf import settings
-    tz_name = settings.TIME_ZONE
-
     comment = (
         f"Ingram: Format='{fmt}' Market='{market}' "
-        f"File='{filename}' ({timestamp} {tz_name})"
+        f"File='{filename}' ({timestamp})"
     )
     if len(comment) > 256:
         comment = comment[:253] + "..."

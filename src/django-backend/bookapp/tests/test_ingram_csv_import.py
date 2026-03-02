@@ -1,4 +1,5 @@
 import io
+import re
 import pytest
 from decimal import Decimal
 from django.contrib.auth.models import User
@@ -216,6 +217,15 @@ class TestIngramCSVRowValidation:
         assert resp.status_code == 400
         assert any("No book found with ISBN '9789999999999'" in e for e in resp.data["errors"])
 
+    def test_invalid_gross_qty(self, authed_client):
+        make_book("9781473619814", title="Book")
+        csv = build_csv(
+            '9781473619814,"Book","Author",Paperback,abc,0,5,18.05,US'
+        )
+        resp = upload(authed_client, csv)
+        assert resp.status_code == 400
+        assert any("Gross Qty" in e and "valid integer" in e for e in resp.data["errors"])
+
     def test_invalid_net_compensation(self, authed_client):
         make_book("9781473619814", title="Book")
         csv = build_csv(
@@ -336,8 +346,13 @@ class TestIngramCSVCommentAndRoyalty:
         resp = upload(authed_client, csv, month=3, year=2024)
         assert resp.status_code == 200
         comment = resp.data["preview"][0]["comment"]
-        assert comment.startswith("Ingram: Format='Hardcover' Market='UK' File='Ingram-202509.csv'")
-        assert "(" in comment and ")" in comment  # timestamp in parens
+        # Spec format: Ingram: Format='[Format]' Market='[Sales Market]' File='[Filename]' ([Timestamp])
+        # Timestamp must be YYYY-MM-DD HH:MM:SS with no trailing timezone name
+        assert re.search(
+            r"^Ingram: Format='Hardcover' Market='UK' File='Ingram-202509\.csv' "
+            r"\(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\)$",
+            comment,
+        ), f"Comment did not match expected format: {comment!r}"
 
     def test_royalty_computation(self, authed_client):
         make_book("9781473619814", title="Book", royalty_rate="0.25")

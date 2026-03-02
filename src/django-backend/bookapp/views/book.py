@@ -52,6 +52,7 @@ def _parse_ordering(ordering_param):
     exprs.append(F("id").asc())
     return exprs
 
+from django.db import transaction
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -63,6 +64,7 @@ from ..serializers.book import (
     BookDetailSerializer,
     BookCreateSerializer,
     BookUpdateSerializer,
+    _shift_positions_down,
 )
 from ..pagination import StandardPagination
 
@@ -255,3 +257,19 @@ class BookViewSet(ModelViewSet):
 
         book = self._base_queryset().get(pk=book.pk)
         return Response(BookDetailSerializer(book).data)
+
+    # ------------------------------------------------------------------
+    # DELETE — cascade-delete sales, then compact series positions
+    # ------------------------------------------------------------------
+
+    def destroy(self, request, *args, **kwargs):
+        book = self.get_object()
+        series_name = book.series_name
+        series_position = book.series_position
+
+        with transaction.atomic():
+            book.delete()  # CASCADE deletes all related Sales
+            if series_name and series_position is not None:
+                _shift_positions_down(series_name, series_position)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

@@ -111,18 +111,18 @@ export default function SaleInputRow({ index, row, onChange, onRemove, isFirst, 
         <div className="flex flex-wrap gap-4 items-end">
           {/* Sale Source */}
           <div className="w-40">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sale Source</label>
-            <input
-              list="source-options"
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Sale Source
+            </label>
+
+            <select
               value={row.sale_source}
-              onChange={(e) => handleSaleSourceChange(e.target.value.toLowerCase())}
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent bg-white capitalize"
-              placeholder="Type or select..."
-            />
-            <datalist id="source-options">
-              <option value="Distributor" />
-              <option value="Handsold" />
-            </datalist>
+              onChange={(e) => handleSaleSourceChange(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent bg-white"
+            >
+              <option value="distributor">Distributor</option>
+              <option value="handsold">Handsold</option>
+            </select>
           </div>
 
           {/* Quantity */}

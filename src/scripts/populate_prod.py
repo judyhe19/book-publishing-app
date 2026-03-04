@@ -13,7 +13,7 @@ Default: Connect to production server
 python src/scripts/populate_prod.py
 
 Custom options:
-python src/scripts/populate_prod.py --url https://vcm-51984.vm.duke.edu --books 150 --sales 500
+python src/scripts/populate_prod.py --url https://vcm-51887.vm.duke.edu --books 150 --sales 500
 
 Skip book creation (only create sales):
 python src/scripts/populate_prod.py --skip-books
@@ -29,7 +29,7 @@ import sys
 import argparse
 
 # Configuration - Update this to your production server URL
-BASE_URL = "https://vcm-51984.vm.duke.edu"
+BASE_URL = "https://vcm-51887.vm.duke.edu"
 
 # Login credentials (matching production defaults)
 USERNAME = "admin"

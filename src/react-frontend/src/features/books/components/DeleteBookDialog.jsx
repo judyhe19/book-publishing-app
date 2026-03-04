@@ -22,10 +22,8 @@ export function DeleteBookDialog({ open, book, deleting, onCancel, onConfirm }) 
           <span className="font-semibold">{book?.title}</span>
         </DetailField>
 
-        <DetailField label="Author(s)">
-          {(book?.authors || []).length === 0
-            ? "—"
-            : book.authors.map((a) => a.name).join(", ")}
+        <DetailField label="Author">
+          {book?.author_name ?? "—"}
         </DetailField>
 
         {hasSales ? (

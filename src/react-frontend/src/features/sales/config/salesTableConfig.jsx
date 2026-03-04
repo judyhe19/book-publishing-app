@@ -108,7 +108,7 @@ export const TABLE_COLUMNS = [
         type: 'actions',
         getActions: (sale) => [
             { label: 'Book Details', to: `/books/${sale.book}`, variant: 'secondary' },
-            { label: 'Modify Sale', to: `/sale/${sale.id}`, variant: 'primary' }
+            { label: 'Modify Sale', to: `/sale/${sale.id}?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`, variant: 'primary' }
         ],
     },
 ];

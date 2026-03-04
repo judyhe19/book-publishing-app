@@ -162,7 +162,7 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                 data["publisher_revenue"] = revenue
         elif current_source == "distributor":
             # Require the user to provide it for distributor sales, UNLESS we are patching and it already exists
-            if "publisher_revenue" not in data and not instance:
+            if data.get("publisher_revenue") is None and not instance:
                 raise serializers.ValidationError({
                     "publisher_revenue": "Publisher revenue is required for distributor sales."
                 })

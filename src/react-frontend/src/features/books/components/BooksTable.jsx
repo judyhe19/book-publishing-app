@@ -67,7 +67,7 @@ function buildBooksColumns({ showAuthor, extraColumns }) {
     {
       label: "Title",
       sortKey: "title",
-      className: "whitespace-normal",
+      className: "w-[24%] whitespace-normal",
       render: (b) => <span className="font-medium text-slate-700">{b.title}</span>,
     },
   ];
@@ -76,7 +76,7 @@ function buildBooksColumns({ showAuthor, extraColumns }) {
     cols.push({
       label: "Author",
       sortKey: "author_name",
-      className: "whitespace-nowrap",
+      className: "w-[16%] whitespace-nowrap",
       render: (b) => (
         <span className="text-slate-700">
           {b.author_name || <span className="text-slate-400">—</span>}
@@ -89,6 +89,7 @@ function buildBooksColumns({ showAuthor, extraColumns }) {
     {
       label: "Series",
       sortKey: "series_name",
+      className: "w-[20%] whitespace-nowrap",
       render: (b) =>
         b.series_display ? (
           <span className="text-slate-700">{b.series_display}</span>
@@ -99,16 +100,19 @@ function buildBooksColumns({ showAuthor, extraColumns }) {
     {
       label: "ISBN-13",
       sortKey: "isbn_13",
+      className: "w-[14%] whitespace-nowrap",
       render: (b) => <span className="font-mono text-slate-700">{b.isbn_13 || "—"}</span>,
     },
     {
       label: "Publication",
       sortKey: "publication_date",
+      className: "w-[12%] whitespace-nowrap",
       render: (b) => formatMonthYear(b.publication_date),
     },
     {
       label: "Total Sales",
       sortKey: "total_sales_to_date",
+      className: "w-[10%] whitespace-nowrap",
       render: (b) => <span className="tabular-nums">{b.total_sales_to_date ?? 0}</span>,
     }
   );
@@ -157,6 +161,7 @@ export default function BooksTable({
   showAuthor = true,
   extraColumns = [],
   sortable = true,
+  fixedLayout = true,
 }) {
   const columns = useMemo(
     () => buildBooksColumns({ showAuthor, extraColumns }),
@@ -172,6 +177,7 @@ export default function BooksTable({
       onSort={sortable ? onToggleOrdering : undefined}
       onRowClick={(b) => onGoBook?.(b)}
       emptyMessage="No books found."
+      fixedLayout={fixedLayout}
     />
   );
 }

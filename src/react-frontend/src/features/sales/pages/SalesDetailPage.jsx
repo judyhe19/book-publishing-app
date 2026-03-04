@@ -1,6 +1,6 @@
 // src/features/sales/pages/SalesDetailPage.jsx
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import AsyncSelect from "react-select/async";
 import {
   Button,
@@ -32,7 +32,7 @@ const inputClass =
 
 export default function SalesDetailPage() {
   const { saleId } = useParams();
-  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const { sale, book, loading, saving, error, save, remove } = useSalesDetails(saleId);
 
@@ -141,15 +141,24 @@ export default function SalesDetailPage() {
     };
   }, [form]);
 
+  function reloadBack() {
+    const returnTo = searchParams.get("returnTo");
+    if (returnTo) {
+      window.location.href = returnTo;
+    } else {
+      window.history.back();
+    }
+  }
+
   async function onSave() {
     if (!form || !payload) return;
     await save(payload);
-    navigate(-1);
+    reloadBack();
   }
 
   async function onConfirmDelete() {
     await remove();
-    navigate(-1);
+    reloadBack();
   }
 
   if (loading) {

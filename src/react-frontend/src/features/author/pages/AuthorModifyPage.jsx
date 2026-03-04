@@ -1,6 +1,6 @@
 // src/features/author/pages/AuthorModifyPage.jsx
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import {
   Button,
   ErrorAlert,
@@ -15,7 +15,7 @@ import DeleteAuthorDialog from "../components/DeleteAuthorDialog";
 
 export default function AuthorModifyPage() {
   const { authorId } = useParams();
-  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const { author, loading, saving, error, save, remove } = useAuthorModify(authorId);
   const { books, hasSales, loadingBooks } = useAuthorBooks(authorId);
@@ -43,15 +43,24 @@ export default function AuthorModifyPage() {
     };
   }, [form]);
 
+  function reloadBack() {
+    const returnTo = searchParams.get("returnTo");
+    if (returnTo) {
+      window.location.href = returnTo;
+    } else {
+      window.history.back();
+    }
+  }
+
   async function onSave() {
     if (!payload) return;
     const updated = await save(payload);
-    if (updated) navigate(-1);
+    if (updated) reloadBack();
   }
 
   async function onConfirmDelete() {
     const res = await remove();
-    if (res !== null) navigate("/authors");
+    if (res !== null) window.location.href = "/authors";
   }
 
   if (loading) {

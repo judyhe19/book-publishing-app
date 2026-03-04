@@ -13,7 +13,7 @@ import sys
 import os
 import re
 
-BASE_URL = "https://vcm-51984.vm.duke.edu"
+BASE_URL = "https://vcm-51887.vm.duke.edu"
 USERNAME = "admin"
 PASSWORD = "458group2"
 

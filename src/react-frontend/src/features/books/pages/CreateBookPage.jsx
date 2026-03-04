@@ -90,6 +90,22 @@ export default function CreateBookPage() {
     setSubmitting(true);
 
     try {
+      if (!selectedAuthorId) {
+        setErr(
+          authorSearch.trim()
+            ? `Author "${authorSearch.trim()}" does not exist.`
+            : "Author field may not be empty."
+        );
+        return;
+      }
+
+      const coverPriceCents = Math.round(parseFloat(coverPrice) * 100);
+      const printCostCents = Math.round(parseFloat(printCost) * 100);
+      if (!isNaN(coverPriceCents) && !isNaN(printCostCents) && coverPriceCents < printCostCents) {
+        setErr("Cover price must be equal to or greater than the print cost.");
+        return;
+      }
+
       // Upload cover image first if a new file was selected
       let finalCoverImagePath = coverImagePath.trim() === "" ? null : coverImagePath.trim();
       

@@ -202,14 +202,22 @@ export default function AuthorRoyaltyReportPage() {
       {/* ---- Report (visible in print) ---- */}
       {report && (
         <>
-          <Button variant="success" className="print-btn mb-4" onClick={() => window.print()}>
+          <Button variant="success" className="print-btn mb-4" onClick={() => {
+            const authorName = report.author.name.replace(/\s+/g, "_");
+            const startLabel = report.quarters[0]?.label.replace(/\s+/g, "");
+            const endLabel = report.quarters[report.quarters.length - 1]?.label.replace(/\s+/g, "");
+            const prevTitle = document.title;
+            document.title = `Royalty_Report_${authorName}_${startLabel}-${endLabel}`;
+            window.print();
+            document.title = prevTitle;
+          }}>
             🖨️ Print / Save as PDF
           </Button>
 
           <div className="royalty-report" id="royalty-report">
             {/* Header */}
             <div className="report-header">
-              <p className="brand">HP Publishing</p>
+              <p className="brand">Hypothetical Publishing</p>
               <h1>Author Royalty Report</h1>
               <p className="report-meta">
                 Author: <strong>{report.author.name}</strong>

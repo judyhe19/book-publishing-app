@@ -21,7 +21,8 @@ const selectStyles = {
   }),
 };
 
-export default function SaleInputRow({ index, row, onChange, onRemove, isFirst, fixedBook }) {
+export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, isFirst, fixedBook }) {
+  const fireBlur = () => onBlur?.(index);
   const { loadOptions } = useBookSearch({ date: row.date });
 
   // If a fixedBook is provided, use it as the effective book for calculations
@@ -118,6 +119,7 @@ export default function SaleInputRow({ index, row, onChange, onRemove, isFirst, 
             <select
               value={row.sale_source || ""}
               onChange={(e) => handleSaleSourceChange(e.target.value)}
+              onBlur={fireBlur}
               className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent bg-white"
             >
               <option value="" disabled>
@@ -145,6 +147,7 @@ export default function SaleInputRow({ index, row, onChange, onRemove, isFirst, 
                   handleField("publisher_revenue", revenue);
                 }
               }}
+              onBlur={fireBlur}
               onKeyDown={(e) => {
                 if (e.key === "." || e.key === "e" || e.key === "E") e.preventDefault();
               }}
@@ -169,6 +172,7 @@ export default function SaleInputRow({ index, row, onChange, onRemove, isFirst, 
                   placeholder="0.00"
                   value={row.publisher_revenue}
                   onChange={(e) => handleField("publisher_revenue", e.target.value)}
+                  onBlur={fireBlur}
                 />
               </div>
             ) : (
@@ -194,9 +198,11 @@ export default function SaleInputRow({ index, row, onChange, onRemove, isFirst, 
             <textarea
               className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent bg-white resize-none"
               rows={1}
+              maxLength={256}
               placeholder="Optional comment..."
               value={row.comment || ""}
               onChange={(e) => handleField("comment", e.target.value)}
+              onBlur={fireBlur}
             />
           </div>
         </div>

@@ -1,6 +1,5 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import React from "react";
-import { Button } from "../../../shared/components/Button";
 import { formatMonthYear } from "../../../shared/utils/dateUtils";
 
 // Sort configuration
@@ -17,9 +16,13 @@ export const TABLE_COLUMNS = [
         label: 'Book Title',
         sortKey: 'book_title',
         render: (sale) => (
-            <span className="font-medium text-gray-900">
+            <Link
+                to={`/books/${sale.book}`}
+                className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                onClick={(e) => e.stopPropagation()}
+            >
                 {sale.book_title}
-            </span>
+            </Link>
         ),
     },
     {
@@ -102,27 +105,8 @@ export const TABLE_COLUMNS = [
             </span>
         ),
     },
-
-    {
-        label: 'Actions',
-        type: 'actions',
-        getActions: (sale) => [
-            { label: 'Book Details', to: `/books/${sale.book}`, variant: 'secondary' },
-            { label: 'Modify Sale', to: `/sale/${sale.id}?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`, variant: 'primary' }
-        ],
-    },
 ];
 
-// Columns for BookDetailPage — no "Book Title" column, no "Book Details" action
+// Columns for BookDetailPage — no "Book Title" or "Author" columns
 export const BOOK_DETAIL_COLUMNS = TABLE_COLUMNS
-    .filter((col) => col.sortKey !== 'book_title' && col.sortKey !== 'authors')
-    .map((col) => {
-        if (col.type === 'actions') {
-            return {
-                ...col,
-                getActions: (sale) =>
-                    col.getActions(sale).filter((a) => a.label !== 'Book Details'),
-            };
-        }
-        return col;
-    });
+    .filter((col) => col.sortKey !== 'book_title' && col.sortKey !== 'authors');

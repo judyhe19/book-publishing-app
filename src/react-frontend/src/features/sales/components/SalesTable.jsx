@@ -3,7 +3,7 @@ import React from "react";
 import { TABLE_COLUMNS } from "../config/salesTableConfig";
 import { DataTable } from "../../../shared/components";
 
-export default function SalesTable({ data, loading, ordering, onSort, columns }) {
+export default function SalesTable({ data, loading, ordering, onSort, columns, onRowClick }) {
   return (
     <DataTable
       data={data}
@@ -11,6 +11,7 @@ export default function SalesTable({ data, loading, ordering, onSort, columns })
       loading={loading}
       ordering={ordering}
       onSort={onSort}
+      onRowClick={onRowClick}
       emptyMessage="No sales found."
       loadingMessage="Loading sales data..."
     />

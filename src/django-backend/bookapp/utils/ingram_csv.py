@@ -265,15 +265,18 @@ def _build_preview_row(row_data, csv_row, sale_date_str, filename, timestamp):
     rate = book.distributor_author_royalty_rate
     author_royalty = money(rate * net_comp)
 
-    fmt = (csv_row.get("Format") or "").strip()
-    market = (csv_row.get("Sales Market") or "").strip()
+    raw_fmt = (csv_row.get("Format") or "").strip()
+    fmt = raw_fmt[:47] + "..." if len(raw_fmt) > 50 else raw_fmt
+
+    raw_market = (csv_row.get("Sales Market") or "").strip()
+    market = raw_market[:47] + "..." if len(raw_market) > 50 else raw_market
+
+    fname = filename[:153] + "..." if len(filename) > 156 else filename
 
     comment = (
         f"Ingram: Format='{fmt}' Market='{market}' "
-        f"File='{filename}' ({timestamp})"
+        f"File='{fname}' ({timestamp})"
     )
-    if len(comment) > 256:
-        comment = comment[:253] + "..."
 
     return {
         "book": book.id,

@@ -63,8 +63,8 @@ scp docker-compose.yml .env $NETID@$VM_HOST:$PROJECT_DIR/
 # ==========================================
 echo -e "${GREEN}[4/4] Restarting Containers on Remote Server...${NC}"
 
-# Run docker-compose on the VM
-ssh $NETID@$VM_HOST "cd $PROJECT_DIR && docker-compose down && docker-compose up -d --pull always"
+# Run docker compose on the VM
+ssh $NETID@$VM_HOST "cd $PROJECT_DIR && docker compose down && docker compose up -d --pull always"
 
 echo -e "${CYAN}Deployment Complete!${NC}"
 echo -e "Visit: http://$VM_HOST"

@@ -189,6 +189,18 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
               {autoRoyalty ? `$${autoRoyalty}` : "—"}
             </div>
           </div>
+          {/* Author Paid */}
+          <div className="w-24">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Author(s) Paid</label>
+            <div className="h-[38px] flex items-center px-1">
+              <input
+                type="checkbox"
+                checked={!!row.author_paid}
+                onChange={(e) => handleField("author_paid", e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900 cursor-pointer"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Row 3: Comment */}

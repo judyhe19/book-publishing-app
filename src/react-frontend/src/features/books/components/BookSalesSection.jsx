@@ -145,7 +145,7 @@ export default function BookSalesSection({ bookId, book, onSaleCreated }) {
 
         {/* Inline sale entry form */}
         {showSaleEntry && (
-          <div className="mb-6">
+          <form className="mb-6" onSubmit={(e) => { e.preventDefault(); handleSubmitSale(); }}>
             {saleError && <ErrorAlert className="mb-4">{saleError}</ErrorAlert>}
 
             <SaleInputRow
@@ -158,14 +158,14 @@ export default function BookSalesSection({ bookId, book, onSaleCreated }) {
             />
 
             <div className="mt-4 flex justify-end gap-2">
-              <Button variant="secondary" onClick={handleCancelSale} disabled={saleSubmitting}>
+              <Button type="button" variant="secondary" onClick={handleCancelSale} disabled={saleSubmitting}>
                 Cancel
               </Button>
-              <Button onClick={handleSubmitSale} disabled={saleSubmitting}>
+              <Button type="submit" disabled={saleSubmitting}>
                 {saleSubmitting ? "Submitting…" : "Submit Sale"}
               </Button>
             </div>
-          </div>
+          </form>
         )}
 
         {totalsErr && <ErrorAlert className="mb-4">{totalsErr}</ErrorAlert>}

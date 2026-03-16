@@ -24,7 +24,10 @@ export default function CreateBookPage() {
 
   // Book fields
   const [title, setTitle] = useState("");
-  const [publicationMonth, setPublicationMonth] = useState("2000-01");
+  const [publicationMonth, setPublicationMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
   const [isbn13, setIsbn13] = useState("");
   const [isbn10, setIsbn10] = useState("");
 
@@ -51,8 +54,8 @@ export default function CreateBookPage() {
   const [seriesOptions, setSeriesOptions] = useState([]);
 
   // Royalty rates (book-level, not per-author)
-  const [distributorRoyaltyRate, setDistributorRoyaltyRate] = useState("0.50");
-  const [handSoldRoyaltyRate, setHandSoldRoyaltyRate] = useState("0.20");
+  const [distributorRoyaltyRate, setDistributorRoyaltyRate] = useState("50");
+  const [handSoldRoyaltyRate, setHandSoldRoyaltyRate] = useState("20");
 
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
@@ -120,8 +123,8 @@ export default function CreateBookPage() {
         isbn_13: cleanIsbn(isbn13),
         isbn_10: cleanIsbn(isbn10) === "" ? null : cleanIsbn(isbn10),
         author_id: selectedAuthorId ? Number(selectedAuthorId) : null,
-        distributor_author_royalty_rate: distributorRoyaltyRate,
-        hand_sold_author_royalty_rate: handSoldRoyaltyRate,
+        distributor_author_royalty_rate: String(parseFloat(distributorRoyaltyRate) / 100),
+        hand_sold_author_royalty_rate: String(parseFloat(handSoldRoyaltyRate) / 100),
         cover_price: coverPrice,
         print_cost: printCost,
         series_name: seriesName.trim() === "" ? null : seriesName.trim(),
@@ -229,27 +232,27 @@ export default function CreateBookPage() {
 
               {/* Royalty rates */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField label="Distributor royalty rate">
+                <FormField label="Distributor royalty rate (%)">
                   <Input
                     type="number"
                     min="0"
-                    max="1"
-                    step="0.01"
+                    max="100"
+                    step="1"
                     value={distributorRoyaltyRate}
                     onChange={(e) => setDistributorRoyaltyRate(e.target.value)}
                   />
-                  <p className="mt-1 text-xs text-slate-400">Decimal (0–1), e.g. 0.50 for 50%</p>
+                  <p className="mt-1 text-xs text-slate-400">Percentage (0–100), e.g. 50 for 50%</p>
                 </FormField>
-                <FormField label="Hand-sold royalty rate">
+                <FormField label="Hand-sold royalty rate (%)">
                   <Input
                     type="number"
                     min="0"
-                    max="1"
-                    step="0.01"
+                    max="100"
+                    step="1"
                     value={handSoldRoyaltyRate}
                     onChange={(e) => setHandSoldRoyaltyRate(e.target.value)}
                   />
-                  <p className="mt-1 text-xs text-slate-400">Decimal (0–1), e.g. 0.20 for 20%</p>
+                  <p className="mt-1 text-xs text-slate-400">Percentage (0–100), e.g. 20 for 20%</p>
                 </FormField>
               </div>
 

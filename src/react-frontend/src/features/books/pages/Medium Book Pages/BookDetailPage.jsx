@@ -137,8 +137,8 @@ export default function BookDetailPage() {
   const [authorDropdownOpen, setAuthorDropdownOpen] = useState(false);
 
   // Royalty / pricing
-  const [distributorRoyaltyRate, setDistributorRoyaltyRate] = useState("0.50");
-  const [handSoldRoyaltyRate, setHandSoldRoyaltyRate] = useState("0.20");
+  const [distributorRoyaltyRate, setDistributorRoyaltyRate] = useState("50");
+  const [handSoldRoyaltyRate, setHandSoldRoyaltyRate] = useState("20");
   const [coverPrice, setCoverPrice] = useState("");
   const [printCost, setPrintCost] = useState("");
 
@@ -198,8 +198,8 @@ export default function BookDetailPage() {
     setIsbn10(b.isbn_10 || "");
     setSelectedAuthorId(b.author_id != null ? String(b.author_id) : "");
     setAuthorSearch(b.author_name || "");
-    setDistributorRoyaltyRate(String(b.distributor_author_royalty_rate ?? "0.50"));
-    setHandSoldRoyaltyRate(String(b.hand_sold_author_royalty_rate ?? "0.20"));
+    setDistributorRoyaltyRate(String((parseFloat(b.distributor_author_royalty_rate ?? 0.50) * 100)));
+    setHandSoldRoyaltyRate(String((parseFloat(b.hand_sold_author_royalty_rate ?? 0.20) * 100)));
     setCoverPrice(b.cover_price != null ? String(b.cover_price) : "");
     setPrintCost(b.print_cost != null ? String(b.print_cost) : "");
     setCoverImagePath(b.cover_image_path || "");
@@ -295,8 +295,8 @@ export default function BookDetailPage() {
         // Send null to explicitly clear optional fields
         isbn_10: isbn10.trim() === "" ? null : isbn10.replaceAll("-", "").trim(),
         author_id: selectedAuthorId ? Number(selectedAuthorId) : undefined,
-        distributor_author_royalty_rate: distributorRoyaltyRate,
-        hand_sold_author_royalty_rate: handSoldRoyaltyRate,
+        distributor_author_royalty_rate: String(parseFloat(distributorRoyaltyRate) / 100),
+        hand_sold_author_royalty_rate: String(parseFloat(handSoldRoyaltyRate) / 100),
         cover_price: coverPrice,
         print_cost: printCost,
         // Explicit null to clear
@@ -595,30 +595,30 @@ export default function BookDetailPage() {
 
                 {/* Royalty rates */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <FormField label="Distributor royalty rate">
+                  <FormField label="Distributor royalty rate (%)">
                     <Input
                       type="number"
                       min="0"
-                      max="1"
-                      step="0.01"
+                      max="100"
+                      step="1"
                       value={distributorRoyaltyRate}
                       onChange={(e) => setDistributorRoyaltyRate(e.target.value)}
                     />
                     <p className="mt-1 text-xs text-slate-400">
-                      Decimal (0–1). Changes only affect future sales.
+                      Percentage (0–100). Changes only affect future sales.
                     </p>
                   </FormField>
-                  <FormField label="Hand-sold royalty rate">
+                  <FormField label="Hand-sold royalty rate (%)">
                     <Input
                       type="number"
                       min="0"
-                      max="1"
-                      step="0.01"
+                      max="100"
+                      step="1"
                       value={handSoldRoyaltyRate}
                       onChange={(e) => setHandSoldRoyaltyRate(e.target.value)}
                     />
                     <p className="mt-1 text-xs text-slate-400">
-                      Decimal (0–1). Changes only affect future sales.
+                      Percentage (0–100). Changes only affect future sales.
                     </p>
                   </FormField>
                 </div>

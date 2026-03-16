@@ -22,9 +22,9 @@ export function AuthorsEditor({
       author_id: first.author_id ?? null,
       author_name: first.author_name ?? "",
       distributor_author_royalty_rate:
-        first.distributor_author_royalty_rate ?? "0.50",
+        first.distributor_author_royalty_rate ?? "50",
       hand_sold_author_royalty_rate:
-        first.hand_sold_author_royalty_rate ?? "0.20",
+        first.hand_sold_author_royalty_rate ?? "20",
     };
   }, [authors]);
 
@@ -125,7 +125,7 @@ export function AuthorsEditor({
               onChange={(e) =>
                 setSingleRow({ distributor_author_royalty_rate: e.target.value })
               }
-              placeholder="0.50"
+              placeholder="50"
               required
             />
             <div className="mt-1 text-[11px] text-slate-500">
@@ -140,7 +140,7 @@ export function AuthorsEditor({
               onChange={(e) =>
                 setSingleRow({ hand_sold_author_royalty_rate: e.target.value })
               }
-              placeholder="0.20"
+              placeholder="20"
               required
             />
             <div className="mt-1 text-[11px] text-slate-500">

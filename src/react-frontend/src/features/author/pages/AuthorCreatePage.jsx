@@ -32,44 +32,46 @@ export default function AuthorCreatePage() {
         </ErrorAlert>
       )}
 
-      <Card>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Name
-              </label>
-              <input
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
-                value={form.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-                placeholder="e.g., Douglas Adams"
-              />
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
+        <Card>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Name
+                </label>
+                <input
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  value={form.name}
+                  onChange={(e) => handleChange("name", e.target.value)}
+                  placeholder="e.g., Douglas Adams"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Email
+                </label>
+                <input
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  value={form.email}
+                  onChange={(e) => handleChange("email", e.target.value)}
+                  placeholder="e.g., douglasadams@example.com"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Email
-              </label>
-              <input
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
-                value={form.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                placeholder="e.g., douglasadams@example.com"
-              />
+            <div className="mt-8 flex justify-end gap-4">
+              <Button type="button" variant="secondary" onClick={() => navigate(-1)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting || !form.name.trim()}>
+                {isSubmitting ? "Creating..." : "Create Author"}
+              </Button>
             </div>
-          </div>
-
-          <div className="mt-8 flex justify-end gap-4">
-            <Button variant="secondary" onClick={() => navigate(-1)}>
-              Cancel
-            </Button>
-            <Button onClick={onSubmit} disabled={isSubmitting || !form.name.trim()}>
-              {isSubmitting ? "Creating..." : "Create Author"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </form>
     </div>
   );
 }

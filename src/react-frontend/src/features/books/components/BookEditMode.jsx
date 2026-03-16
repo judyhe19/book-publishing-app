@@ -94,30 +94,30 @@ export default function BookEditMode({
 
       {/* Royalty rates */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <FormField label="Distributor royalty rate">
+        <FormField label="Distributor royalty rate (%)">
           <Input
             type="number"
             min="0"
-            max="1"
-            step="0.01"
+            max="100"
+            step="1"
             value={distributorRoyaltyRate}
             onChange={(e) => setDistributorRoyaltyRate(e.target.value)}
           />
           <p className="mt-1 text-xs text-slate-400">
-            Decimal (0–1). Changes only affect future sales.
+            Percentage (0–100). Changes only affect future sales.
           </p>
         </FormField>
-        <FormField label="Hand-sold royalty rate">
+        <FormField label="Hand-sold royalty rate (%)">
           <Input
             type="number"
             min="0"
-            max="1"
-            step="0.01"
+            max="100"
+            step="1"
             value={handSoldRoyaltyRate}
             onChange={(e) => setHandSoldRoyaltyRate(e.target.value)}
           />
           <p className="mt-1 text-xs text-slate-400">
-            Decimal (0–1). Changes only affect future sales.
+            Percentage (0–100). Changes only affect future sales.
           </p>
         </FormField>
       </div>

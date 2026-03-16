@@ -1,6 +1,7 @@
 // src/features/reports/pages/AuthorRoyaltyReportPage.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import Select from "react-select";
+import { useLocation } from "react-router-dom";
 import { getAllAuthors } from "../../author/api/authorApi";
 import { getAuthorRoyaltyReport } from "../api/reportApi";
 import { formatMoney } from "../../../shared/utils/formatUtils";
@@ -41,11 +42,13 @@ const selectClass =
   "rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-900";
 
 export default function AuthorRoyaltyReportPage() {
+  const location = useLocation();
+  const initialAuthor = location.state?.author || null;
   const defaults = useMemo(() => getDefaultRange(), []);
 
   // Controls state
   const [authors, setAuthors] = useState([]);
-  const [selectedAuthor, setSelectedAuthor] = useState(null);
+  const [selectedAuthor, setSelectedAuthor] = useState(initialAuthor);
   const [startYear, setStartYear] = useState(String(defaults.startYear));
   const [startQuarter, setStartQuarter] = useState(defaults.startQ);
   const [endYear, setEndYear] = useState(String(defaults.endYear));

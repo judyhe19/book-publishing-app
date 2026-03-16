@@ -29,10 +29,23 @@ export default function AuthorDetailPage() {
             {author?.email || "—"}
           </div>
         </div>
-
-        <Button variant="secondary" onClick={() => navigate("/authors")}>
-          Back
-        </Button>
+        <div className="flex gap-2">
+            <Button
+              variant="primary"
+              onClick={() =>
+                navigate("/reports/royalty", {
+                  state: {
+                    author:  { value: author.id, label: author.name }
+                  },
+                })
+              }
+            >
+              Author Report
+         </Button>
+          <Button variant="secondary" onClick={() => navigate("/authors")}>
+            Back
+          </Button>
+        </div>
       </div>
 
       <div className="text-sm text-slate-600">

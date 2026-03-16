@@ -31,16 +31,26 @@ export const useSalesInputPage = () => {
             const royalty = computeAuthorRoyalty(row.sale_source, row.publisher_revenue, row.book);
             newRows[index] = { ...newRows[index], author_royalty: royalty };
 
-            // If editing the last row, append a new empty one inheriting date, book, and sale_source
-            if (index === prevRows.length - 1) {
-                newRows.push({
-                    ...EMPTY_ROW,
-                    date: newRows[index].date,
-                    book: newRows[index].book,
-                    sale_source: newRows[index].sale_source,
-                });
-            }
             return newRows;
+        });
+    };
+
+    // Append a new empty row when the user finishes editing (blurs) the last row
+    const handleRowBlur = (index) => {
+        setRows(prevRows => {
+            if (index !== prevRows.length - 1) return prevRows;
+            const lastRow = prevRows[index];
+            // Only add if the user has started entering data in this row
+            if (!isRowStarted(lastRow)) return prevRows;
+            return [
+                ...prevRows,
+                {
+                    ...EMPTY_ROW,
+                    date: lastRow.date,
+                    book: lastRow.book,
+                    sale_source: lastRow.sale_source,
+                },
+            ];
         });
     };
 
@@ -89,6 +99,7 @@ export const useSalesInputPage = () => {
         isSubmitting,
         error,
         handleRowChange,
+        handleRowBlur,
         handleRemoveRow,
         handleSubmit
     };

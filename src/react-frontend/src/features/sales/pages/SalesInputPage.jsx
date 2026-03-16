@@ -7,7 +7,7 @@ import SaleInputRow from "../components/SaleInputRow";
 
 export default function SalesInputPage() {
   const navigate = useNavigate();
-  const { rows, isSubmitting, error, handleRowChange, handleRemoveRow, handleSubmit } =
+  const { rows, isSubmitting, error, handleRowChange, handleRowBlur, handleRemoveRow, handleSubmit } =
     useSalesInputPage();
 
   return (
@@ -29,6 +29,7 @@ export default function SalesInputPage() {
             index={index}
             row={row}
             onChange={handleRowChange}
+            onBlur={handleRowBlur}
             onRemove={handleRemoveRow}
             isFirst={index === 0}
           />

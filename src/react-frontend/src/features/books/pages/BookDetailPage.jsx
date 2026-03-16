@@ -44,8 +44,8 @@ export default function BookDetailPage() {
   const [authorOptions, setAuthorOptions] = useState([]);
   const [selectedAuthorId, setSelectedAuthorId] = useState("");
   const [authorSearch, setAuthorSearch] = useState("");
-  const [distributorRoyaltyRate, setDistributorRoyaltyRate] = useState("0.50");
-  const [handSoldRoyaltyRate, setHandSoldRoyaltyRate] = useState("0.20");
+  const [distributorRoyaltyRate, setDistributorRoyaltyRate] = useState("50");
+  const [handSoldRoyaltyRate, setHandSoldRoyaltyRate] = useState("20");
   const [coverPrice, setCoverPrice] = useState("");
   const [printCost, setPrintCost] = useState("");
   const [coverImagePath, setCoverImagePath] = useState("");
@@ -63,8 +63,8 @@ export default function BookDetailPage() {
     setIsbn10(b.isbn_10 || "");
     setSelectedAuthorId(b.author_id != null ? String(b.author_id) : "");
     setAuthorSearch(b.author_name || "");
-    setDistributorRoyaltyRate(String(b.distributor_author_royalty_rate ?? "0.50"));
-    setHandSoldRoyaltyRate(String(b.hand_sold_author_royalty_rate ?? "0.20"));
+    setDistributorRoyaltyRate(String((parseFloat(b.distributor_author_royalty_rate ?? 0.50) * 100)));
+    setHandSoldRoyaltyRate(String((parseFloat(b.hand_sold_author_royalty_rate ?? 0.20) * 100)));
     setCoverPrice(b.cover_price != null ? String(b.cover_price) : "");
     setPrintCost(b.print_cost != null ? String(b.print_cost) : "");
     setCoverImagePath(b.cover_image_path || "");
@@ -142,8 +142,8 @@ export default function BookDetailPage() {
         isbn_13: isbn13.replaceAll("-", "").trim(),
         isbn_10: isbn10.trim() === "" ? null : isbn10.replaceAll("-", "").trim(),
         author_id: selectedAuthorId ? Number(selectedAuthorId) : undefined,
-        distributor_author_royalty_rate: distributorRoyaltyRate,
-        hand_sold_author_royalty_rate: handSoldRoyaltyRate,
+        distributor_author_royalty_rate: String(parseFloat(distributorRoyaltyRate) / 100),
+        hand_sold_author_royalty_rate: String(parseFloat(handSoldRoyaltyRate) / 100),
         cover_price: coverPrice,
         print_cost: printCost,
         cover_image_path: finalCoverImagePath,

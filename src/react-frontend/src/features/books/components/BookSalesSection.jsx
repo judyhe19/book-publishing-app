@@ -1,5 +1,6 @@
 // src/features/books/components/BookSalesSection.jsx
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Card,
   CardHeader,
@@ -28,6 +29,7 @@ function formatMoney(x) {
  * Handles sales table, stats, pagination, and inline sale entry.
  */
 export default function BookSalesSection({ bookId, book, onSaleCreated }) {
+  const navigate = useNavigate();
   // Sales list
   const {
     sales: bookSales,
@@ -145,7 +147,7 @@ export default function BookSalesSection({ bookId, book, onSaleCreated }) {
 
         {/* Inline sale entry form */}
         {showSaleEntry && (
-          <div className="mb-6">
+          <form className="mb-6" onSubmit={(e) => { e.preventDefault(); handleSubmitSale(); }}>
             {saleError && <ErrorAlert className="mb-4">{saleError}</ErrorAlert>}
 
             <SaleInputRow
@@ -158,14 +160,14 @@ export default function BookSalesSection({ bookId, book, onSaleCreated }) {
             />
 
             <div className="mt-4 flex justify-end gap-2">
-              <Button variant="secondary" onClick={handleCancelSale} disabled={saleSubmitting}>
+              <Button type="button" variant="secondary" onClick={handleCancelSale} disabled={saleSubmitting}>
                 Cancel
               </Button>
-              <Button onClick={handleSubmitSale} disabled={saleSubmitting}>
+              <Button type="submit" disabled={saleSubmitting}>
                 {saleSubmitting ? "Submitting…" : "Submit Sale"}
               </Button>
             </div>
-          </div>
+          </form>
         )}
 
         {totalsErr && <ErrorAlert className="mb-4">{totalsErr}</ErrorAlert>}
@@ -208,6 +210,7 @@ export default function BookSalesSection({ bookId, book, onSaleCreated }) {
           loading={salesLoading}
           ordering={salesOrdering}
           onSort={handleSalesSort}
+          onRowClick={(sale) => navigate(`/sale/${sale.id}?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
         />
 
         {/* Pagination */}

@@ -237,7 +237,7 @@ export default function IngramCSVImportPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Comment
                     </label>
-                    <div className="text-sm text-slate-500 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200">
+                    <div className="text-sm text-slate-500 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 break-words whitespace-pre-wrap">
                       {row.comment}
                     </div>
                   </div>

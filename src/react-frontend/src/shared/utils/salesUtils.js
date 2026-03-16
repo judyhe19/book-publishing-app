@@ -24,7 +24,7 @@ export const transformRowToSaleData = (row) => {
         sale_source: row.sale_source,
         publisher_revenue: parseFloat(row.publisher_revenue),
         author_royalty: parseFloat(row.author_royalty || 0),
-        author_paid: row.author_paid || false,
+        author_paid: Boolean(row.author_paid),
         comment: row.comment || '',
     };
 };

@@ -24,7 +24,10 @@ export default function CreateBookPage() {
 
   // Book fields
   const [title, setTitle] = useState("");
-  const [publicationMonth, setPublicationMonth] = useState("2000-01");
+  const [publicationMonth, setPublicationMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
   const [isbn13, setIsbn13] = useState("");
   const [isbn10, setIsbn10] = useState("");
 
@@ -48,8 +51,8 @@ export default function CreateBookPage() {
     {
       author_id: null,
       author_name: "",
-      distributor_author_royalty_rate: "0.50",
-      hand_sold_author_royalty_rate: "0.20",
+      distributor_author_royalty_rate: "50",
+      hand_sold_author_royalty_rate: "20",
     },
   ]);
   const [openAuthorIdx, setOpenAuthorIdx] = useState(null);
@@ -97,8 +100,8 @@ export default function CreateBookPage() {
         author_id: a0.author_id,
 
         // Book-level royalty rates
-        distributor_author_royalty_rate: String(a0.distributor_author_royalty_rate ?? "0.50").trim(),
-        hand_sold_author_royalty_rate: String(a0.hand_sold_author_royalty_rate ?? "0.20").trim(),
+        distributor_author_royalty_rate: String(parseFloat(a0.distributor_author_royalty_rate ?? "50") / 100).trim(),
+        hand_sold_author_royalty_rate: String(parseFloat(a0.hand_sold_author_royalty_rate ?? "20") / 100).trim(),
 
         // Required monetary fields
         cover_price: String(coverPrice).trim(),

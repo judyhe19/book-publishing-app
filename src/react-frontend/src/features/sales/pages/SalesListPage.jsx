@@ -64,6 +64,7 @@ export default function SalesListPage() {
               loading={loading}
               ordering={filters.ordering}
               onSort={handleSort}
+              onRowClick={(sale) => navigate(`/sale/${sale.id}?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
             />
           </DualScrollContainer>
 

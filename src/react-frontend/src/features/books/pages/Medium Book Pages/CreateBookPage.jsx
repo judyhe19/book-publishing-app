@@ -24,7 +24,10 @@ export default function CreateBookPage() {
 
   // Book fields
   const [title, setTitle] = useState("");
-  const [publicationMonth, setPublicationMonth] = useState("2000-01");
+  const [publicationMonth, setPublicationMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
   const [isbn13, setIsbn13] = useState("");
   const [isbn10, setIsbn10] = useState("");
 

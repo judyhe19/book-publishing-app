@@ -22,7 +22,7 @@ from ..models import Sale, Book
 from ..serializers.sales import SaleSerializer, SaleWriteSerializer
 from ..config.sort_config import SALES_SORT_FIELD_MAP, SALES_DEFAULT_SORT
 from ..pagination import StandardPagination
-from ..utils.ingram_csv import parse_and_validate as parse_ingram_csv
+from ..utils.ingram_csv import IngramSparkCSVParser
 
 def money(x):
     return Decimal(x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
@@ -183,13 +183,13 @@ class SaleViewSet(ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        preview_rows, errors, metadata = parse_ingram_csv(csv_file, month, year)
+        result = IngramSparkCSVParser().parse_and_validate(csv_file, month=month, year=year)
 
-        if errors:
-            return Response({"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
+        if result.errors:
+            return Response({"errors": result.errors}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
-            {"preview": preview_rows, **metadata},
+            {"preview": result.preview, **result.metadata},
             status=status.HTTP_200_OK,
         )
 

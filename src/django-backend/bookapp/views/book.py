@@ -177,6 +177,7 @@ class BookViewSet(ModelViewSet):
                     Q(title__icontains=q)
                     | Q(isbn_13__icontains=c_q)
                     | Q(isbn_10__icontains=c_q)
+                    | Q(amazon_asin_ebook__icontains=c_q)
                     | Q(author__name__icontains=q)
                     | Q(series_name__icontains=q)
                 )

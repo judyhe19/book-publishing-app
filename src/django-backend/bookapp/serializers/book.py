@@ -76,6 +76,7 @@ class BookListSerializer(serializers.ModelSerializer):
             "publication_date",
             "isbn_13",
             "isbn_10",
+            "amazon_asin_ebook",
             "total_sales_to_date",
             "total_author_royalty",
             "paid_author_royalty",
@@ -151,6 +152,7 @@ class BookCreateSerializer(serializers.ModelSerializer):
             "publication_date",
             "isbn_13",
             "isbn_10",
+            "amazon_asin_ebook",
             "author_id",
             "author_name",
             "distributor_author_royalty_rate",
@@ -167,6 +169,11 @@ class BookCreateSerializer(serializers.ModelSerializer):
 
     def validate_isbn_10(self, value):
         return validate_isbn_10(value)
+
+    def validate_amazon_asin_ebook(self, value):
+        if value:
+            return value.strip().upper()
+        return value
 
     def validate(self, attrs):
         error = {}
@@ -261,6 +268,7 @@ class BookUpdateSerializer(serializers.ModelSerializer):
             "publication_date",
             "isbn_13",
             "isbn_10",
+            "amazon_asin_ebook",
             "author_id",
             "author_name",
             "distributor_author_royalty_rate",
@@ -277,6 +285,11 @@ class BookUpdateSerializer(serializers.ModelSerializer):
 
     def validate_isbn_10(self, value):
         return validate_isbn_10(value)
+
+    def validate_amazon_asin_ebook(self, value):
+        if value:
+            return value.strip().upper()
+        return value
 
     def validate(self, attrs):
         instance = getattr(self, "instance", None)

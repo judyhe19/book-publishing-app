@@ -70,14 +70,24 @@ export default function BookViewMode({ book }) {
               <DetailField label="Published">
                 {formatMonthYear(book.publication_date)}
               </DetailField>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <DetailField label="ISBN-13">
                   <span className="font-mono">{book.isbn_13 || "—"}</span>
                 </DetailField>
                 <DetailField label="ISBN-10">
                   <span className="font-mono">{book.isbn_10 || "—"}</span>
                 </DetailField>
+                {book.amazon_asin_ebook && (
+                  <DetailField label="Amazon ASIN (ebook)">
+                    <span className="font-mono">{book.amazon_asin_ebook}</span>
+                  </DetailField>
+                )}
               </div>
+              {/* {book.amazon_asin_ebook && (
+                <DetailField label="Amazon ASIN (ebook)">
+                  <span className="font-mono">{book.amazon_asin_ebook}</span>
+                </DetailField>
+              )} */}
             </div>
           </div>
 

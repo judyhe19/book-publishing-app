@@ -51,6 +51,19 @@ class Book(models.Model):
         validators=[isbn_10_format],
     )
 
+    amazon_asin_ebook = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        validators=[
+            RegexValidator(
+                regex=r"^[A-Z0-9]{10}$",
+                message="Amazon ASIN must be exactly 10 uppercase alphanumeric characters (e.g. B09XYZ1234).",
+            )
+        ],
+        help_text="Amazon's unique identifier for the ebook edition of this book (e.g. B09XYZ1234). Optional.",
+    )
+
     # Single author per book
     author = models.ForeignKey(
         Author,

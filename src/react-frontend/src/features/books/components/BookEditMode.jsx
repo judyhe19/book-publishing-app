@@ -38,6 +38,9 @@ export default function BookEditMode({
   coverImagePath,
   setCoverImagePath,
   onCoverImageFileChange,
+  // Amazon
+  amazonAsin,
+  setAmazonAsin,
   // Series
   seriesName,
   setSeriesName,
@@ -115,6 +118,17 @@ export default function BookEditMode({
                   </div>
                 </FormField>
               </div>
+              <FormField label="Amazon ASIN — ebook (optional)">
+                <Input
+                  value={amazonAsin}
+                  onChange={(e) => setAmazonAsin(e.target.value.toUpperCase())}
+                  placeholder="e.g. B09XYZ1234"
+                  maxLength={10}
+                />
+                <p className="mt-1 text-xs text-slate-400">
+                  10-character alphanumeric identifier from Amazon (e.g. B09XYZ1234).
+                </p>
+              </FormField>
             </div>
           </div>
 

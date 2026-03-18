@@ -50,6 +50,7 @@ export default function BookDetailPage() {
   const [printCost, setPrintCost] = useState("");
   const [coverImagePath, setCoverImagePath] = useState("");
   const [coverImageFile, setCoverImageFile] = useState(null);
+  const [amazonAsin, setAmazonAsin] = useState("");
   const [seriesName, setSeriesName] = useState("");
   const [seriesPosition, setSeriesPosition] = useState("");
   const [seriesOptions, setSeriesOptions] = useState([]);
@@ -69,6 +70,7 @@ export default function BookDetailPage() {
     setPrintCost(b.print_cost != null ? String(b.print_cost) : "");
     setCoverImagePath(b.cover_image_path || "");
     setCoverImageFile(null);
+    setAmazonAsin(b.amazon_asin_ebook || "");
     setSeriesName(b.series_name || "");
     setSeriesPosition(b.series_position != null ? String(b.series_position) : "");
   }
@@ -147,6 +149,7 @@ export default function BookDetailPage() {
         cover_price: coverPrice,
         print_cost: printCost,
         cover_image_path: finalCoverImagePath,
+        amazon_asin_ebook: amazonAsin.trim() === "" ? null : amazonAsin.trim().toUpperCase(),
         series_name: seriesName.trim() === "" ? null : seriesName.trim(),
         series_position: seriesPosition === "" || seriesPosition == null ? null : Number(seriesPosition),
       };
@@ -283,6 +286,8 @@ export default function BookDetailPage() {
                 coverImagePath={coverImagePath}
                 setCoverImagePath={setCoverImagePath}
                 onCoverImageFileChange={setCoverImageFile}
+                amazonAsin={amazonAsin}
+                setAmazonAsin={setAmazonAsin}
                 seriesName={seriesName}
                 setSeriesName={setSeriesName}
                 seriesPosition={seriesPosition}

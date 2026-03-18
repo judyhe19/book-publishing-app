@@ -43,6 +43,9 @@ export default function CreateBookPage() {
   const [coverImagePath, setCoverImagePath] = useState("");
   const [coverImageFile, setCoverImageFile] = useState(null);
 
+  // Amazon ASIN
+  const [amazonAsin, setAmazonAsin] = useState("");
+
   // Author (single author model)
   const [authorOptions, setAuthorOptions] = useState([]);
   const [authorsLoading, setAuthorsLoading] = useState(true);
@@ -130,6 +133,7 @@ export default function CreateBookPage() {
         series_name: seriesName.trim() === "" ? null : seriesName.trim(),
         series_position: seriesName.trim() === "" || seriesPosition === "" ? null : Number(seriesPosition),
         cover_image_path: finalCoverImagePath,
+        amazon_asin_ebook: amazonAsin.trim() === "" ? null : amazonAsin.trim().toUpperCase(),
       };
 
       await booksApi.createBook(payload);
@@ -179,6 +183,19 @@ export default function CreateBookPage() {
                   />
                 </FormField>
               </div>
+
+              {/* Amazon ASIN */}
+              <FormField label="Amazon ASIN — ebook (optional)">
+                <Input
+                  value={amazonAsin}
+                  onChange={(e) => setAmazonAsin(e.target.value.toUpperCase())}
+                  placeholder="e.g. B09XYZ1234"
+                  maxLength={10}
+                />
+                <p className="mt-1 text-xs text-slate-400">
+                  10-character alphanumeric identifier from Amazon (e.g. B09XYZ1234).
+                </p>
+              </FormField>
 
               {/* Pricing */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

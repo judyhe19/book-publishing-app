@@ -1,5 +1,4 @@
 // src/features/books/components/BookEditMode.jsx
-import React from "react";
 import { FormField, Input, MonthPicker } from "../../../shared/components";
 import CoverImageField from "./CoverImageField";
 import AuthorPicker from "./AuthorPicker";
@@ -48,42 +47,17 @@ export default function BookEditMode({
   originalSeriesName,
 }) {
   return (
-    <div className="mt-6 space-y-5">
+    <div className="mt-4 space-y-5">
+      {/* Title - full width, prominent */}
       <FormField label="Title">
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+        <Input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="text-lg font-semibold"
+        />
       </FormField>
 
-      <MonthPicker
-        label="Publication month, year"
-        value={publicationMonth}
-        onChange={setPublicationMonth}
-        required
-      />
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <FormField label="ISBN-13">
-          <Input value={isbn13} onChange={(e) => setIsbn13(e.target.value)} />
-        </FormField>
-        <FormField label="ISBN-10 (optional)">
-          <div className="flex gap-2">
-            <Input
-              value={isbn10}
-              onChange={(e) => setIsbn10(e.target.value)}
-              placeholder="Leave blank to clear"
-            />
-            {isbn10 && (
-              <button
-                type="button"
-                className="flex-shrink-0 text-xs text-red-500 underline"
-                onClick={() => setIsbn10("")}
-              >
-                Clear
-              </button>
-            )}
-          </div>
-        </FormField>
-      </div>
-
+      {/* Author - full width */}
       <AuthorPicker
         authorOptions={authorOptions}
         selectedAuthorId={selectedAuthorId}
@@ -92,75 +66,136 @@ export default function BookEditMode({
         setAuthorSearch={setAuthorSearch}
       />
 
-      {/* Royalty rates */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <FormField label="Distributor royalty rate (%)">
-          <Input
-            type="number"
-            min="0"
-            max="100"
-            step="1"
-            value={distributorRoyaltyRate}
-            onChange={(e) => setDistributorRoyaltyRate(e.target.value)}
+      {/* Two-column: cover art left, fields right */}
+      <div className="flex flex-col gap-8 sm:flex-row">
+        {/* Cover image */}
+        <div className="flex-shrink-0 sm:w-60">
+          <CoverImageField
+            value={coverImagePath}
+            onChange={setCoverImagePath}
+            onFileChange={onCoverImageFileChange}
+            title={title}
           />
-          <p className="mt-1 text-xs text-slate-400">
-            Percentage (0–100). Changes only affect future sales.
-          </p>
-        </FormField>
-        <FormField label="Hand-sold royalty rate (%)">
-          <Input
-            type="number"
-            min="0"
-            max="100"
-            step="1"
-            value={handSoldRoyaltyRate}
-            onChange={(e) => setHandSoldRoyaltyRate(e.target.value)}
-          />
-          <p className="mt-1 text-xs text-slate-400">
-            Percentage (0–100). Changes only affect future sales.
-          </p>
-        </FormField>
+        </div>
+
+        {/* Grouped fields */}
+        <div className="flex-1 divide-y divide-slate-100">
+          {/* Publication Info */}
+          <div className="pb-5">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Publication Info
+            </p>
+            <div className="space-y-4">
+              <MonthPicker
+                label="Publication month, year"
+                value={publicationMonth}
+                onChange={setPublicationMonth}
+                required
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="ISBN-13">
+                  <Input value={isbn13} onChange={(e) => setIsbn13(e.target.value)} />
+                </FormField>
+                <FormField label="ISBN-10 (optional)">
+                  <div className="flex gap-2">
+                    <Input
+                      value={isbn10}
+                      onChange={(e) => setIsbn10(e.target.value)}
+                      placeholder="Leave blank to clear"
+                    />
+                    {isbn10 && (
+                      <button
+                        type="button"
+                        className="flex-shrink-0 text-xs text-red-500 underline"
+                        onClick={() => setIsbn10("")}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </FormField>
+              </div>
+            </div>
+          </div>
+
+          {/* Series */}
+          <div className="py-5">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Series
+            </p>
+            <SeriesPicker
+              seriesName={seriesName}
+              setSeriesName={setSeriesName}
+              seriesPosition={seriesPosition}
+              setSeriesPosition={setSeriesPosition}
+              seriesOptions={seriesOptions || []}
+              originalSeriesName={originalSeriesName}
+            />
+          </div>
+
+          {/* Pricing */}
+          <div className="py-5">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Pricing
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField label="Cover price ($)">
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={coverPrice}
+                  onChange={(e) => setCoverPrice(e.target.value)}
+                />
+              </FormField>
+              <FormField label="Print cost ($)">
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={printCost}
+                  onChange={(e) => setPrintCost(e.target.value)}
+                />
+              </FormField>
+            </div>
+          </div>
+
+          {/* Royalty Rates */}
+          <div className="pt-5">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Royalty Rates
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField label="Distributor royalty rate (%)">
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={distributorRoyaltyRate}
+                  onChange={(e) => setDistributorRoyaltyRate(e.target.value)}
+                />
+                <p className="mt-1 text-xs text-slate-400">
+                  Changes only affect future sales.
+                </p>
+              </FormField>
+              <FormField label="Hand-sold royalty rate (%)">
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={handSoldRoyaltyRate}
+                  onChange={(e) => setHandSoldRoyaltyRate(e.target.value)}
+                />
+                <p className="mt-1 text-xs text-slate-400">
+                  Changes only affect future sales.
+                </p>
+              </FormField>
+            </div>
+          </div>
+        </div>
       </div>
-
-      {/* Pricing */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <FormField label="Cover price ($)">
-          <Input
-            type="number"
-            min="0"
-            step="0.01"
-            value={coverPrice}
-            onChange={(e) => setCoverPrice(e.target.value)}
-          />
-        </FormField>
-        <FormField label="Print cost ($)">
-          <Input
-            type="number"
-            min="0"
-            step="0.01"
-            value={printCost}
-            onChange={(e) => setPrintCost(e.target.value)}
-          />
-        </FormField>
-      </div>
-
-      {/* Cover image */}
-      <CoverImageField
-        value={coverImagePath}
-        onChange={setCoverImagePath}
-        onFileChange={onCoverImageFileChange}
-        title={title}
-      />
-
-      {/* Series */}
-      <SeriesPicker
-        seriesName={seriesName}
-        setSeriesName={setSeriesName}
-        seriesPosition={seriesPosition}
-        setSeriesPosition={setSeriesPosition}
-        seriesOptions={seriesOptions || []}
-        originalSeriesName={originalSeriesName}
-      />
     </div>
   );
 }

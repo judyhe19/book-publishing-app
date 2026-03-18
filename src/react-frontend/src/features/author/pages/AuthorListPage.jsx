@@ -65,6 +65,7 @@ export default function AuthorListPage() {
               loading={loading}
               ordering={filters.ordering}
               onSort={handleSort}
+              onRowClick={(author) => navigate(`/authors/${author.id}?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
             />
           </DualScrollContainer>
 

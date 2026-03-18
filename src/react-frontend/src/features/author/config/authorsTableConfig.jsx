@@ -75,7 +75,6 @@ export const TABLE_COLUMNS = [
     label: "Actions",
     type: "actions",
     getActions: (author) => [
-      { label: "Author Details", to: `/authors/${author.id}`, variant: "secondary" },
       { label: 'Modify Author', to: `/authors/${author.id}/modify?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`, variant: 'primary' }
     ],
   },

@@ -23,6 +23,8 @@ class SaleSerializer(serializers.ModelSerializer):
             "id", "book", "book_title", "date", "quantity",
             "sale_source", "publisher_revenue", "author_royalty",
             "author_paid", "comment", "author_names",
+            "distributor", "format", "currency",
+            "publisher_revenue_original", "kenp",
         ]
 
     def get_author_names(self, obj):
@@ -54,9 +56,9 @@ class SaleWriteSerializer(serializers.ModelSerializer):
 
     quantity = serializers.IntegerField(
         min_value=1,
+        required=False,
+        allow_null=True,
         error_messages={
-            "required": "Quantity is required.",
-            "null": "Quantity is required.",
             "invalid": "Quantity must be a valid integer.",
             "min_value": "Quantity must be a positive integer.",
         },
@@ -119,11 +121,56 @@ class SaleWriteSerializer(serializers.ModelSerializer):
         },
     )
 
+    distributor = serializers.CharField(
+        max_length=100,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+    )
+
+    format = serializers.ChoiceField(
+        choices=Sale.FORMAT_CHOICES,
+        required=False,
+        default="print",
+        error_messages={
+            "invalid_choice": "Format must be 'print', 'ebook', or 'kindle unlimited'.",
+        },
+    )
+
+    currency = serializers.CharField(
+        max_length=3,
+        required=False,
+        default="USD",
+    )
+
+    publisher_revenue_original = PlaceholderDecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        allow_null=True,
+        min_value=Decimal("0"),
+        error_messages={
+            "min_value": "Original revenue must be non-negative.",
+        },
+    )
+
+    kenp = serializers.IntegerField(
+        min_value=0,
+        required=False,
+        allow_null=True,
+        error_messages={
+            "invalid": "KENP must be a valid integer.",
+            "min_value": "KENP must be non-negative.",
+        },
+    )
+
     class Meta:
         model = Sale
         fields = [
             "book", "quantity", "sale_source", "publisher_revenue",
             "author_royalty", "author_paid", "date", "comment",
+            "distributor", "format", "currency",
+            "publisher_revenue_original", "kenp",
         ]
 
     # ------------------------------------------------------------------
@@ -138,10 +185,42 @@ class SaleWriteSerializer(serializers.ModelSerializer):
         # In PATCH requests, if book or sales_source is omitted, we fetch it from instance
         # However, to correctly compute we'll just pull necessary fields from instance if data doesn't have it
         instance = getattr(self, 'instance', None)
-        
+
         current_book = book if book is not None else (instance.book if instance else None)
         current_source = data.get("sale_source", instance.sale_source if instance else None)
+        current_format = data.get("format", instance.format if instance else "print")
         current_qty = data.get("quantity", instance.quantity if instance else None)
+        current_kenp = data.get("kenp", instance.kenp if instance else None)
+
+        # kenp/quantity mutual exclusion based on format
+        if current_format == "kindle unlimited":
+            if current_kenp is None:
+                raise serializers.ValidationError({
+                    "kenp": "KENP is required for Kindle Unlimited sales."
+                })
+            if current_qty is not None:
+                raise serializers.ValidationError({
+                    "quantity": "Quantity must be null for Kindle Unlimited sales (use kenp instead)."
+                })
+            data["quantity"] = None
+        else:
+            if current_qty is None:
+                raise serializers.ValidationError({
+                    "quantity": "Quantity is required for print and ebook sales."
+                })
+            if current_kenp is not None:
+                raise serializers.ValidationError({
+                    "kenp": "KENP should only be set for Kindle Unlimited sales."
+                })
+            data["kenp"] = None
+
+        # publisher_revenue_original requires currency to be explicitly set (non-default)
+        if data.get("publisher_revenue_original") is not None:
+            currency = data.get("currency", instance.currency if instance else "USD")
+            if not currency:
+                raise serializers.ValidationError({
+                    "currency": "Currency must be set when providing original revenue."
+                })
         
         # Compare at month/year granularity
         if sale_date and current_book:

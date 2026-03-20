@@ -11,3 +11,4 @@ pytest-django
 pylint
 pylint-django
 requests
+openpyxl

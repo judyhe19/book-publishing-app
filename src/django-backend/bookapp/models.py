@@ -160,15 +160,28 @@ class Sale(models.Model):
         ("handsold", "Handsold"),
     ]
 
+    FORMAT_CHOICES = [
+        ("print", "Print"),
+        ("ebook", "Ebook"),
+        ("kindle unlimited", "Kindle Unlimited"),
+    ]
+
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="sales")
     date = models.DateField()
-    quantity = models.IntegerField()
+    quantity = models.IntegerField(blank=True, null=True)
     sale_source = models.CharField(max_length=20, choices=SALE_SOURCE_CHOICES, default="distributor")
     comment = models.CharField(max_length=256, blank=True, null=True)
+
+    distributor = models.CharField(max_length=100, blank=True, null=True)
+    format = models.CharField(max_length=30, choices=FORMAT_CHOICES, default="print")
+    currency = models.CharField(max_length=3, default="USD")
+    publisher_revenue_original = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    kenp = models.PositiveIntegerField(blank=True, null=True)
 
     publisher_revenue = models.DecimalField(max_digits=10, decimal_places=2)
     author_royalty = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     author_paid = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.quantity} x {self.book.title} on {self.date.strftime('%Y-%m')}"
+        qty = self.kenp if self.format == "kindle unlimited" else self.quantity
+        return f"{qty} x {self.book.title} on {self.date.strftime('%Y-%m')}"

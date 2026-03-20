@@ -233,7 +233,7 @@ class TestIngramCSVRowValidation:
         )
         resp = upload(authed_client, csv)
         assert resp.status_code == 400
-        assert any("Net Compensation" in e for e in resp.data["errors"])
+        assert any("Publisher revenue" in e for e in resp.data["errors"])
 
     def test_negative_net_compensation(self, authed_client):
         make_book("9781473619814", title="Book")

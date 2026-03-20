@@ -38,12 +38,13 @@ def test_missing_quantity_message(authed_client, sample_book):
         "publisher_revenue": "100.00",
         "author_royalty": "10.00",
         "sale_source": "distributor",
+        "distributor": "Ingram Spark",
         "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
     # verify specifically for the custom error message
-    assert resp.data["quantity"] == ["Quantity is required."]
+    assert resp.data["quantity"] == ["Quantity is required for print and ebook sales."]
 
 def test_negative_quantity_message(authed_client, sample_book):
     payload = {
@@ -52,6 +53,7 @@ def test_negative_quantity_message(authed_client, sample_book):
         "publisher_revenue": "100.00",
         "author_royalty": "10.00",
         "sale_source": "distributor",
+        "distributor": "Ingram Spark",
         "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
@@ -63,6 +65,7 @@ def test_missing_revenue_message(authed_client, sample_book):
         "book": sample_book.id,
         "quantity": 10,
         "sale_source": "distributor",
+        "distributor": "Ingram Spark",
         # "publisher_revenue": "100.00", # Missing
         "date": "2023-01"
     }
@@ -77,6 +80,7 @@ def test_missing_date_message(authed_client, sample_book):
         "publisher_revenue": "100.00",
         "author_royalty": "10.00",
         "sale_source": "distributor",
+        "distributor": "Ingram Spark",
         # "date": "2023-01-01" # Missing
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
@@ -103,6 +107,7 @@ def test_missing_author_royalty_message(authed_client, sample_book):
         "quantity": 10,
         "publisher_revenue": "100.00",
         "sale_source": "distributor",
+        "distributor": "Ingram Spark",
         # "author_royalty": omitted — computed from publisher_revenue * rate
         "date": "2023-01"
     }
@@ -123,8 +128,10 @@ def test_null_value_message(authed_client, sample_book):
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
-    assert resp.data["quantity"] == ["Quantity is required."]
-    # publisher_revenue allows null (required=False, allow_null=True)
-    # author_royalty is read_only (computed server-side)
+    # sale_source=None fails ChoiceField validation (field-level)
     assert resp.data["sale_source"] == ["Sale source is required."]
+    # date=None fails MonthYearField validation (field-level)
     assert resp.data["date"] == ["Date is required."]
+    # quantity is allow_null=True, so null passes field-level validation;
+    # the cross-field check in validate() never runs because sale_source fails first
+    assert "quantity" not in resp.data

@@ -166,20 +166,30 @@ class Sale(models.Model):
         ("kindle unlimited", "Kindle Unlimited"),
     ]
 
+    DISTRIBUTOR_CHOICES = [
+        ("Ingram Spark", "Ingram Spark"),
+        ("Amazon", "Amazon"),
+        ("Other", "Other"),
+    ]
+
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="sales")
     date = models.DateField()
-    quantity = models.IntegerField(blank=True, null=True)
+    quantity = models.PositiveIntegerField(blank=True, null=True) # unspecified if format is "kindle unlimited".
     sale_source = models.CharField(max_length=20, choices=SALE_SOURCE_CHOICES, default="distributor")
     comment = models.CharField(max_length=256, blank=True, null=True)
 
-    distributor = models.CharField(max_length=100, blank=True, null=True)
+    # Required if sale source is distributor; unspecified when sale source is handsold.
+    distributor = models.CharField(max_length=100, blank=True, null=True, choices=DISTRIBUTOR_CHOICES) 
     format = models.CharField(max_length=30, choices=FORMAT_CHOICES, default="print")
-    currency = models.CharField(max_length=3, default="USD")
+    currency = models.CharField(max_length=3, default="USD") # Locked to USD for handsold records
     publisher_revenue_original = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    # field only available if format is "kindle unlimited", in which case it is a required non-negative numeric input indicating the number of KENP (def 26) for this sales record.
     kenp = models.PositiveIntegerField(blank=True, null=True)
 
-    publisher_revenue = models.DecimalField(max_digits=10, decimal_places=2)
-    author_royalty = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    publisher_revenue = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True,
+        help_text="Publisher revenue normalized to USD. Used for royalty computations.")
+    author_royalty = models.DecimalField(max_digits=10, decimal_places=2, default=0,
+        help_text="Computed author royalty in USD. Cannot be overridden.")
     author_paid = models.BooleanField(default=False)
 
     def __str__(self):

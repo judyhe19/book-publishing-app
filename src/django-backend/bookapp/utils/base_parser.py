@@ -130,6 +130,10 @@ class SalesImportParser(ABC):
             "quantity": "Quantity",
             "book": "Book",
             "date": "Sale date",
+            "distributor": "Distributor",
+            "format": "Format",
+            "currency": "Currency",
+            "kenp": "KENP",
         }
         errors = []
         for field_name, field_errors in serializer.errors.items():

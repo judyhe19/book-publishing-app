@@ -217,6 +217,8 @@ class IngramSparkCSVParser(SalesImportParser):
                 "date": sale_date_str,
                 "quantity": net_qty_raw,
                 "sale_source": "distributor",
+                "distributor": self.DISTRIBUTOR_NAME,
+                "format": "print",
                 "publisher_revenue": net_comp_raw,
                 "author_royalty": author_royalty_val,
             }

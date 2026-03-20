@@ -121,11 +121,14 @@ class SaleWriteSerializer(serializers.ModelSerializer):
         },
     )
 
-    distributor = serializers.CharField(
-        max_length=100,
+    distributor = serializers.ChoiceField(
+        choices=Sale.DISTRIBUTOR_CHOICES,
         required=False,
         allow_blank=True,
         allow_null=True,
+        error_messages={
+            "invalid_choice": "Distributor must be 'Ingram Spark', 'Amazon', or 'Other'.",
+        },
     )
 
     format = serializers.ChoiceField(
@@ -191,8 +194,57 @@ class SaleWriteSerializer(serializers.ModelSerializer):
         current_format = data.get("format", instance.format if instance else "print")
         current_qty = data.get("quantity", instance.quantity if instance else None)
         current_kenp = data.get("kenp", instance.kenp if instance else None)
+        current_distributor = data.get("distributor", instance.distributor if instance else None)
+        current_currency = data.get("currency", instance.currency if instance else "USD")
 
+        # ------------------------------------------------------------------
+        # Distributor / sale source rules
+        # ------------------------------------------------------------------
+        if current_source == "distributor":
+            if not current_distributor:
+                raise serializers.ValidationError({
+                    "distributor": "Distributor is required for distributor sales."
+                })
+        elif current_source == "handsold":
+            # Distributor must not be set for handsold
+            if current_distributor:
+                data["distributor"] = None
+
+        # ------------------------------------------------------------------
+        # Format rules by distributor / sale source
+        # ------------------------------------------------------------------
+        DISTRIBUTOR_FORMAT_MAP = {
+            "Ingram Spark": ["print"],
+            "Amazon": ["print", "ebook", "kindle unlimited"],
+            "Other": ["print", "ebook"],
+        }
+
+        if current_source == "handsold":
+            if current_format != "print":
+                raise serializers.ValidationError({
+                    "format": "Handsold sales must use 'print' format."
+                })
+        elif current_source == "distributor" and current_distributor:
+            allowed_formats = DISTRIBUTOR_FORMAT_MAP.get(current_distributor, [])
+            if current_format not in allowed_formats:
+                raise serializers.ValidationError({
+                    "format": f"Format '{current_format}' is not valid for distributor '{current_distributor}'. "
+                              f"Allowed: {', '.join(allowed_formats)}."
+                })
+
+        # ------------------------------------------------------------------
+        # Currency locked to USD for handsold
+        # ------------------------------------------------------------------
+        if current_source == "handsold":
+            if current_currency and current_currency != "USD":
+                raise serializers.ValidationError({
+                    "currency": "Currency must be USD for handsold sales."
+                })
+            data["currency"] = "USD"
+
+        # ------------------------------------------------------------------
         # kenp/quantity mutual exclusion based on format
+        # ------------------------------------------------------------------
         if current_format == "kindle unlimited":
             if current_kenp is None:
                 raise serializers.ValidationError({
@@ -214,15 +266,18 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                 })
             data["kenp"] = None
 
-        # publisher_revenue_original requires currency to be explicitly set (non-default)
+        # ------------------------------------------------------------------
+        # Currency / original revenue
+        # ------------------------------------------------------------------
         if data.get("publisher_revenue_original") is not None:
-            currency = data.get("currency", instance.currency if instance else "USD")
-            if not currency:
+            if not current_currency:
                 raise serializers.ValidationError({
                     "currency": "Currency must be set when providing original revenue."
                 })
-        
-        # Compare at month/year granularity
+
+        # ------------------------------------------------------------------
+        # Sale date cannot precede book publication date
+        # ------------------------------------------------------------------
         if sale_date and current_book:
             pub = current_book.publication_date
             if (sale_date.year, sale_date.month) < (pub.year, pub.month):

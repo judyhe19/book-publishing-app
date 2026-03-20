@@ -49,6 +49,7 @@ def test_create_sale(authed_client, user):
         "quantity": 100,
         "publisher_revenue": "1000.00",
         "sale_source": "distributor",
+        "distributor": "Ingram Spark",
         "date": "2023-01"
     }
 
@@ -94,6 +95,7 @@ def test_create_many_sales(authed_client, user):
             "quantity": 10,
             "publisher_revenue": "100.00",
             "sale_source": "distributor",
+            "distributor": "Ingram Spark",
             "date": "2023-01"
         },
         {
@@ -101,6 +103,7 @@ def test_create_many_sales(authed_client, user):
             "quantity": 20,
             "publisher_revenue": "200.00",
             "sale_source": "distributor",
+            "distributor": "Ingram Spark",
             "date": "2023-02"
         }
     ]
@@ -140,7 +143,8 @@ def test_edit_sale_updates_fields(authed_client, user):
     
     sale = Sale.objects.create(
         book=b1, quantity=10, publisher_revenue=Decimal("100.00"),
-        author_royalty=Decimal("10.00"), sale_source="distributor", date="2023-01-01"
+        author_royalty=Decimal("10.00"), sale_source="distributor",
+        distributor="Ingram Spark", date="2023-01-01"
     )
     
     payload = {
@@ -163,7 +167,8 @@ def test_edit_sale_updates_author_paid(authed_client, user):
     
     sale = Sale.objects.create(
         book=b1, quantity=10, publisher_revenue=Decimal("100.00"),
-        author_royalty=Decimal("10.00"), sale_source="distributor", date="2023-01-01"
+        author_royalty=Decimal("10.00"), sale_source="distributor",
+        distributor="Ingram Spark", date="2023-01-01"
     )
     
     assert sale.author_paid is False

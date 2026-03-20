@@ -40,6 +40,7 @@ def test_create_sale_negative_quantity(authed_client, sample_book):
         "quantity": -5,
         "publisher_revenue": "100.00",
         "sale_source": "distributor",
+        "distributor": "Ingram Spark",
         "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
@@ -52,6 +53,7 @@ def test_create_sale_zero_quantity(authed_client, sample_book):
         "quantity": 0,
         "publisher_revenue": "100.00",
         "sale_source": "distributor",
+        "distributor": "Ingram Spark",
         "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
@@ -64,6 +66,7 @@ def test_create_sale_negative_revenue(authed_client, sample_book):
         "quantity": 10,
         "publisher_revenue": "-50.00",
         "sale_source": "distributor",
+        "distributor": "Ingram Spark",
         "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
@@ -77,6 +80,7 @@ def test_create_sale_date_before_publication(authed_client, sample_book):
         "quantity": 10,
         "publisher_revenue": "100.00",
         "sale_source": "distributor",
+        "distributor": "Ingram Spark",
         "date": "2019-12" # Before publication
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
@@ -89,6 +93,7 @@ def test_create_sale_invalid_source(authed_client, sample_book):
         "quantity": 10,
         "publisher_revenue": "100.00",
         "sale_source": "invalid",
+        "distributor": "Ingram Spark",
         "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
@@ -101,6 +106,7 @@ def test_create_sale_valid(authed_client, sample_book):
         "quantity": 10,
         "publisher_revenue": "100.00",
         "sale_source": "distributor",
+        "distributor": "Ingram Spark",
         "date": "2023-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
@@ -114,6 +120,7 @@ def test_edit_sale_negative_quantity(authed_client, sample_book):
         "publisher_revenue": "100.00",
         "author_royalty": "10.00",
         "sale_source": "distributor",
+        "distributor": "Ingram Spark",
         "date": "2023-01"
     }
     create_resp = authed_client.post("/api/sales/", payload, format="json")
@@ -134,9 +141,181 @@ def test_create_sale_year_zero_date(authed_client, sample_book):
         "quantity": 10,
         "publisher_revenue": "100.00",
         "sale_source": "distributor",
+        "distributor": "Ingram Spark",
         "date": "0000-01"
     }
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
     assert "date" in resp.data
     assert resp.data["date"][0] == "Cannot accept year 0."
+
+
+# ---------------------------------------------------------------
+# New cross-field validation tests
+# ---------------------------------------------------------------
+
+def test_distributor_required_for_distributor_sales(authed_client, sample_book):
+    """Distributor must be specified when sale_source is 'distributor'."""
+    payload = {
+        "book": sample_book.id,
+        "quantity": 10,
+        "publisher_revenue": "100.00",
+        "sale_source": "distributor",
+        "date": "2023-01",
+        # no distributor
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 400
+    assert "distributor" in resp.data
+
+
+def test_invalid_distributor_value(authed_client, sample_book):
+    """Distributor must be one of the valid choices."""
+    payload = {
+        "book": sample_book.id,
+        "quantity": 10,
+        "publisher_revenue": "100.00",
+        "sale_source": "distributor",
+        "distributor": "Unknown Corp",
+        "date": "2023-01",
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 400
+    assert "distributor" in resp.data
+
+
+def test_ingram_spark_only_allows_print(authed_client, sample_book):
+    """Ingram Spark distributor must use 'print' format."""
+    payload = {
+        "book": sample_book.id,
+        "quantity": 10,
+        "publisher_revenue": "100.00",
+        "sale_source": "distributor",
+        "distributor": "Ingram Spark",
+        "format": "ebook",
+        "date": "2023-01",
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 400
+    assert "format" in resp.data
+
+
+def test_amazon_allows_all_formats(authed_client, sample_book):
+    """Amazon distributor allows print, ebook, and kindle unlimited."""
+    # print
+    payload = {
+        "book": sample_book.id,
+        "quantity": 10,
+        "publisher_revenue": "100.00",
+        "sale_source": "distributor",
+        "distributor": "Amazon",
+        "format": "print",
+        "date": "2023-01",
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 201
+
+    # ebook
+    payload["format"] = "ebook"
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 201
+
+    # kindle unlimited (needs kenp, no quantity)
+    payload["format"] = "kindle unlimited"
+    payload["kenp"] = 500
+    payload.pop("quantity")
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 201
+
+
+def test_other_distributor_rejects_kindle_unlimited(authed_client, sample_book):
+    """'Other' distributor only allows print and ebook, not kindle unlimited."""
+    payload = {
+        "book": sample_book.id,
+        "quantity": 10,
+        "publisher_revenue": "100.00",
+        "sale_source": "distributor",
+        "distributor": "Other",
+        "format": "kindle unlimited",
+        "kenp": 500,
+        "date": "2023-01",
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 400
+    assert "format" in resp.data
+
+
+def test_handsold_must_be_print(authed_client, sample_book):
+    """Handsold sales must use 'print' format."""
+    payload = {
+        "book": sample_book.id,
+        "quantity": 10,
+        "sale_source": "handsold",
+        "format": "ebook",
+        "date": "2023-01",
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 400
+    assert "format" in resp.data
+
+
+def test_handsold_currency_locked_to_usd(authed_client, sample_book):
+    """Handsold sales must use USD currency."""
+    payload = {
+        "book": sample_book.id,
+        "quantity": 10,
+        "sale_source": "handsold",
+        "currency": "GBP",
+        "date": "2023-01",
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 400
+    assert "currency" in resp.data
+
+
+def test_handsold_valid_defaults_usd(authed_client, sample_book):
+    """Handsold sales should default currency to USD and compute revenue."""
+    payload = {
+        "book": sample_book.id,
+        "quantity": 5,
+        "sale_source": "handsold",
+        "date": "2023-01",
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 201
+    assert resp.data["currency"] == "USD"
+    # revenue = 5 * (20.00 - 10.00) = 50.00
+    assert Decimal(resp.data["publisher_revenue"]) == Decimal("50.00")
+
+
+def test_kindle_unlimited_requires_kenp(authed_client, sample_book):
+    """Kindle Unlimited sales must provide KENP."""
+    payload = {
+        "book": sample_book.id,
+        "publisher_revenue": "100.00",
+        "sale_source": "distributor",
+        "distributor": "Amazon",
+        "format": "kindle unlimited",
+        "date": "2023-01",
+        # no kenp
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 400
+    assert "kenp" in resp.data
+
+
+def test_kindle_unlimited_rejects_quantity(authed_client, sample_book):
+    """Kindle Unlimited sales must not have quantity."""
+    payload = {
+        "book": sample_book.id,
+        "publisher_revenue": "100.00",
+        "sale_source": "distributor",
+        "distributor": "Amazon",
+        "format": "kindle unlimited",
+        "kenp": 500,
+        "quantity": 10,
+        "date": "2023-01",
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 400
+    assert "quantity" in resp.data

@@ -9,9 +9,11 @@ _SheetHandler subclass is not yet implemented.
 """
 
 from abc import ABC, abstractmethod
-from decimal import Decimal
+
+import openpyxl
 
 from .base_parser import ParseResult, SalesImportParser
+from .currency_converter import CurrencyConverter
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -28,8 +30,9 @@ class _SheetHandler(ABC):
     can iterate over handlers without branching on sheet name.
 
     Not a subclass of SalesImportParser — it is an internal detail of
-    AmazonXLSXParser and receives the parent parser instance to call shared
-    helpers (_lookup_book_by_isbn, _compute_author_royalty, etc.).
+    AmazonXLSXParser. The parent parser instance is passed to parse_rows so
+    handlers can call shared helpers (_lookup_book_by_isbn, _money, etc.) and
+    access parser._converter for currency conversion.
     """
 
     #: The exact sheet name as it appears in the XLSX file.
@@ -50,8 +53,10 @@ class _SheetHandler(ABC):
             worksheet: An openpyxl Worksheet object.
             filename:  Original upload filename (for comment generation).
             timestamp: Import timestamp string (for comment generation).
-            parser:    The owning AmazonXLSXParser instance; use its protected
-                       helpers (_lookup_book_by_asin, _money, etc.).
+            parser:    The owning AmazonXLSXParser instance. Use its protected
+                       helpers (_lookup_book_by_isbn, _lookup_book_by_asin,
+                       _compute_author_royalty, _money) and parser._converter
+                       for currency conversion.
 
         Returns:
             (preview_rows, errors, warnings)
@@ -59,7 +64,7 @@ class _SheetHandler(ABC):
             - errors:       blocking validation errors for this sheet.
             - warnings:     non-blocking notices (e.g. skipped unsupported rows).
         """
-        raise NotImplementedError
+        ...
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -101,7 +106,7 @@ class _EBookRoyaltySheetHandler(_SheetHandler):
 
     def parse_rows(self, worksheet, filename, timestamp, parser):
         raise NotImplementedError(
-            "EBookRoyaltySheetHandler.parse_rows not yet implemented"
+            "_EBookRoyaltySheetHandler.parse_rows not yet implemented"
         )
 
 
@@ -155,9 +160,6 @@ _SHEET_HANDLERS: list[_SheetHandler] = [
     _AudiobookRoyaltySheetHandler(),
 ]
 
-#: Names of sheets that must be absent (or empty) — audiobook only for now.
-_UNSUPPORTED_SHEET_NAMES = {"Audiobook Royalty"}
-
 #: Names of sheets that count as "supported data sheets" (at least one must be present).
 _SUPPORTED_DATA_SHEET_NAMES = {
     "Paperback Royalty",
@@ -180,12 +182,14 @@ class AmazonXLSXParser(SalesImportParser):
     Month/year is extracted from each sheet's special first row (cell A1 = "Sales Period",
     cell B1 = e.g. "June 2025") — the user does NOT provide it.
 
-    Currency conversion: rows with non-USD currency call _convert_to_usd().
-    The base-class stub returns the amount unchanged; real conversion logic
-    is to be implemented before this parser is production-ready.
+    Currency conversion is handled by self._converter (a CurrencyConverter instance).
+    Sheet handlers access it via parser._converter.to_usd(amount, currency).
     """
 
     DISTRIBUTOR_NAME = "Amazon"
+
+    def __init__(self) -> None:
+        self._converter = CurrencyConverter()
 
     def parse_and_validate(self, file, **kwargs) -> ParseResult:
         """
@@ -203,7 +207,6 @@ class AmazonXLSXParser(SalesImportParser):
 
         # ---- open XLSX ----
         try:
-            import openpyxl
             workbook = openpyxl.load_workbook(file, data_only=True)
         except Exception:
             return ParseResult(
@@ -214,8 +217,7 @@ class AmazonXLSXParser(SalesImportParser):
         present_sheet_names = set(workbook.sheetnames)
 
         # ---- at least one supported data sheet must be present ----
-        supported_present = present_sheet_names & _SUPPORTED_DATA_SHEET_NAMES
-        if not supported_present:
+        if not (present_sheet_names & _SUPPORTED_DATA_SHEET_NAMES):
             return ParseResult(
                 errors=[
                     "No supported sheets found. Expected at least one of: "

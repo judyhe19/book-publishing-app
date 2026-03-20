@@ -61,7 +61,7 @@ class SalesImportParser(ABC):
             A ParseResult. If result.errors is non-empty, result.preview is [].
             result.warnings may be non-empty even when result.preview is valid.
         """
-        raise NotImplementedError
+        ...
 
     # ──────────────────────────────────────────────────────────────────────
     # Protected helpers
@@ -105,16 +105,6 @@ class SalesImportParser(ABC):
         Result is rounded to 2 decimal places.
         """
         return self._money(book.distributor_author_royalty_rate * publisher_revenue_usd)
-
-    def _convert_to_usd(self, amount: Decimal, currency: str) -> Decimal:
-        """
-        Convert an amount in the given currency to USD.
-
-        The default implementation is a stub that returns the amount unchanged
-        (i.e. assumes USD). Concrete parsers that handle non-USD currencies must
-        override this method with real conversion logic.
-        """
-        return self._money(amount)
 
     def _validate_with_serializer(
         self, payload: dict, line_ref: str

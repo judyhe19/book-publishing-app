@@ -3,13 +3,13 @@ import React from "react";
 import { formatMonthYear } from "../../../shared/utils/dateUtils";
 import { DataTable, PaymentStatusBadge } from "../../../shared/components";
 
-const getColumns = (onGoBook, onGoSale) => [
+const getColumns = (onGoBook) => [
   {
     label: "Book Title",
     render: (r) => (
       <button
         className="font-medium text-blue-600"
-        onClick={() => onGoBook(r.sale.book)}
+        onClick={(e) => { e.stopPropagation(); onGoBook(r.sale.book); }}
       >
         {r.sale.book_title}
       </button>
@@ -40,20 +40,12 @@ const getColumns = (onGoBook, onGoSale) => [
       <PaymentStatusBadge status={r.paid ? "paid" : "unpaid"} variant="badge" />
     ),
   },
-  {
-    label: "Actions",
-    className: "text-right whitespace-nowrap",
-    type: "actions",
-    getActions: (r) => [
-      { label: "Modify", onClick: () => onGoSale(r.sale.id), variant: "primary" },
-    ],
-  },
 ];
 
 export default function AuthorPaymentsTable({ rows, onGoBook, onGoSale }) {
   const columns = React.useMemo(
-    () => getColumns(onGoBook, onGoSale),
-    [onGoBook, onGoSale]
+    () => getColumns(onGoBook),
+    [onGoBook]
   );
 
   // DataTable uses `row.id` for the key, so we need to inject an id
@@ -66,6 +58,7 @@ export default function AuthorPaymentsTable({ rows, onGoBook, onGoSale }) {
     <DataTable
       data={dataWithId}
       columns={columns}
+      onRowClick={(r) => onGoSale(r.sale.id)}
       emptyMessage="No author payments found."
     />
   );

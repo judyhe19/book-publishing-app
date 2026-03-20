@@ -14,16 +14,15 @@ from decimal import Decimal, InvalidOperation
 from .base_parser import ParseResult, SalesImportParser
 
 
-EXPECTED_COLUMNS = [
-    "ISBN", "Title", "Author", "Format", "Gross Qty",
-    "Returned Qty", "Net Qty", "Net Compensation", "Sales Market",
-]
-
-
 class IngramSparkCSVParser(SalesImportParser):
     """Parser for Ingram Spark monthly sales CSV files."""
 
     DISTRIBUTOR_NAME = "Ingram Spark"
+
+    _EXPECTED_COLUMNS = [
+        "ISBN", "Title", "Author", "Format", "Gross Qty",
+        "Returned Qty", "Net Qty", "Net Compensation", "Sales Market",
+    ]
 
     def parse_and_validate(self, file, *, month: int, year: int) -> ParseResult:
         """
@@ -79,7 +78,7 @@ class IngramSparkCSVParser(SalesImportParser):
             ):
                 break
 
-            row_errors, row_data = self._validate_row(row, csv_line, isbn_raw, month, year)
+            row_errors, row_data = self._validate_row(row, csv_line, isbn_raw, sale_date_str)
             errors.extend(row_errors)
 
             if not row_errors and row_data:
@@ -98,11 +97,11 @@ class IngramSparkCSVParser(SalesImportParser):
 
     def _validate_columns(self, actual_columns: list[str]) -> list[str]:
         """Return error strings if columns don't match expected, else []."""
-        if actual_columns == EXPECTED_COLUMNS:
+        if actual_columns == self._EXPECTED_COLUMNS:
             return []
 
-        missing = [c for c in EXPECTED_COLUMNS if c not in actual_columns]
-        unexpected = [c for c in actual_columns if c not in EXPECTED_COLUMNS]
+        missing = [c for c in self._EXPECTED_COLUMNS if c not in actual_columns]
+        unexpected = [c for c in actual_columns if c not in self._EXPECTED_COLUMNS]
         parts = []
         if missing:
             parts.append(f"Missing columns: {', '.join(missing)}.")
@@ -111,13 +110,13 @@ class IngramSparkCSVParser(SalesImportParser):
         if not missing and not unexpected:
             parts.append(
                 f"Columns are in the wrong order. "
-                f"Expected: {', '.join(EXPECTED_COLUMNS)}. "
+                f"Expected: {', '.join(self._EXPECTED_COLUMNS)}. "
                 f"Got: {', '.join(actual_columns)}."
             )
         return parts
 
     def _validate_row(
-        self, row: dict, csv_line: int, isbn_raw: str, month: int, year: int
+        self, row: dict, csv_line: int, isbn_raw: str, sale_date_str: str
     ) -> tuple[list[str], dict | None]:
         """
         Validate a single CSV data row.
@@ -213,7 +212,6 @@ class IngramSparkCSVParser(SalesImportParser):
             except (InvalidOperation, ValueError, TypeError):
                 author_royalty_val = ""  # Let the serializer catch the invalid decimal
 
-            sale_date_str = f"{year}-{month:02d}"
             payload = {
                 "book": book.id,
                 "date": sale_date_str,
@@ -276,6 +274,9 @@ class IngramSparkCSVParser(SalesImportParser):
             "date": sale_date_str,
             "quantity": net_qty,
             "sale_source": "distributor",
+            "distributor": self.DISTRIBUTOR_NAME,
+            "format": "print",
+            "currency": "USD",
             "publisher_revenue": str(self._money(net_comp)),
             "author_royalty": str(author_royalty),
             "author_paid": False,

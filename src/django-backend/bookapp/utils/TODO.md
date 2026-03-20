@@ -19,7 +19,8 @@ project dependency.
 ## 2. Extend the `Sale` model (`bookapp/models.py`)
 
 The current `Sale` model records only the essentials. Amazon sales introduce new concepts that
-need their own fields:
+need their own fields. Note: `IngramSparkCSVParser` already produces `distributor`, `format`,
+and `currency` in its preview rows — the model just needs to catch up.
 
 | New field | Type | Notes |
 |---|---|---|
@@ -52,49 +53,39 @@ Also update `SaleSerializer` (read serializer) to expose the new fields in API r
 
 ---
 
-## 4. Implement `_convert_to_usd` in `base_parser.py`
-
-The base class stub simply returns the amount unchanged. For Amazon, rows may be in GBP, EUR, etc.
-A real implementation is needed before Amazon import can produce correct USD royalty figures.
-
-Options to consider:
-- Hard-code a fixed exchange rate table (simple but inaccurate over time).
-- Integrate a currency conversion API (accurate but adds an external dependency).
-- Require the user to provide exchange rates at import time (simple, auditable).
-
-Until this is implemented, `AmazonXLSXParser` should raise a clear error if it encounters
-any non-USD row rather than silently returning wrong numbers.
-
----
-
-## 5. Implement `_SheetHandler.parse_rows` in `amazon_xlsx.py`
+## 4. Implement `_SheetHandler.parse_rows` in `amazon_xlsx.py`
 
 Each of the four sheet handlers has a `parse_rows` method stub that raises `NotImplementedError`.
 These need to be filled in:
 
 - **`_PrintRoyaltySheetHandler`** — read "Paperback Royalty" / "Hardcover Royalty":
   - Extract month/year from special first row (cell A1 = `"Sales Period"`, cell B1 = `"June 2025"`).
-  - Validate expected columns are present (order may vary).
-  - For each data row: validate `Units Refunded == 0`, look up book by ISBN, call `_convert_to_usd`, build preview row.
+  - Validate expected columns are present (order may vary, unlike Ingram).
+  - For each data row: validate `Units Refunded == 0`, look up book by ISBN, call `parser._converter.to_usd(royalty, currency)`, build preview row with `format="print"`.
 
 - **`_EBookRoyaltySheetHandler`** — read "eBook Royalty":
   - Same first-row month/year extraction.
   - Look up book by ASIN instead of ISBN.
   - Validate `Units Refunded == 0` and `Units Sold == Net Units Sold`.
+  - Build preview row with `format="ebook"`.
 
 - **`_KENPSheetHandler`** — read "KENP":
   - Rows where `eBook ASIN == "N/A"` are skipped with a warning (audiobook/Audible rows).
-  - For supported rows, `kenp` is populated from `"Kindle Edition Normalized Pages (KENP)"` column.
-  - `quantity` is null for these rows.
+  - For supported rows, `kenp` is populated from `"Kindle Edition Normalized Pages (KENP)"` column; `quantity` is null.
   - Look up book by `eBook ASIN`.
+  - Build preview row with `format="kindle unlimited"`.
 
 - **`_AudiobookRoyaltySheetHandler`** — read "Audiobook Royalty":
   - Not imported. Verify no data rows are present.
   - If data rows exist, emit a warning (non-blocking) so the user is informed.
 
+All handlers build preview rows using `parser._converter.to_usd(royalty, currency)` for the
+USD revenue and include `distributor=parser.DISTRIBUTOR_NAME`, `format`, and `currency` in
+every preview row dict.
+
 ---
 
-## 6. Add `import_amazon_xlsx` view action (`bookapp/views/sales.py`)
+## 5. Add `import_amazon_xlsx` view action (`bookapp/views/sales.py`)
 
 Following the `import_ingram_csv` action as a template:
 
@@ -105,7 +96,7 @@ Following the `import_ingram_csv` action as a template:
 
 ---
 
-## 7. Register the new URL (`bookapp/urls.py`)
+## 6. Register the new URL (`bookapp/urls.py`)
 
 Add a URL entry for the new `import_amazon_xlsx` action, e.g.:
 ```
@@ -114,20 +105,20 @@ POST /api/sales/import-amazon-xlsx/
 
 ---
 
-## 8. Add `importAmazonXLSX` to the frontend API client (`salesApi.js`)
+## 7. Add `importAmazonXLSX` to the frontend API client (`salesApi.js`)
 
 A new function analogous to `validateIngramCSV`, but sending the file without month/year parameters.
 
 ---
 
-## 9. Build `AmazonXLSXImportPage.jsx` (frontend)
+## 8. Build `AmazonXLSXImportPage.jsx` (frontend)
 
 Follow the two-step pattern of `IngramCSVImportPage.jsx`:
 
 **Step 1 — Upload & Validate:**
 - File picker (`.xlsx` only).
 - "Validate & Preview" button calls the new API function.
-- Display any errors as a list; display any warnings distinctly (yellow/amber, non-blocking).
+- Display any errors as a list; display any warnings distinctly (yellow/amber, non-blocking) with an acknowledgement step before proceeding.
 
 **Step 2 — Preview & Confirm:**
 - Show all preview rows (grouped by sheet/format is a nice-to-have).
@@ -136,7 +127,7 @@ Follow the two-step pattern of `IngramCSVImportPage.jsx`:
 
 ---
 
-## 10. Update Sales UI for new fields
+## 9. Update Sales UI for new fields
 
 Once the `Sale` model has `distributor`, `format`, `currency`, `kenp`:
 

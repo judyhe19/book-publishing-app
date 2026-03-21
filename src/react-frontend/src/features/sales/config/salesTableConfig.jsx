@@ -57,10 +57,14 @@ export const TABLE_COLUMNS = [
         },
     },
     {
+        label: 'Format',
+        render: (sale) => sale.format ?? '—',
+    },
+    {
         label: 'Quantity',
         sortKey: 'quantity',
         type: 'number',
-        render: (sale) => sale.quantity,
+        render: (sale) => sale.quantity ?? '—',
     },
     {
         label: 'Revenue',

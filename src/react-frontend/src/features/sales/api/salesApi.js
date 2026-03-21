@@ -48,3 +48,13 @@ export async function validateIngramCSV(file, month, year) {
   formData.append("year", year);
   return apiFormFetch("/api/sales/import-ingram-csv/", formData);
 }
+
+/**
+ * Upload an Amazon XLSX for validation + preview.
+ * Month/year are embedded in the file itself, so no extra params are needed.
+ */
+export async function importAmazonXLSX(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiFormFetch("/api/sales/import-amazon-xlsx/", formData);
+}

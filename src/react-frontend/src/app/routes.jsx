@@ -7,6 +7,7 @@ import ChangePasswordPage from "../features/auth/pages/ChangePasswordPage";
 import SalesListPage from "../features/sales/pages/SalesListPage";
 import SalesInputPage from "../features/sales/pages/SalesInputPage";
 import IngramCSVImportPage from "../features/sales/pages/IngramCSVImportPage";
+import AmazonXLSXImportPage from "../features/sales/pages/AmazonXLSXImportPage";
 import AuthorPaymentsPage from "../features/sales/pages/AuthorPaymentsPage";
 import SalesDetailPage from "../features/sales/pages/SalesDetailPage";
 import { RequireAuth } from "../features/auth/routes/RequireAuth";
@@ -98,6 +99,15 @@ export function AppRoutes() {
         element={
           <RequireAuth>
             <IngramCSVImportPage />
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/sales/import-xlsx"
+        element={
+          <RequireAuth>
+            <AmazonXLSXImportPage />
           </RequireAuth>
         }
       />

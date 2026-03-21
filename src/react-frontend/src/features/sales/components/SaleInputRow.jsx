@@ -30,6 +30,7 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
 
   const isDistributor = row.sale_source === "distributor";
   const isHandsold = row.sale_source === "handsold";
+  const isKU = row.format === "kindle unlimited";
 
   const handleField = (field, value) => onChange(index, field, value);
 
@@ -108,7 +109,7 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
           </div>
         </div>
 
-        {/* Row 2: Sale Source + Quantity + Revenue + Royalty */}
+        {/* Row 2: Sale Source + Format + Distributor + Quantity/KENP + Currency + Revenue + Royalty */}
         <div className="flex flex-wrap gap-4 items-end">
           {/* Sale Source */}
           <div className="w-40">
@@ -130,31 +131,94 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
             </select>
           </div>
 
-          {/* Quantity */}
-          <div className="w-28 relative">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
-            <Input
-              type="number"
-              min="1"
-              step="1"
-              value={row.quantity}
-              onChange={(e) => {
-                const qty = e.target.value;
-                handleField("quantity", qty);
-                // Recompute revenue when quantity changes for handsold
-                if (isHandsold && effectiveBook) {
-                  const revenue = computeHandsoldRevenue(effectiveBook, qty);
-                  handleField("publisher_revenue", revenue);
-                }
-              }}
+          {/* Format */}
+          <div className="w-44">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Format</label>
+            <select
+              value={row.format || ""}
+              onChange={(e) => handleField("format", e.target.value)}
               onBlur={fireBlur}
-              onKeyDown={(e) => {
-                if (e.key === "." || e.key === "e" || e.key === "E") e.preventDefault();
-              }}
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent bg-white"
+            >
+              <option value="" disabled>Select...</option>
+              <option value="print">Print</option>
+              <option value="ebook">eBook</option>
+              <option value="kindle unlimited">Kindle Unlimited</option>
+            </select>
+          </div>
+
+          {/* Distributor — only for distributor sales */}
+          {isDistributor && (
+            <div className="w-36">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Distributor</label>
+              <select
+                value={row.distributor || ""}
+                onChange={(e) => handleField("distributor", e.target.value)}
+                onBlur={fireBlur}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent bg-white"
+              >
+                <option value="" disabled>Select...</option>
+                <option value="Ingram Spark">Ingram Spark</option>
+                <option value="Amazon">Amazon</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          )}
+
+          {/* Quantity (print/ebook) or KENP (Kindle Unlimited) */}
+          {isKU ? (
+            <div className="w-28 relative">
+              <label className="block text-sm font-medium text-gray-700 mb-1">KENP</label>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                value={row.kenp || ""}
+                onChange={(e) => handleField("kenp", e.target.value)}
+                onBlur={fireBlur}
+                onKeyDown={(e) => {
+                  if (e.key === "." || e.key === "e" || e.key === "E") e.preventDefault();
+                }}
+              />
+            </div>
+          ) : (
+            <div className="w-28 relative">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                value={row.quantity}
+                onChange={(e) => {
+                  const qty = e.target.value;
+                  handleField("quantity", qty);
+                  // Recompute revenue when quantity changes for handsold
+                  if (isHandsold && effectiveBook) {
+                    const revenue = computeHandsoldRevenue(effectiveBook, qty);
+                    handleField("publisher_revenue", revenue);
+                  }
+                }}
+                onBlur={fireBlur}
+                onKeyDown={(e) => {
+                  if (e.key === "." || e.key === "e" || e.key === "E") e.preventDefault();
+                }}
+              />
+              {row.quantity !== "" && Number(row.quantity) < 1 && (
+                <p className="absolute text-xs text-red-500 mt-0.5">Must be ≥ 1</p>
+              )}
+            </div>
+          )}
+
+          {/* Currency */}
+          <div className="w-20">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+            <Input
+              type="text"
+              placeholder="USD"
+              value={row.currency || ""}
+              onChange={(e) => handleField("currency", e.target.value.toUpperCase())}
+              onBlur={fireBlur}
             />
-            {row.quantity !== "" && Number(row.quantity) < 1 && (
-              <p className="absolute text-xs text-red-500 mt-0.5">Must be ≥ 1</p>
-            )}
           </div>
 
           {/* Publisher Revenue */}

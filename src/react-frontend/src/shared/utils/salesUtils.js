@@ -5,8 +5,12 @@
 export const EMPTY_ROW = {
     date: '',
     book: null,
+    format: '',
     quantity: '',
+    kenp: '',
     sale_source: '',
+    distributor: '',
+    currency: 'USD',
     publisher_revenue: '',
     author_royalty: '',
     author_paid: false,
@@ -17,11 +21,16 @@ export const EMPTY_ROW = {
  * Transforms a row from UI format to API format
  */
 export const transformRowToSaleData = (row) => {
+    const isKU = row.format === 'kindle unlimited';
     return {
         book: row.book ? row.book.value : null,
         date: row.date,
-        quantity: parseInt(row.quantity),
+        format: row.format || null,
+        quantity: isKU ? null : (parseInt(row.quantity) || null),
+        kenp: isKU ? (parseInt(row.kenp) || null) : null,
         sale_source: row.sale_source,
+        distributor: row.distributor || null,
+        currency: row.currency || 'USD',
         publisher_revenue: parseFloat(row.publisher_revenue),
         author_royalty: parseFloat(row.author_royalty || 0),
         author_paid: Boolean(row.author_paid),
@@ -33,7 +42,7 @@ export const transformRowToSaleData = (row) => {
  * Checks if a row has any data entered (partially or fully filled)
  */
 export const isRowStarted = (row) => {
-    return row.date || row.book || row.quantity || row.publisher_revenue;
+    return row.date || row.book || row.quantity || row.kenp || row.publisher_revenue;
 };
 
 /**

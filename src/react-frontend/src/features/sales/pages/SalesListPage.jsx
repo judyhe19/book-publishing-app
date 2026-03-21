@@ -42,6 +42,9 @@ export default function SalesListPage() {
           <Button variant="success" onClick={() => navigate("/sales/import-csv")}>
             Import from CSV
           </Button>
+          <Button variant="success" onClick={() => navigate("/sales/import-xlsx")}>
+            Import from XLSX
+          </Button>
           <Button onClick={() => navigate("/sales/input")}>Input New Sales</Button>
         </div>
       </div>

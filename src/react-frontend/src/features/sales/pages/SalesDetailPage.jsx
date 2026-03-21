@@ -50,7 +50,12 @@ export default function SalesDetailPage() {
     setForm({
       date: sale.date || "",
       book_id: sale.book,
-      quantity: sale.quantity || "",
+      format: sale.format ?? "",
+      quantity: sale.quantity ?? "",
+      kenp: sale.kenp ?? "",
+      distributor: sale.distributor ?? "",
+      currency: sale.currency ?? "",
+      publisher_revenue_original: sale.publisher_revenue_original ?? "",
       publisher_revenue: sale.publisher_revenue || "",
       author_royalty: sale.author_royalty || "",
       author_paid: sale.author_paid || false,
@@ -70,6 +75,7 @@ export default function SalesDetailPage() {
 
   const isDistributor = sale?.sale_source === "distributor";
   const isHandsold = sale?.sale_source === "handsold";
+  const isKU = form?.format === "kindle unlimited";
 
   // ---------------------------------------------------------------
   // Auto-calculate author_royalty when publisher_revenue changes
@@ -134,12 +140,13 @@ export default function SalesDetailPage() {
     return {
       date: form.date,
       book: form.book_id,
-      quantity: Number(form.quantity),
+      quantity: isKU ? null : Number(form.quantity),
+      kenp: isKU ? (Number(form.kenp) || null) : null,
       publisher_revenue: String(form.publisher_revenue),
       author_paid: form.author_paid,
       comment: form.comment,
     };
-  }, [form]);
+  }, [form, isKU]);
 
   function reloadBack() {
     const returnTo = searchParams.get("returnTo");
@@ -207,19 +214,43 @@ export default function SalesDetailPage() {
           </div>
 
           {/* Read-only info row */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-[140px]">
               <label className="block text-sm font-medium text-gray-700 mb-1">Author</label>
               <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200">
                 {selectedBook?.authors?.[0]?.name || sale.author_names?.[0] || "—"}
               </div>
             </div>
-            <div>
+            <div className="w-32">
               <label className="block text-sm font-medium text-gray-700 mb-1">Sale Source</label>
               <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 capitalize">
                 {sale.sale_source || "—"}
               </div>
             </div>
+            {form.format && (
+              <div className="w-36">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Format</label>
+                <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 capitalize">
+                  {form.format}
+                </div>
+              </div>
+            )}
+            {form.distributor && (
+              <div className="w-36">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Distributor</label>
+                <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200">
+                  {form.distributor}
+                </div>
+              </div>
+            )}
+            {form.currency && (
+              <div className="w-20">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+                <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200">
+                  {form.currency}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Editable fields */}
@@ -233,27 +264,38 @@ export default function SalesDetailPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
-              <Input
-                type="number"
-                min="1"
-                step="1"
-                value={form.quantity}
-                onChange={(e) => handleChange("quantity", e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "." || e.key === "e" || e.key === "E") {
-                    e.preventDefault();
-                  }
-                }}
-              />
+              {isKU ? (
+                <>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">KENP</label>
+                  <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200">
+                    {form.kenp || "—"}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={form.quantity}
+                    onChange={(e) => handleChange("quantity", e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "." || e.key === "e" || e.key === "E") {
+                        e.preventDefault();
+                      }
+                    }}
+                  />
+                </>
+              )}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-wrap gap-4">
             {/* Publisher Revenue — only editable for distributor */}
-            <div>
+            <div className="flex-1 min-w-[140px]">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Publisher Revenue
+                Revenue (USD)
               </label>
               {isDistributor ? (
                 <div className="relative">
@@ -276,8 +318,20 @@ export default function SalesDetailPage() {
               )}
             </div>
 
+            {/* Original currency revenue — only when non-USD */}
+            {form.publisher_revenue_original && form.currency && form.currency !== "USD" && (
+              <div className="flex-1 min-w-[140px]">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Revenue ({form.currency})
+                </label>
+                <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200">
+                  {formatMoney(form.publisher_revenue_original)}
+                </div>
+              </div>
+            )}
+
             {/* Author Royalty (read-only) */}
-            <div>
+            <div className="flex-1 min-w-[140px]">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Author Royalty
               </label>

@@ -20,6 +20,8 @@ export function useSalesList() {
         end_date: "",
         author_name: "",
         sale_source: "",
+        distributor: "",
+        format: "",
         ordering: SORT_CONFIG.DEFAULT_ORDER,
     });
 
@@ -27,7 +29,7 @@ export function useSalesList() {
     useEffect(() => {
         fetchSales();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filters.start_date, filters.end_date, filters.author_name, filters.sale_source, filters.ordering, page, pageSize, showAll]);
+    }, [filters.start_date, filters.end_date, filters.author_name, filters.sale_source, filters.distributor, filters.format, filters.ordering, page, pageSize, showAll]);
 
     const fetchSales = async () => {
         setLoading(true);
@@ -37,13 +39,13 @@ export function useSalesList() {
             if (filters.end_date) activeFilters.end_date = filters.end_date;
             if (filters.author_name) activeFilters.author_name = filters.author_name;
             if (filters.sale_source) activeFilters.sale_source = filters.sale_source.toLowerCase();
+            if (filters.distributor) activeFilters.distributor = filters.distributor;
+            if (filters.format) activeFilters.sale_format = filters.format;
             if (filters.ordering) activeFilters.ordering = filters.ordering;
 
-            // ✅ show-all param mirrors Books: all=1
             if (showAll) {
                 activeFilters.all = "1";
             } else {
-                // ✅ normal pagination params
                 activeFilters.page = String(page);
                 activeFilters.page_size = String(pageSize);
             }

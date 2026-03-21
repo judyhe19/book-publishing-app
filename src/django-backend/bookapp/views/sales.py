@@ -52,6 +52,8 @@ class SaleViewSet(ModelViewSet):
             user_id = self.request.query_params.get("user_id")
             author_name = self.request.query_params.get("author_name")
             sale_source = self.request.query_params.get("sale_source")
+            distributor = self.request.query_params.get("distributor")
+            sale_format = self.request.query_params.get("sale_format")
 
             if book_id:
                 qs = qs.filter(book_id=book_id)
@@ -61,6 +63,10 @@ class SaleViewSet(ModelViewSet):
                 qs = qs.filter(book__author__name__icontains=author_name)
             if sale_source:
                 qs = qs.filter(sale_source=sale_source)
+            if distributor:
+                qs = qs.filter(distributor=distributor)
+            if sale_format:
+                qs = qs.filter(format=sale_format)
 
             # Date filtering at month/year granularity
             start_date = self.request.query_params.get("start_date")

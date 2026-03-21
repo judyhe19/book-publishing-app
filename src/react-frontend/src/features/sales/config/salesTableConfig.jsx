@@ -63,8 +63,10 @@ export const TABLE_COLUMNS = [
         type: 'number',
         className: 'w-[7%] whitespace-nowrap',
         render: (sale) => {
-            if (sale.publisher_revenue_original != null) {
-                return `${sale.publisher_revenue_original} ${sale.currency || 'USD'}`;
+            const origRev = sale.publisher_revenue_original != null ? sale.publisher_revenue_original : sale.publisher_revenue;
+            const currency = sale.currency || 'USD';
+            if (origRev != null) {
+                return `${origRev} ${currency}`;
             }
             return <span className="text-gray-400">—</span>;
         },

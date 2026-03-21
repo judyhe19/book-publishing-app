@@ -560,3 +560,88 @@ def test_filter_by_sale_source(authed_client, user):
     resp = authed_client.get("/api/sales/")
     assert resp.status_code == 200
     assert resp.data["count"] == 2
+
+
+def test_filter_by_distributor(authed_client, user):
+    """Test filtering sales by distributor."""
+    a1 = make_author(name="Diana")
+    b1 = make_book(isbn_13="9780000000040", title="Dist Book", author=a1)
+
+    s1 = Sale.objects.create(
+        book=b1, quantity=10, publisher_revenue=100,
+        author_royalty=10, sale_source="distributor",
+        distributor="Ingram Spark", date="2023-01-01"
+    )
+    s2 = Sale.objects.create(
+        book=b1, quantity=20, publisher_revenue=200,
+        author_royalty=20, sale_source="distributor",
+        distributor="Amazon", date="2023-02-01"
+    )
+    s3 = Sale.objects.create(
+        book=b1, quantity=5, publisher_revenue=50,
+        author_royalty=5, sale_source="handsold",
+        distributor=None, date="2023-03-01"
+    )
+
+    # Filter by Ingram Spark
+    resp = authed_client.get("/api/sales/?distributor=Ingram Spark")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["id"] == s1.id
+
+    # Filter by Amazon
+    resp = authed_client.get("/api/sales/?distributor=Amazon")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["id"] == s2.id
+
+    # No filter returns all
+    resp = authed_client.get("/api/sales/")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 3
+
+
+def test_filter_by_format(authed_client, user):
+    """Test filtering sales by format."""
+    a1 = make_author(name="Eve")
+    b1 = make_book(isbn_13="9780000000041", title="Format Book", author=a1)
+
+    s1 = Sale.objects.create(
+        book=b1, quantity=10, publisher_revenue=100,
+        author_royalty=10, sale_source="distributor",
+        distributor="Amazon", format="print", date="2023-01-01"
+    )
+    s2 = Sale.objects.create(
+        book=b1, quantity=20, publisher_revenue=200,
+        author_royalty=20, sale_source="distributor",
+        distributor="Amazon", format="ebook", date="2023-02-01"
+    )
+    s3 = Sale.objects.create(
+        book=b1, quantity=0, publisher_revenue=50,
+        author_royalty=5, sale_source="distributor",
+        distributor="Amazon", format="kindle unlimited",
+        kenp=1500, date="2023-03-01"
+    )
+
+    # Filter by print
+    resp = authed_client.get("/api/sales/?sale_format=print")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["id"] == s1.id
+
+    # Filter by ebook
+    resp = authed_client.get("/api/sales/?sale_format=ebook")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["id"] == s2.id
+
+    # Filter by kindle unlimited
+    resp = authed_client.get("/api/sales/?sale_format=kindle unlimited")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["id"] == s3.id
+
+    # No filter returns all
+    resp = authed_client.get("/api/sales/")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 3

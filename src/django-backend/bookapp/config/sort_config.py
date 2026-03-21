@@ -13,6 +13,8 @@ SALES_SORT_FIELD_MAP = {
     'paid_status': 'author_paid',
     'sale_source': 'sale_source',
     'comment': 'comment',
+    'distributor': 'distributor',
+    'format': 'format',
 }
 
 SALES_DEFAULT_SORT = '-date'

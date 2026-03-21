@@ -15,7 +15,7 @@ export const TABLE_COLUMNS = [
     {
         label: 'Book Title',
         sortKey: 'book_title',
-        className: 'w-[10%] overflow-hidden text-ellipsis',
+        className: 'w-[12%] truncate',
         render: (sale) => (
             <Link
                 to={`/books/${sale.book}`}
@@ -30,7 +30,7 @@ export const TABLE_COLUMNS = [
     {
         label: 'Author',
         sortKey: 'authors',
-        className: 'w-[7%] overflow-hidden text-ellipsis',
+        className: 'w-[10%] truncate',
         render: (sale) => {
             const name = sale.author_names?.[0];
             if (!name) return <span className="text-gray-400">—</span>;
@@ -40,16 +40,16 @@ export const TABLE_COLUMNS = [
     {
         label: 'Date',
         sortKey: 'date',
-        className: 'w-[5%] whitespace-nowrap',
+        className: 'w-[8%] truncate',
         render: (sale) => {
-            return formatMonthYear(sale.date);
+            return formatMonthYear(sale.date, "", true);
         },
     },
     {
-        label: 'Qty/KENP',
+        label: 'Qty/ KENP',
         sortKey: 'quantity',
         type: 'number',
-        className: 'w-[5%] whitespace-nowrap',
+        className: 'w-[7%] truncate',
         render: (sale) => {
             if (sale.format === "kindle unlimited" && sale.kenp != null) {
                 return `${sale.kenp} Pg`;
@@ -58,46 +58,48 @@ export const TABLE_COLUMNS = [
         },
     },
     {
-        label: 'Revenue (Orig)',
+        label: 'Rev (Orig)',
         sortKey: 'publisher_revenue_original',
         type: 'number',
-        className: 'w-[7%] whitespace-nowrap',
+        className: 'w-[9%] truncate',
         render: (sale) => {
             const origRev = sale.publisher_revenue_original != null ? sale.publisher_revenue_original : sale.publisher_revenue;
             const currency = sale.currency || 'USD';
             if (origRev != null) {
-                return `${origRev} ${currency}`;
+                return <span title={`${origRev} ${currency}`}>{origRev} {currency}</span>;
             }
             return <span className="text-gray-400">—</span>;
         },
     },
     {
-        label: 'Revenue (USD)',
+        label: 'Rev (USD)',
         sortKey: 'publisher_revenue',
         type: 'number',
-        className: 'w-[7%] whitespace-nowrap',
+        className: 'w-[8%] truncate',
         render: (sale) => {
-            return sale.publisher_revenue ? `$${sale.publisher_revenue}` : '$0.00';
+            return <span title={sale.publisher_revenue ? `$${sale.publisher_revenue}` : '$0.00'}>
+                {sale.publisher_revenue ? `$${sale.publisher_revenue}` : '$0.00'}
+            </span>;
         },
     },
     {
-        label: 'Author\nRoyalty',
+        label: 'Royalty',
         sortKey: 'author_royalty',
         type: 'number',
-        className: 'w-[5%] whitespace-nowrap',
-        render: (sale) => <span className="font-medium">${Number(sale.author_royalty || 0).toFixed(2)}</span>,
+        className: 'w-[8%] truncate',
+        render: (sale) => <span className="font-medium" title={`$${Number(sale.author_royalty || 0).toFixed(2)}`}>${Number(sale.author_royalty || 0).toFixed(2)}</span>,
     },
     {
         label: 'Source',
         sortKey: 'sale_source',
-        className: 'w-[5%]',
+        className: 'w-[8%] truncate',
         render: (sale) => {
             const label = sale.sale_source === 'handsold' ? 'Handsold' : 'Distributor';
             const color = sale.sale_source === 'handsold'
                 ? 'bg-purple-100 text-purple-700'
                 : 'bg-blue-100 text-blue-700';
             return (
-                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${color}`}>
+                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${color}`} title={label}>
                     {label}
                 </span>
             );
@@ -106,7 +108,7 @@ export const TABLE_COLUMNS = [
     {
         label: 'Distributor',
         sortKey: 'distributor',
-        className: 'w-[5%] overflow-hidden text-ellipsis',
+        className: 'w-[8%] truncate',
         render: (sale) => {
             if (!sale.distributor) return <span className="text-gray-400">—</span>;
             return <span title={sale.distributor}>{sale.distributor}</span>;
@@ -115,7 +117,7 @@ export const TABLE_COLUMNS = [
     {
         label: 'Format',
         sortKey: 'format',
-        className: 'w-[5%] overflow-hidden text-ellipsis',
+        className: 'w-[6%] truncate',
         render: (sale) => {
             if (!sale.format) return <span className="text-gray-400">—</span>;
             const formatted = sale.format.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -125,7 +127,7 @@ export const TABLE_COLUMNS = [
     {
         label: 'Comment',
         sortKey: 'comment',
-        className: 'w-[10%] overflow-hidden text-ellipsis',
+        className: 'w-[10%] truncate',
         render: (sale) => (
             <span className="text-sm text-gray-600" title={sale.comment || ''}>
                 {sale.comment || '—'}
@@ -135,7 +137,7 @@ export const TABLE_COLUMNS = [
     {
         label: 'Status',
         sortKey: 'paid_status',
-        className: 'w-[8%]',
+        className: 'w-[7%] truncate',
         render: (sale) => {
             if (sale.author_paid) {
                 return (

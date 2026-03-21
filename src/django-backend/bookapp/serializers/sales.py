@@ -295,8 +295,20 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                 revenue = Decimal(str(current_qty)) * (current_book.cover_price - current_book.print_cost)
                 data["publisher_revenue"] = revenue
         elif current_source == "distributor":
-            # Require the user to provide it for distributor sales, UNLESS we are patching and it already exists
-            if data.get("publisher_revenue") is None and not instance:
+            # Convert currency if original revenue and non-USD currency are provided
+            if current_currency and current_currency != "USD" and data.get("publisher_revenue_original") is not None:
+                from bookapp.utils.currency_converter import CurrencyConverter, CurrencyConversionError
+                converter = CurrencyConverter()
+                try:
+                    data["publisher_revenue"] = converter.to_usd(data["publisher_revenue_original"], current_currency)
+                except CurrencyConversionError as e:
+                    raise serializers.ValidationError({"currency": str(e)})
+            elif current_currency == "USD":
+                # Clear original revenue if currency is USD
+                data["publisher_revenue_original"] = None
+
+            # Require the user to provide it for distributor sales (or we computed it above), UNLESS we are patching and it already exists
+            if data.get("publisher_revenue") is None and not (instance and instance.publisher_revenue is not None):
                 raise serializers.ValidationError({
                     "publisher_revenue": "Publisher revenue is required for distributor sales."
                 })

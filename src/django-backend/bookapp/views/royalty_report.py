@@ -192,14 +192,13 @@ def _aggregate_sales(sales_qs):
         + agg["quantity_sold_ebook_other"]
     )
     return {
-        "quantity_handsold": agg["quantity_handsold"],
+        "quantity_sold_print_handsold": agg["quantity_sold_print_handsold"],
         "quantity_sold_print_ingram_spark":agg["quantity_sold_print_ingram_spark"],
         "quantity_sold_print_amazon": agg["quantity_sold_print_amazon"],
         "quantity_sold_ebook_amazon": agg["quantity_sold_ebook_amazon"],
         "quantity_sold_print_other": agg["quantity_sold_print_other"],
         "quantity_sold_ebook_other": agg["quantity_sold_ebook_other"],
         "quantity_sold_total": quantity_sold_total,
-        "quantity_handsold": agg["quantity_sold_print_handsold"],
         "kenp": agg["kenp"],
         "royalty_unpaid": str(agg["royalty_unpaid"]),
         "royalty_paid": str(agg["royalty_paid"]),

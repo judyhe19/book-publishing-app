@@ -23,6 +23,7 @@ from ..serializers.sales import SaleSerializer, SaleWriteSerializer
 from ..config.sort_config import SALES_SORT_FIELD_MAP, SALES_DEFAULT_SORT
 from ..pagination import StandardPagination
 from ..utils.ingram_csv import IngramSparkCSVParser
+from ..utils.amazon_xlsx import AmazonXLSXParser
 
 def money(x):
     return Decimal(x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
@@ -190,6 +191,33 @@ class SaleViewSet(ModelViewSet):
 
         return Response(
             {"preview": result.preview, **result.metadata},
+            status=status.HTTP_200_OK,
+        )
+
+    # ------------------------------------------------------------------
+    # IMPORT AMAZON XLSX — validate + preview (custom action)
+    # ------------------------------------------------------------------
+
+    @action(detail=False, methods=["post"], url_path="import-amazon-xlsx",
+            parser_classes=[MultiPartParser, FormParser])
+    def import_amazon_xlsx(self, request):
+        xlsx_file = request.FILES.get("file")
+        if not xlsx_file:
+            return Response(
+                {"errors": ["No file uploaded."], "warnings": []},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        result = AmazonXLSXParser().parse_and_validate(xlsx_file)
+
+        if result.errors:
+            return Response(
+                {"errors": result.errors, "warnings": result.warnings},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {"preview": result.preview, "warnings": result.warnings, **result.metadata},
             status=status.HTTP_200_OK,
         )
 

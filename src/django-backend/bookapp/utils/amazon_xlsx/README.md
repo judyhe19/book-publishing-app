@@ -53,7 +53,7 @@ Contains two things:
 | `_extract_header(worksheet)` | Reads row 1 (`"Sales Period"` / `"June 2025"`) and row 2 (column headers). Returns `((month, year), col_map, errors)`. |
 | `_check_required_cols(col_map, required)` | Checks that all required column names are present in the header map. Returns error strings for any missing. |
 | `_convert_royalty(royalty_raw, currency_raw, row_ref, parser)` | Parses the royalty string as a `Decimal` and converts it to USD via `parser._converter`. Catches `CurrencyConversionError`. Returns `(royalty_original, royalty_usd, errors)`. |
-| `_make_comment(marketplace, currency, filename, timestamp)` | Builds the `comment` string stored on the preview row, e.g. `"Amazon: Sheet='...' Marketplace='...' ..."`. |
+| `_make_comment(marketplace, filename, timestamp)` | Builds the `comment` string stored on the preview row. Format: `Amazon: Market='...' File='...' Sheet:'...' (...)`. |
 | `_preview_row_base(book, sale_date_str, parser)` | Returns the dict fields shared by every preview row: `book`, `book_title`, `book_label`, `author_name`, `royalty_rate`, `publication_date`, `date`, `sale_source`, `distributor`, `author_paid`. |
 
 ---

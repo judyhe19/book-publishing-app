@@ -2,7 +2,7 @@
 Sheet handler for the Amazon "eBook Royalty" sheet.
 """
 
-from ._base import _SheetHandler, _cell, _is_blank_row
+from ._base import _SheetHandler, _cell, _is_blank_row, _parse_int
 
 
 class _EBookRoyaltySheetHandler(_SheetHandler):
@@ -41,13 +41,13 @@ class _EBookRoyaltySheetHandler(_SheetHandler):
             if _is_blank_row(row):
                 continue
 
-            row_ref = f"Sheet 'eBook Royalty', row {row_num}"
+            row_ref = f"Sheet '{self.sheet_name}', row {row_num}"
             row_errors = []
 
             # Units Refunded must be zero
             refunded_raw = _cell(row, col_map, "Units Refunded")
             try:
-                refunded = int(refunded_raw) if refunded_raw else None
+                refunded = _parse_int(refunded_raw) if refunded_raw else None
                 if refunded is None:
                     row_errors.append(f"{row_ref}: Units Refunded cannot be empty.")
                 elif refunded != 0:
@@ -67,7 +67,7 @@ class _EBookRoyaltySheetHandler(_SheetHandler):
             net_units = None
 
             try:
-                units_sold = int(units_sold_raw) if units_sold_raw else None
+                units_sold = _parse_int(units_sold_raw) if units_sold_raw else None
                 if units_sold is None:
                     row_errors.append(f"{row_ref}: Units Sold cannot be empty.")
             except (ValueError, TypeError):
@@ -76,7 +76,7 @@ class _EBookRoyaltySheetHandler(_SheetHandler):
                 )
 
             try:
-                net_units = int(net_units_raw) if net_units_raw else None
+                net_units = _parse_int(net_units_raw) if net_units_raw else None
                 if net_units is None:
                     row_errors.append(f"{row_ref}: Net Units Sold cannot be empty.")
             except (ValueError, TypeError):
@@ -115,19 +115,19 @@ class _EBookRoyaltySheetHandler(_SheetHandler):
                 continue
 
             # Serializer validation
+            # Spec: quantity = Units Sold (net_units == units_sold is enforced above)
             currency = currency_raw.strip().upper()
             payload = {
                 "book": book.id,
                 "date": sale_date_str,
-                "quantity": net_units,
+                "quantity": units_sold,
                 "sale_source": "distributor",
                 "distributor": parser.DISTRIBUTOR_NAME,
                 "format": "ebook",
                 "currency": currency,
                 "publisher_revenue": str(royalty_usd),
             }
-            if currency != "USD":
-                payload["publisher_revenue_original"] = str(parser._money(royalty_original))
+            payload["publisher_revenue_original"] = str(parser._money(royalty_original))
 
             validated_data, serial_errors = parser._validate_with_serializer(payload, row_ref)
             if serial_errors:
@@ -144,9 +144,9 @@ class _EBookRoyaltySheetHandler(_SheetHandler):
                 "format": "ebook",
                 "currency": currency,
                 "publisher_revenue": str(parser._money(royalty_usd)),
-                "publisher_revenue_original": payload.get("publisher_revenue_original"),
+                "publisher_revenue_original": payload["publisher_revenue_original"],
                 "author_royalty": str(author_royalty),
-                "comment": self._make_comment(marketplace, currency, filename, timestamp),
+                "comment": self._make_comment(marketplace, filename, timestamp),
             })
             preview_rows.append(row_dict)
 

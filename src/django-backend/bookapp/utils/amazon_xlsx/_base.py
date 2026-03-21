@@ -44,9 +44,43 @@ def _cell(row: tuple, col_map: dict[str, int], col_name: str) -> str:
     return str(val).strip() if val is not None else ""
 
 
+def _normalize_isbn(raw: str) -> str:
+    """
+    Normalize an ISBN string extracted from an Excel cell.
+
+    openpyxl returns numeric cells as Python floats, so a 13-digit ISBN stored
+    as a number becomes e.g. '9780441172719.0'.  Stripping the trailing '.0'
+    restores the correct string.  Note: ISBN-10 values with a leading zero that
+    were stored as numbers in Excel will have lost that zero; this is an
+    Excel data-entry issue that cannot be recovered here.
+    """
+    if "." in raw:
+        try:
+            raw = str(int(float(raw)))
+        except (ValueError, OverflowError):
+            pass
+    return raw
+
+
 def _is_blank_row(row: tuple) -> bool:
     """True if every cell in the row is None or an empty/whitespace string."""
     return all(v is None or (isinstance(v, str) and not v.strip()) for v in row)
+
+
+def _parse_int(raw: str) -> int:
+    """
+    Parse a whole-number integer from a cell string value.
+
+    openpyxl may return integer cells as Python floats, so quantities like 5
+    can arrive as the string '5.0'.  This function handles both representations.
+
+    Raises ValueError if the string does not represent a whole number
+    (e.g. '5.5' or 'abc').
+    """
+    f = float(raw)
+    if f != int(f):
+        raise ValueError(f"not a whole number: {raw!r}")
+    return int(f)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -170,14 +204,17 @@ class _SheetHandler(ABC):
 
         return royalty_original, royalty_usd, []
 
-    def _make_comment(
-        self, marketplace: str, currency: str, filename: str, timestamp: str
-    ) -> str:
+    def _make_comment(self, marketplace: str, filename: str, timestamp: str) -> str:
+        """
+        Build the comment string stored on every preview row.
+
+        Spec format:
+          Amazon: Market='[Marketplace]' File='[Filename]' Sheet:'[Sheet_name]' ([Timestamp])
+        """
         mkt = marketplace[:47] + "..." if len(marketplace) > 50 else marketplace
         fname = filename[:153] + "..." if len(filename) > 156 else filename
         return (
-            f"Amazon: Sheet='{self.sheet_name}' Marketplace='{mkt}' "
-            f"Currency='{currency}' File='{fname}' ({timestamp})"
+            f"Amazon: Market='{mkt}' File='{fname}' Sheet:'{self.sheet_name}' ({timestamp})"
         )
 
     def _preview_row_base(self, book, sale_date_str: str, parser) -> dict:

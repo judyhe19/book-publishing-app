@@ -2,7 +2,7 @@
 Sheet handler for Amazon "Paperback Royalty" and "Hardcover Royalty" sheets.
 """
 
-from ._base import _SheetHandler, _cell, _is_blank_row
+from ._base import _SheetHandler, _cell, _is_blank_row, _normalize_isbn, _parse_int
 
 
 class _PrintRoyaltySheetHandler(_SheetHandler):
@@ -49,7 +49,7 @@ class _PrintRoyaltySheetHandler(_SheetHandler):
             # Units Refunded must be zero
             refunded_raw = _cell(row, col_map, "Units Refunded")
             try:
-                refunded = int(refunded_raw) if refunded_raw else None
+                refunded = _parse_int(refunded_raw) if refunded_raw else None
                 if refunded is None:
                     row_errors.append(f"{row_ref}: Units Refunded cannot be empty.")
                 elif refunded != 0:
@@ -66,7 +66,7 @@ class _PrintRoyaltySheetHandler(_SheetHandler):
             units_sold_raw = _cell(row, col_map, "Units Sold")
             units_sold = None
             try:
-                units_sold = int(units_sold_raw) if units_sold_raw else None
+                units_sold = _parse_int(units_sold_raw) if units_sold_raw else None
                 if units_sold is None:
                     row_errors.append(f"{row_ref}: Units Sold cannot be empty.")
             except (ValueError, TypeError):
@@ -75,7 +75,9 @@ class _PrintRoyaltySheetHandler(_SheetHandler):
                 )
 
             # ISBN → book lookup
-            isbn_raw = _cell(row, col_map, "ISBN")
+            # Normalize first: openpyxl returns numeric cells as floats, so
+            # a 13-digit ISBN may arrive as the string "9780441172719.0".
+            isbn_raw = _normalize_isbn(_cell(row, col_map, "ISBN"))
             book = None
             if not isbn_raw:
                 row_errors.append(f"{row_ref}: ISBN is missing.")
@@ -110,8 +112,7 @@ class _PrintRoyaltySheetHandler(_SheetHandler):
                 "currency": currency,
                 "publisher_revenue": str(royalty_usd),
             }
-            if currency != "USD":
-                payload["publisher_revenue_original"] = str(parser._money(royalty_original))
+            payload["publisher_revenue_original"] = str(parser._money(royalty_original))
 
             validated_data, serial_errors = parser._validate_with_serializer(payload, row_ref)
             if serial_errors:
@@ -128,9 +129,9 @@ class _PrintRoyaltySheetHandler(_SheetHandler):
                 "format": "print",
                 "currency": currency,
                 "publisher_revenue": str(parser._money(royalty_usd)),
-                "publisher_revenue_original": payload.get("publisher_revenue_original"),
+                "publisher_revenue_original": payload["publisher_revenue_original"],
                 "author_royalty": str(author_royalty),
-                "comment": self._make_comment(marketplace, currency, filename, timestamp),
+                "comment": self._make_comment(marketplace, filename, timestamp),
             })
             preview_rows.append(row_dict)
 

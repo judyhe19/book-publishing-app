@@ -2,7 +2,7 @@
 Sheet handler for the Amazon "KENP" sheet (Kindle Unlimited revenue).
 """
 
-from ._base import _SheetHandler, _cell, _is_blank_row
+from ._base import _SheetHandler, _cell, _is_blank_row, _parse_int
 
 
 class _KENPSheetHandler(_SheetHandler):
@@ -44,7 +44,7 @@ class _KENPSheetHandler(_SheetHandler):
             if _is_blank_row(row):
                 continue
 
-            row_ref = f"Sheet 'KENP', row {row_num}"
+            row_ref = f"Sheet '{self.sheet_name}', row {row_num}"
             asin_raw = _cell(row, col_map, "eBook ASIN")
 
             # Skip audiobook/Audible rows where ASIN is "N/A" or absent
@@ -61,7 +61,7 @@ class _KENPSheetHandler(_SheetHandler):
             kenp_raw = _cell(row, col_map, "Kindle Edition Normalized Pages (KENP)")
             kenp = None
             try:
-                kenp = int(kenp_raw) if kenp_raw else None
+                kenp = _parse_int(kenp_raw) if kenp_raw else None
                 if kenp is None:
                     row_errors.append(f"{row_ref}: KENP cannot be empty.")
             except (ValueError, TypeError):
@@ -100,8 +100,7 @@ class _KENPSheetHandler(_SheetHandler):
                 "currency": currency,
                 "publisher_revenue": str(royalty_usd),
             }
-            if currency != "USD":
-                payload["publisher_revenue_original"] = str(parser._money(royalty_original))
+            payload["publisher_revenue_original"] = str(parser._money(royalty_original))
 
             validated_data, serial_errors = parser._validate_with_serializer(payload, row_ref)
             if serial_errors:
@@ -118,9 +117,9 @@ class _KENPSheetHandler(_SheetHandler):
                 "format": "kindle unlimited",
                 "currency": currency,
                 "publisher_revenue": str(parser._money(royalty_usd)),
-                "publisher_revenue_original": payload.get("publisher_revenue_original"),
+                "publisher_revenue_original": payload["publisher_revenue_original"],
                 "author_royalty": str(author_royalty),
-                "comment": self._make_comment(marketplace, currency, filename, timestamp),
+                "comment": self._make_comment(marketplace, filename, timestamp),
             })
             preview_rows.append(row_dict)
 

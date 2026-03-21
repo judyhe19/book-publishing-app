@@ -270,8 +270,14 @@ function QuarterTable({ label, books, data, totals, totalsLabel = "Subtotal" }) 
         <thead>
           <tr>
             <th style={{ minWidth: "200px" }}>Book</th>
-            <th className="num">Qty Sold</th>
-            <th className="num">Qty Handsold</th>
+            <th className="num">Qty Sold (Print, Handsold)</th>
+            <th className="num">Qty Sold (Print, Ingram Spark)</th>
+            <th className="num">Qty Sold (Print, Amazon)</th>
+            <th className="num">Qty Sold (eBook, Amazon)</th>
+            <th className="num">Qty Sold (Print, Other)</th>
+            <th className="num">Qty Sold (eBook, Other)</th>
+            <th className="num">Qty Sold (Total)</th>
+            <th className="num">KENP</th>
             <th className="num">Royalty (Unpaid)</th>
             <th className="num">Royalty (Paid)</th>
             <th className="num">Royalty (Total)</th>
@@ -288,8 +294,14 @@ function QuarterTable({ label, books, data, totals, totalsLabel = "Subtotal" }) 
                   )}
                   <span className="book-title">{book.title}</span>
                 </td>
-                <td className="num">{row.quantity_sold ?? 0}</td>
-                <td className="num">{row.quantity_handsold ?? 0}</td>
+                <td className="num">{row.quantity_sold_print_handsold ?? 0}</td>
+                <td className="num">{row.quantity_sold_print_ingram_spark ?? 0}</td>
+                <td className="num">{row.quantity_sold_print_amazon ?? 0}</td>
+                <td className="num">{row.quantity_sold_ebook_amazon ?? 0}</td>
+                <td className="num">{row.quantity_sold_print_other ?? 0}</td>
+                <td className="num">{row.quantity_sold_ebook_other ?? 0}</td>
+                <td className="num">{row.quantity_sold_total ?? 0}</td>
+                <td className="num">{row.kenp ?? 0}</td>
                 <td className="num">{formatMoney(row.royalty_unpaid, "$0.00")}</td>
                 <td className="num">{formatMoney(row.royalty_paid, "$0.00")}</td>
                 <td className="num">{formatMoney(row.royalty_total, "$0.00")}</td>
@@ -300,8 +312,14 @@ function QuarterTable({ label, books, data, totals, totalsLabel = "Subtotal" }) 
           {/* All-books totals row */}
           <tr className="totals-row">
             <td>{totalsLabel}</td>
-            <td className="num">{totals[label]?.quantity_sold ?? 0}</td>
-            <td className="num">{totals[label]?.quantity_handsold ?? 0}</td>
+            <td className="num">{totals[label]?.quantity_sold_print_handsold ?? 0}</td>
+            <td className="num">{totals[label]?.quantity_sold_print_ingram_spark ?? 0}</td>
+            <td className="num">{totals[label]?.quantity_sold_print_amazon ?? 0}</td>
+            <td className="num">{totals[label]?.quantity_sold_ebook_amazon ?? 0}</td>
+            <td className="num">{totals[label]?.quantity_sold_print_other ?? 0}</td>
+            <td className="num">{totals[label]?.quantity_sold_ebook_other ?? 0}</td>
+            <td className="num">{totals[label]?.quantity_sold_total ?? 0}</td>
+            <td className="num">{totals[label]?.kenp ?? 0}</td>
             <td className="num">{formatMoney(totals[label]?.royalty_unpaid, "$0.00")}</td>
             <td className="num">{formatMoney(totals[label]?.royalty_paid, "$0.00")}</td>
             <td className="num">{formatMoney(totals[label]?.royalty_total, "$0.00")}</td>
@@ -321,8 +339,14 @@ function AllBooksTable({ quarters, totals }) {
         <thead>
           <tr>
             <th style={{ minWidth: "200px" }}>Quarter</th>
-            <th className="num">Qty Sold</th>
-            <th className="num">Qty Handsold</th>
+            <th className="num">Qty Sold (Print, Handsold)</th>
+            <th className="num">Qty Sold (Print, Ingram Spark)</th>
+            <th className="num">Qty Sold (Print, Amazon)</th>
+            <th className="num">Qty Sold (eBook, Amazon)</th>
+            <th className="num">Qty Sold (Print, Other)</th>
+            <th className="num">Qty Sold (eBook, Other)</th>
+            <th className="num">Qty Sold (Total)</th>
+            <th className="num">KENP</th>
             <th className="num">Royalty (Unpaid)</th>
             <th className="num">Royalty (Paid)</th>
             <th className="num">Royalty (Total)</th>
@@ -334,8 +358,14 @@ function AllBooksTable({ quarters, totals }) {
             return (
               <tr key={qinfo.label}>
                 <td><span className="book-title">{qinfo.label}</span></td>
-                <td className="num">{row.quantity_sold ?? 0}</td>
-                <td className="num">{row.quantity_handsold ?? 0}</td>
+                <td className="num">{row.quantity_sold_print_handsold ?? 0}</td>
+                <td className="num">{row.quantity_sold_print_ingram_spark ?? 0}</td>
+                <td className="num">{row.quantity_sold_print_amazon ?? 0}</td>
+                <td className="num">{row.quantity_sold_ebook_amazon ?? 0}</td>
+                <td className="num">{row.quantity_sold_print_other ?? 0}</td>
+                <td className="num">{row.quantity_sold_ebook_other ?? 0}</td>
+                <td className="num">{row.quantity_sold_total ?? 0}</td>
+                <td className="num">{row.kenp ?? 0}</td>
                 <td className="num">{formatMoney(row.royalty_unpaid, "$0.00")}</td>
                 <td className="num">{formatMoney(row.royalty_paid, "$0.00")}</td>
                 <td className="num">{formatMoney(row.royalty_total, "$0.00")}</td>
@@ -346,8 +376,14 @@ function AllBooksTable({ quarters, totals }) {
           {/* Grand total row */}
           <tr className="totals-row">
             <td>Total</td>
-            <td className="num">{totals["All Time"]?.quantity_sold ?? 0}</td>
-            <td className="num">{totals["All Time"]?.quantity_handsold ?? 0}</td>
+            <td className="num">{totals["All Time"]?.quantity_sold_print_handsold ?? 0}</td>
+            <td className="num">{totals["All Time"]?.quantity_sold_print_ingram_spark ?? 0}</td>
+            <td className="num">{totals["All Time"]?.quantity_sold_print_amazon ?? 0}</td>
+            <td className="num">{totals["All Time"]?.quantity_sold_ebook_amazon ?? 0}</td>
+            <td className="num">{totals["All Time"]?.quantity_sold_print_other ?? 0}</td>
+            <td className="num">{totals["All Time"]?.quantity_sold_ebook_other ?? 0}</td>
+            <td className="num">{totals["All Time"]?.quantity_sold_total ?? 0}</td>
+            <td className="num">{totals["All Time"]?.kenp ?? 0}</td>
             <td className="num">{formatMoney(totals["All Time"]?.royalty_unpaid, "$0.00")}</td>
             <td className="num">{formatMoney(totals["All Time"]?.royalty_paid, "$0.00")}</td>
             <td className="num">{formatMoney(totals["All Time"]?.royalty_total, "$0.00")}</td>

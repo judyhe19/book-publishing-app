@@ -43,13 +43,110 @@ def _enumerate_quarters(start_year, start_quarter, end_year, end_quarter):
 def _aggregate_sales(sales_qs):
     """Aggregate a queryset of Sale objects into report metrics."""
     agg = sales_qs.aggregate(
-        quantity_sold=Coalesce(
-            Sum("quantity"), Value(0), output_field=IntegerField()
-        ),
-        quantity_handsold=Coalesce(
+        quantity_sold_print_handsold=Coalesce(
             Sum(
                 Case(
-                    When(sale_source="handsold", then="quantity"),
+                    When(
+                        sale_source="handsold",
+                        format="print",
+                        then=Coalesce(F("quantity"), Value(0)),
+                    ),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+            ),
+            Value(0),
+            output_field=IntegerField(),
+        ),
+        quantity_sold_print_ingram_spark=Coalesce(
+            Sum(
+                Case(
+                    When(
+                        sale_source="distributor",
+                        distributor="Ingram Spark",
+                        format="print",
+                        then=Coalesce(F("quantity"), Value(0)),
+                    ),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+            ),
+            Value(0),
+            output_field=IntegerField(),
+        ),
+        quantity_sold_print_amazon=Coalesce(
+            Sum(
+                Case(
+                    When(
+                        sale_source="distributor",
+                        distributor="Amazon",
+                        format="print",
+                        then=Coalesce(F("quantity"), Value(0)),
+                    ),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+            ),
+            Value(0),
+            output_field=IntegerField(),
+        ),
+        quantity_sold_ebook_amazon=Coalesce(
+            Sum(
+                Case(
+                    When(
+                        sale_source="distributor",
+                        distributor="Amazon",
+                        format="ebook",
+                        then=Coalesce(F("quantity"), Value(0)),
+                    ),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+            ),
+            Value(0),
+            output_field=IntegerField(),
+        ),
+        quantity_sold_print_other=Coalesce(
+            Sum(
+                Case(
+                    When(
+                        sale_source="distributor",
+                        distributor="Other",
+                        format="print",
+                        then=Coalesce(F("quantity"), Value(0)),
+                    ),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+            ),
+            Value(0),
+            output_field=IntegerField(),
+        ),
+        quantity_sold_ebook_other=Coalesce(
+            Sum(
+                Case(
+                    When(
+                        sale_source="distributor",
+                        distributor="Other",
+                        format="ebook",
+                        then=Coalesce(F("quantity"), Value(0)),
+                    ),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+            ),
+            Value(0),
+            output_field=IntegerField(),
+        ),
+        kenp=Coalesce(
+            Sum(
+                Case(
+                    When(
+                        sale_source="distributor",
+                        distributor="Amazon",
+                        format="kindle unlimited",
+                        then=Coalesce(F("kenp"), Value(0)),
+                    ),
                     default=Value(0),
                     output_field=IntegerField(),
                 )
@@ -85,9 +182,25 @@ def _aggregate_sales(sales_qs):
             output_field=DecimalField(max_digits=12, decimal_places=2),
         ),
     )
+
+    quantity_sold_total = (
+        agg["quantity_sold_print_handsold"]
+        + agg["quantity_sold_print_ingram_spark"]
+        + agg["quantity_sold_print_amazon"]
+        + agg["quantity_sold_ebook_amazon"]
+        + agg["quantity_sold_print_other"]
+        + agg["quantity_sold_ebook_other"]
+    )
     return {
-        "quantity_sold": agg["quantity_sold"],
         "quantity_handsold": agg["quantity_handsold"],
+        "quantity_sold_print_ingram_spark":agg["quantity_sold_print_ingram_spark"],
+        "quantity_sold_print_amazon": agg["quantity_sold_print_amazon"],
+        "quantity_sold_ebook_amazon": agg["quantity_sold_ebook_amazon"],
+        "quantity_sold_print_other": agg["quantity_sold_print_other"],
+        "quantity_sold_ebook_other": agg["quantity_sold_ebook_other"],
+        "quantity_sold_total": quantity_sold_total,
+        "quantity_handsold": agg["quantity_sold_print_handsold"],
+        "kenp": agg["kenp"],
         "royalty_unpaid": str(agg["royalty_unpaid"]),
         "royalty_paid": str(agg["royalty_paid"]),
         "royalty_total": str(agg["royalty_total"]),

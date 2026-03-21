@@ -101,6 +101,12 @@ class SaleViewSet(ModelViewSet):
                     else:
                         # null/empty last if ascending
                         qs = qs.order_by(F('_comment_sort').asc(nulls_last=True))
+                elif field == 'publisher_revenue_original':
+                    # Sort by currency type first, then by original amount
+                    if is_desc:
+                        qs = qs.order_by('-currency', F('publisher_revenue_original').desc(nulls_last=True))
+                    else:
+                        qs = qs.order_by('currency', F('publisher_revenue_original').asc(nulls_last=True))
                 else:
                     order_field = ("-" if is_desc else "") + db_field
                     qs = qs.order_by(order_field)

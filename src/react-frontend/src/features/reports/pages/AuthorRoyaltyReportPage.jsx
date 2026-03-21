@@ -376,17 +376,17 @@ function AllBooksTable({ quarters, totals }) {
           {/* Grand total row */}
           <tr className="totals-row">
             <td>Total</td>
-            <td className="num">{totals[rangeTotalLabel]?.quantity_sold_print_handsold ?? 0}</td>
-            <td className="num">{totals[rangeTotalLabel]?.quantity_sold_print_ingram_spark ?? 0}</td>
-            <td className="num">{totals[rangeTotalLabel]?.quantity_sold_print_amazon ?? 0}</td>
-            <td className="num">{totals[rangeTotalLabel]?.quantity_sold_ebook_amazon ?? 0}</td>
-            <td className="num">{totals[rangeTotalLabel]?.quantity_sold_print_other ?? 0}</td>
-            <td className="num">{totals[rangeTotalLabel]?.quantity_sold_ebook_other ?? 0}</td>
-            <td className="num">{totals[rangeTotalLabel]?.quantity_sold_total ?? 0}</td>
-            <td className="num">{totals[rangeTotalLabel]?.kenp ?? 0}</td>
-            <td className="num">{formatMoney(totals[rangeTotalLabel]?.royalty_unpaid, "$0.00")}</td>
-            <td className="num">{formatMoney(totals[rangeTotalLabel]?.royalty_paid, "$0.00")}</td>
-            <td className="num">{formatMoney(totals[rangeTotalLabel]?.royalty_total, "$0.00")}</td>
+            <td className="num">{totals["All Time"]?.quantity_sold_print_handsold ?? 0}</td>
+            <td className="num">{totals["All Time"]?.quantity_sold_print_ingram_spark ?? 0}</td>
+            <td className="num">{totals["All Time"]?.quantity_sold_print_amazon ?? 0}</td>
+            <td className="num">{totals["All Time"]?.quantity_sold_ebook_amazon ?? 0}</td>
+            <td className="num">{totals["All Time"]?.quantity_sold_print_other ?? 0}</td>
+            <td className="num">{totals["All Time"]?.quantity_sold_ebook_other ?? 0}</td>
+            <td className="num">{totals["All Time"]?.quantity_sold_total ?? 0}</td>
+            <td className="num">{totals["All Time"]?.kenp ?? 0}</td>
+            <td className="num">{formatMoney(totals["All Time"]?.royalty_unpaid, "$0.00")}</td>
+            <td className="num">{formatMoney(totals["All Time"]?.royalty_paid, "$0.00")}</td>
+            <td className="num">{formatMoney(totals["All Time"]?.royalty_total, "$0.00")}</td>
           </tr>
         </tbody>
       </table>

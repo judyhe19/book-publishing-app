@@ -23,6 +23,11 @@ import { FormField, Input } from "../../../shared/components";
  *     that same series never overwrites the position again (preserves manual edits).
  *   - If the selected series differs (or this is a new book), position is set
  *     to count + 1 (append at end of the target series).
+ *
+ * Keyboard navigation (when dropdown is open with navigable items):
+ *   Tab / Shift+Tab — move highlight down / up
+ *   Enter           — select highlighted item
+ *   Escape          — close dropdown
  */
 export default function SeriesPicker({
   seriesName,
@@ -33,6 +38,7 @@ export default function SeriesPicker({
   originalSeriesName = null,
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
   // Tracks which series position was last autofilled for. Initialized to
   // originalSeriesName so that clicking the same series in edit mode never
@@ -50,10 +56,16 @@ export default function SeriesPicker({
     (s) => s.name.toLowerCase() === typedLower
   );
 
+  // The "Create" option only appears inside the suggestions list branch
+  const showCreate = typed.length > 0 && suggestions.length > 0 && !exactMatch;
+  // Total navigable items for keyboard nav (only when suggestions branch is shown)
+  const totalItems = suggestions.length > 0 ? suggestions.length + (showCreate ? 1 : 0) : 0;
+
   // Called only when user explicitly clicks a suggestion or the "create" option.
   function applySeriesName(name) {
     setSeriesName(name);
     setDropdownOpen(false);
+    setHighlightedIndex(-1);
 
     // Case 1: same series the book was already in before editing started —
     // leave the position alone (it's already correct).
@@ -85,6 +97,7 @@ export default function SeriesPicker({
     const value = e.target.value;
     setSeriesName(value);
     setDropdownOpen(true);
+    setHighlightedIndex(-1);
 
     const valueTrimmedLower = value.trim().toLowerCase();
     if (valueTrimmedLower) {
@@ -106,10 +119,34 @@ export default function SeriesPicker({
     }
   }
 
+  function onKeyDown(e) {
+    const isOpen = dropdownOpen && totalItems > 0;
+
+    if (e.key === "Tab" && !e.shiftKey && isOpen) {
+      e.preventDefault();
+      setHighlightedIndex((i) => (i + 1) % totalItems);
+    } else if (e.key === "Tab" && e.shiftKey && isOpen) {
+      e.preventDefault();
+      setHighlightedIndex((i) => (i <= 0 ? totalItems - 1 : i - 1));
+    } else if (e.key === "Enter" && isOpen && highlightedIndex >= 0) {
+      e.preventDefault();
+      if (highlightedIndex < suggestions.length) {
+        applySeriesName(suggestions[highlightedIndex].name);
+      } else {
+        // "Create" option
+        applySeriesName(typed);
+      }
+    } else if (e.key === "Escape") {
+      setDropdownOpen(false);
+      setHighlightedIndex(-1);
+    }
+  }
+
   function onClear() {
     setSeriesName("");
     setSeriesPosition("");
     setDropdownOpen(false);
+    setHighlightedIndex(-1);
     positionAutofilledFor.current = null;
   }
 
@@ -141,8 +178,12 @@ export default function SeriesPicker({
               onChange={onSeriesInputChange}
               onFocus={() => setDropdownOpen(true)}
               onBlur={() =>
-                setTimeout(() => setDropdownOpen(false), 150)
+                setTimeout(() => {
+                  setDropdownOpen(false);
+                  setHighlightedIndex(-1);
+                }, 150)
               }
+              onKeyDown={onKeyDown}
               placeholder="e.g. The Lord of the Rings"
               autoComplete="off"
             />
@@ -158,11 +199,13 @@ export default function SeriesPicker({
                   </div>
                 ) : (
                   <ul className="max-h-56 overflow-auto">
-                    {suggestions.map((s) => (
+                    {suggestions.map((s, i) => (
                       <li key={s.name}>
                         <button
                           type="button"
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 flex justify-between"
+                          className={`w-full text-left px-3 py-2 text-sm flex justify-between ${
+                            i === highlightedIndex ? "bg-slate-100" : "hover:bg-slate-50"
+                          }`}
                           onMouseDown={(ev) => ev.preventDefault()}
                           onClick={() => applySeriesName(s.name)}
                         >
@@ -173,11 +216,15 @@ export default function SeriesPicker({
                         </button>
                       </li>
                     ))}
-                    {!exactMatch && typed && (
+                    {showCreate && (
                       <li>
                         <button
                           type="button"
-                          className="w-full text-left px-3 py-2 text-sm text-slate-400 hover:bg-slate-50 italic"
+                          className={`w-full text-left px-3 py-2 text-sm italic ${
+                            highlightedIndex === suggestions.length
+                              ? "bg-slate-100 text-slate-600"
+                              : "text-slate-400 hover:bg-slate-50"
+                          }`}
                           onMouseDown={(ev) => ev.preventDefault()}
                           onClick={() => applySeriesName(typed)}
                         >

@@ -50,43 +50,59 @@ export default function BookEditMode({
   originalSeriesName,
 }) {
   return (
-    <div className="mt-4 space-y-5">
-      {/* Title - full width, prominent */}
-      <FormField label="Title">
-        <Input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="text-lg font-semibold"
-          required
-        />
-      </FormField>
-
-      {/* Author - full width */}
-      <AuthorPicker
-        authorOptions={authorOptions}
-        selectedAuthorId={selectedAuthorId}
-        setSelectedAuthorId={setSelectedAuthorId}
-        authorSearch={authorSearch}
-        setAuthorSearch={setAuthorSearch}
-        required
-      />
-
+    <div className="mt-4">
       {/* Two-column: cover art left, fields right */}
       <div className="flex flex-col gap-8 sm:flex-row">
         {/* Cover image */}
-        <div className="flex-shrink-0 sm:w-60">
+        <div className="flex-shrink-0">
           <CoverImageField
             value={coverImagePath}
             onChange={setCoverImagePath}
             onFileChange={onCoverImageFileChange}
             title={title}
+            imageClassName="h-[30rem] w-80"
           />
         </div>
 
         {/* Grouped fields */}
         <div className="flex-1 divide-y divide-slate-100">
+          {/* Title & Author - mirrors the page header shown in view mode */}
+          <div className="pb-5 space-y-4">
+            <FormField label="Title">
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="text-lg font-semibold"
+                required
+              />
+            </FormField>
+            <AuthorPicker
+              authorOptions={authorOptions}
+              selectedAuthorId={selectedAuthorId}
+              setSelectedAuthorId={setSelectedAuthorId}
+              authorSearch={authorSearch}
+              setAuthorSearch={setAuthorSearch}
+              required
+            />
+          </div>
+
+          {/* Series */}
+          <div className="py-5">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Series
+            </p>
+            <SeriesPicker
+              seriesName={seriesName}
+              setSeriesName={setSeriesName}
+              seriesPosition={seriesPosition}
+              setSeriesPosition={setSeriesPosition}
+              seriesOptions={seriesOptions || []}
+              originalSeriesName={originalSeriesName}
+            />
+          </div>
+
           {/* Publication Info */}
-          <div className="pb-5">
+          <div className="py-5">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
               Publication Info
             </p>
@@ -132,21 +148,6 @@ export default function BookEditMode({
                 </p>
               </FormField>
             </div>
-          </div>
-
-          {/* Series */}
-          <div className="py-5">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Series
-            </p>
-            <SeriesPicker
-              seriesName={seriesName}
-              setSeriesName={setSeriesName}
-              seriesPosition={seriesPosition}
-              setSeriesPosition={setSeriesPosition}
-              seriesOptions={seriesOptions || []}
-              originalSeriesName={originalSeriesName}
-            />
           </div>
 
           {/* Pricing */}

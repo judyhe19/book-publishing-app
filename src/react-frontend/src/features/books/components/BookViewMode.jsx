@@ -77,11 +77,9 @@ export default function BookViewMode({ book }) {
                 <DetailField label="ISBN-10">
                   <span className="font-mono">{book.isbn_10 || "—"}</span>
                 </DetailField>
-                {book.amazon_asin_ebook && (
-                  <DetailField label="Amazon ASIN (ebook)">
-                    <span className="font-mono">{book.amazon_asin_ebook}</span>
-                  </DetailField>
-                )}
+                <DetailField label="Amazon ASIN (ebook)">
+                  <span className="font-mono">{book.amazon_asin_ebook || "—"}</span>
+                </DetailField>
               </div>
               {/* {book.amazon_asin_ebook && (
                 <DetailField label="Amazon ASIN (ebook)">

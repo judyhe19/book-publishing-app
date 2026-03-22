@@ -112,38 +112,39 @@ class BookDetailSerializer(BookListSerializer):
 # Write serializers
 # ---------------------------------------------------------------------------
 
-class BookCreateSerializer(serializers.ModelSerializer):
-    publication_date = BookMonthYearField()
+class BookWriteSerializer(serializers.ModelSerializer):
+    """
+    Shared base for BookCreateSerializer and BookUpdateSerializer.
+    Handles UniqueTogetherValidator removal, shared field declarations,
+    and shared field-level validators.
+    """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # DRF auto-generates a UniqueTogetherValidator for (series_name, series_position)
-        # based on the model's UniqueConstraint. That validator runs BEFORE create(), so it
-        # would reject any position that is already occupied — even though our create() logic
-        # shifts existing books first. Remove it; uniqueness is maintained by the shift logic.
-        self.validators = [
-            v for v in self.validators
-            if not (
-                hasattr(v, "fields")
-                and "series_name" in v.fields
-                and "series_position" in v.fields
-            )
-        ]
-
-    # Accept author_id from frontend
-    author_id = serializers.PrimaryKeyRelatedField(
-        source="author",
-        queryset=Author.objects.all(),
-        write_only=True,
-        error_messages={
-            "null": "Author field may not be empty.",
-            "required": "Author field may not be empty.",
-            "does_not_exist": "Author {pk_value} does not exist.",
-        },
-    )
-
-    # Read-only display
     author_name = serializers.CharField(source="author.name", read_only=True)
+
+    cover_price = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        error_messages={"invalid": "Please enter a valid cover price (e.g. 12.99)."},
+    )
+    print_cost = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        error_messages={"invalid": "Please enter a valid print cost (e.g. 8.50)."},
+    )
+    distributor_author_royalty_rate = serializers.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        required=False,
+        error_messages={"invalid": "Please enter a valid distributor royalty rate as a percentage from 0 to 100."},
+    )
+    hand_sold_author_royalty_rate = serializers.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        required=False,
+        error_messages={"invalid": "Please enter a valid hand-sold royalty rate as a percentage from 0 to 100."},
+    )
 
     class Meta:
         model = Book
@@ -164,8 +165,21 @@ class BookCreateSerializer(serializers.ModelSerializer):
             "series_position",
         ]
 
-    def validate_isbn_13(self, value):
-        return validate_isbn_13(value, required=True)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # DRF auto-generates a UniqueTogetherValidator for (series_name, series_position)
+        # based on the model's UniqueConstraint. That validator runs BEFORE create()/update(),
+        # so it would reject any position that is already occupied — even though our
+        # create()/update() logic shifts existing books first. Remove it; uniqueness is
+        # maintained by the shift logic.
+        self.validators = [
+            v for v in self.validators
+            if not (
+                hasattr(v, "fields")
+                and "series_name" in v.fields
+                and "series_position" in v.fields
+            )
+        ]
 
     def validate_isbn_10(self, value):
         return validate_isbn_10(value)
@@ -174,6 +188,24 @@ class BookCreateSerializer(serializers.ModelSerializer):
         if value:
             return value.strip().upper()
         return value
+
+
+class BookCreateSerializer(BookWriteSerializer):
+    publication_date = BookMonthYearField()
+
+    author_id = serializers.PrimaryKeyRelatedField(
+        source="author",
+        queryset=Author.objects.all(),
+        write_only=True,
+        error_messages={
+            "null": "Author field may not be empty.",
+            "required": "Author field may not be empty.",
+            "does_not_exist": "Author {pk_value} does not exist.",
+        },
+    )
+
+    def validate_isbn_13(self, value):
+        return validate_isbn_13(value, required=True)
 
     def validate(self, attrs):
         error = {}
@@ -191,7 +223,7 @@ class BookCreateSerializer(serializers.ModelSerializer):
             error["author_id"] = "Author is required."
 
         # Required monetary fields
-        if attrs.get("cover_price") is None:
+        if not attrs.get("cover_price"):
             error["cover_price"] = "Cover price is required."
         if attrs.get("print_cost") is None:
             error["print_cost"] = "Print cost is required."
@@ -228,7 +260,7 @@ class BookCreateSerializer(serializers.ModelSerializer):
         return Book.objects.create(**validated_data)
 
 
-class BookUpdateSerializer(serializers.ModelSerializer):
+class BookUpdateSerializer(BookWriteSerializer):
     """
     PATCH behavior:
     - Any provided fields are updated.
@@ -236,20 +268,6 @@ class BookUpdateSerializer(serializers.ModelSerializer):
     - Series position changes automatically shift other books in the series.
     """
     publication_date = BookMonthYearField(required=False)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Same as BookCreateSerializer: remove the auto-generated UniqueTogetherValidator
-        # for (series_name, series_position). Our update() shifts positions atomically,
-        # so the check at validation time would incorrectly block valid moves.
-        self.validators = [
-            v for v in self.validators
-            if not (
-                hasattr(v, "fields")
-                and "series_name" in v.fields
-                and "series_position" in v.fields
-            )
-        ]
 
     author_id = serializers.PrimaryKeyRelatedField(
         source="author",
@@ -259,37 +277,8 @@ class BookUpdateSerializer(serializers.ModelSerializer):
         error_messages={"does_not_exist": "Author does not exist."},
     )
 
-    author_name = serializers.CharField(source="author.name", read_only=True)
-
-    class Meta:
-        model = Book
-        fields = [
-            "title",
-            "publication_date",
-            "isbn_13",
-            "isbn_10",
-            "amazon_asin_ebook",
-            "author_id",
-            "author_name",
-            "distributor_author_royalty_rate",
-            "hand_sold_author_royalty_rate",
-            "cover_price",
-            "print_cost",
-            "cover_image_path",
-            "series_name",
-            "series_position",
-        ]
-
     def validate_isbn_13(self, value):
         return validate_isbn_13(value, required=False)
-
-    def validate_isbn_10(self, value):
-        return validate_isbn_10(value)
-
-    def validate_amazon_asin_ebook(self, value):
-        if value:
-            return value.strip().upper()
-        return value
 
     def validate(self, attrs):
         instance = getattr(self, "instance", None)
@@ -329,6 +318,7 @@ class BookUpdateSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def update(self, instance, validated_data):
+        validated_data = self.validate(validated_data)
         old_name = instance.series_name
         old_pos = instance.series_position
 

@@ -234,6 +234,7 @@ export default function CreateBookPage() {
                     setSelectedAuthorId={setSelectedAuthorId}
                     authorSearch={authorSearch}
                     setAuthorSearch={setAuthorSearch}
+                    required
                   />
                 </div>
 
@@ -257,6 +258,7 @@ export default function CreateBookPage() {
                     step="1"
                     value={distributorRoyaltyRate}
                     onChange={(e) => setDistributorRoyaltyRate(e.target.value)}
+                    required
                   />
                   <p className="mt-1 text-xs text-slate-400">Percentage (0–100), e.g. 50 for 50%</p>
                 </FormField>
@@ -268,6 +270,7 @@ export default function CreateBookPage() {
                     step="1"
                     value={handSoldRoyaltyRate}
                     onChange={(e) => setHandSoldRoyaltyRate(e.target.value)}
+                    required
                   />
                   <p className="mt-1 text-xs text-slate-400">Percentage (0–100), e.g. 20 for 20%</p>
                 </FormField>

@@ -118,7 +118,8 @@ export default function BookDetailPage() {
   }
 
   // Save changes
-  async function onSave() {
+  async function onSave(e) {
+    e.preventDefault();
     setErr(null);
     setSaving(true);
 
@@ -247,7 +248,7 @@ export default function BookDetailPage() {
                   >
                     Cancel
                   </Button>
-                  <Button disabled={saving} onClick={onSave}>
+                  <Button type="submit" form="edit-book-form" disabled={saving}>
                     {saving ? "Saving…" : "Save"}
                   </Button>
                 </>
@@ -261,6 +262,7 @@ export default function BookDetailPage() {
             {!editing ? (
               <BookViewMode book={book} />
             ) : (
+              <form id="edit-book-form" onSubmit={onSave}>
               <BookEditMode
                 title={title}
                 setTitle={setTitle}
@@ -295,6 +297,7 @@ export default function BookDetailPage() {
                 seriesOptions={seriesOptions}
                 originalSeriesName={book.series_name}
               />
+              </form>
             )}
           </CardContent>
         </Card>

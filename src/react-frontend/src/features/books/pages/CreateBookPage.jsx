@@ -241,7 +241,7 @@ export default function CreateBookPage() {
                 <Button
                   type="button"
                   className="shrink-0 whitespace-nowrap"
-                  onClick={() => nav("/authors/create")}
+                  onClick={() => nav("/authors/create", { state: { returnTo: "/books/input" } })}
                 >
                   New Author
                 </Button>

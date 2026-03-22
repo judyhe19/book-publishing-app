@@ -1,21 +1,18 @@
 // src/features/author/pages/AuthorCreatePage.jsx
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button, Card, CardContent, ErrorAlert } from "../../../shared/components";
 import { useCreateAuthor } from "../hooks/useCreateAuthor";
 
 export default function AuthorCreatePage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = location.state?.returnTo ?? "/authors";
   const { form, isSubmitting, error, handleChange, handleSubmit } = useCreateAuthor();
 
   const onSubmit = async () => {
     const created = await handleSubmit();
-    if (created?.id) {
-        navigate("/authors");
-      // navigate(`/authors/${created.id}`);
-    } else if (created) {
-      // fallback if API returns created object without id for some reason
-      navigate("/authors");
+    if (created) {
+      navigate(returnTo);
     }
   };
 
@@ -62,7 +59,7 @@ export default function AuthorCreatePage() {
             </div>
 
             <div className="mt-8 flex justify-end gap-4">
-              <Button type="button" variant="secondary" onClick={() => navigate(-1)}>
+              <Button type="button" variant="secondary" onClick={() => navigate(returnTo)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting || !form.name.trim()}>

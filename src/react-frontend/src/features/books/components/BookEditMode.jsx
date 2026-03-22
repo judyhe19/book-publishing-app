@@ -57,6 +57,7 @@ export default function BookEditMode({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="text-lg font-semibold"
+          required
         />
       </FormField>
 
@@ -67,6 +68,7 @@ export default function BookEditMode({
         setSelectedAuthorId={setSelectedAuthorId}
         authorSearch={authorSearch}
         setAuthorSearch={setAuthorSearch}
+        required
       />
 
       {/* Two-column: cover art left, fields right */}
@@ -97,7 +99,7 @@ export default function BookEditMode({
               />
               <div className="grid grid-cols-2 gap-4">
                 <FormField label="ISBN-13">
-                  <Input value={isbn13} onChange={(e) => setIsbn13(e.target.value)} />
+                  <Input value={isbn13} onChange={(e) => setIsbn13(e.target.value)} required/>
                 </FormField>
                 <FormField label="ISBN-10 (optional)">
                   <div className="flex gap-2">
@@ -160,6 +162,7 @@ export default function BookEditMode({
                   step="0.01"
                   value={coverPrice}
                   onChange={(e) => setCoverPrice(e.target.value)}
+                  required
                 />
               </FormField>
               <FormField label="Print cost ($)">
@@ -169,6 +172,7 @@ export default function BookEditMode({
                   step="0.01"
                   value={printCost}
                   onChange={(e) => setPrintCost(e.target.value)}
+                  required
                 />
               </FormField>
             </div>
@@ -188,6 +192,7 @@ export default function BookEditMode({
                   step="1"
                   value={distributorRoyaltyRate}
                   onChange={(e) => setDistributorRoyaltyRate(e.target.value)}
+                  required
                 />
                 <p className="mt-1 text-xs text-slate-400">
                   Changes only affect future sales.
@@ -201,6 +206,7 @@ export default function BookEditMode({
                   step="1"
                   value={handSoldRoyaltyRate}
                   onChange={(e) => setHandSoldRoyaltyRate(e.target.value)}
+                  required
                 />
                 <p className="mt-1 text-xs text-slate-400">
                   Changes only affect future sales.

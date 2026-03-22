@@ -103,6 +103,11 @@ def generate_isbn13():
     return "978" + core + random.choice(string.digits)
 
 
+def generate_asin():
+    """Generate a random 10-character Amazon ASIN starting with B0."""
+    return "B0" + "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+
 def generate_books(session, authors, count=150):
     """Create `count` books via the API."""
     if count <= 0:
@@ -129,6 +134,7 @@ def generate_books(session, authors, count=150):
             "publication_date": pub_date.strftime("%Y-%m"),
             "isbn_13": generate_isbn13(),
             "isbn_10": None,
+            "amazon_asin_ebook": generate_asin() if random.random() < 0.5 else None,
             "author_id": selected[0]["id"] if "id" in selected[0] else selected[0].get("author_id"),
             "distributor_author_royalty_rate": str(round(random.uniform(0.05, 0.20), 2)),
             "hand_sold_author_royalty_rate": "0.20",

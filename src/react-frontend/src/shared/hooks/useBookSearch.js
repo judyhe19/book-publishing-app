@@ -44,7 +44,7 @@ export const useBookSearch = ({ date } = {}) => {
                     : [];
 
                 return {
-                    label: formatBookLabel(book.title, book.isbn_13),
+                    label: formatBookLabel(book.title, book.isbn_13, book.amazon_asin_ebook),
                     value: book.id,
                     authors,
                     publication_date: book.publication_date,
@@ -55,6 +55,7 @@ export const useBookSearch = ({ date } = {}) => {
                     title: book.title,
                     isbn_13: book.isbn_13,
                     isbn_10: book.isbn_10,
+                    amazon_asin_ebook: book.amazon_asin_ebook,
                     author_id: book.author_id,
                     author_name: book.author_name,
                     cover_price: book.cover_price,

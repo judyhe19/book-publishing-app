@@ -63,13 +63,14 @@ export default function SalesDetailPage() {
     });
     setSelectedBook({
       value: book.id,
-      label: formatBookLabel(book.title, book.isbn_13),
+      label: formatBookLabel(book.title, book.isbn_13, book.amazon_asin_ebook),
       authors: book.authors || [],
       publication_date: book.publication_date,
       distributor_author_royalty_rate: book.distributor_author_royalty_rate,
       hand_sold_author_royalty_rate: book.hand_sold_author_royalty_rate,
       cover_price: book.cover_price,
       print_cost: book.print_cost,
+      amazon_asin_ebook: book.amazon_asin_ebook,
     });
   }, [sale, book]);
 

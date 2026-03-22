@@ -87,7 +87,7 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
           </div>
           <div className="flex-1 min-w-[200px]">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Book (Title or ISBN)
+              Book (Title, ISBN or ASIN)
             </label>
             {fixedBook ? (
               <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 h-[38px] flex items-center">

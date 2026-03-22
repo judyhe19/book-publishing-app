@@ -169,18 +169,20 @@ class BookViewSet(ModelViewSet):
             if author_id:
                 qs = qs.filter(author_id=author_id)
 
-            # Search (title, author name, ISBN-13, ISBN-10)
+            # Search (title, author name, ISBN-13, ISBN-10, Amazon ASIN)
             q = self.request.query_params.get("q")
             if q:
-                c_q = q.replace("-", "").strip()
-                qs = qs.filter(
-                    Q(title__icontains=q)
-                    | Q(isbn_13__icontains=c_q)
-                    | Q(isbn_10__icontains=c_q)
-                    | Q(amazon_asin_ebook__icontains=c_q)
-                    | Q(author__name__icontains=q)
-                    | Q(series_name__icontains=q)
-                )
+                keywords = q.split()
+                for kw in keywords:
+                    c_kw = kw.replace("-", "").strip()
+                    qs = qs.filter(
+                        Q(title__icontains=kw)
+                        | Q(isbn_13__icontains=c_kw)
+                        | Q(isbn_10__icontains=c_kw)
+                        | Q(amazon_asin_ebook__icontains=c_kw)
+                        | Q(author__name__icontains=kw)
+                        | Q(series_name__icontains=kw)
+                    )
 
             # Optional filter: published_before
             published_before = self.request.query_params.get("published_before")

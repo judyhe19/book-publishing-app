@@ -1,9 +1,13 @@
 /**
- * Format a book label with title and ISBN-13
+ * Format a book label with title, ISBN-13, and optionally ASIN
  * @param {string} title - Book title
  * @param {string} isbn13 - ISBN-13
- * @returns {string} - Formatted label "Title (ISBN-13: xxx)"
+ * @param {string} [asin] - Optional ASIN
+ * @returns {string} - Formatted label
  */
-export function formatBookLabel(title, isbn13) {
+export function formatBookLabel(title, isbn13, asin) {
+    if (asin) {
+        return `${title} (ISBN-13: ${isbn13}, ASIN: ${asin})`;
+    }
     return `${title} (ISBN-13: ${isbn13})`;
 }

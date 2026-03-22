@@ -1,5 +1,5 @@
 // src/features/books/pages/BookDetailPage.jsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Card,
@@ -206,24 +206,48 @@ export default function BookDetailPage() {
 
         {/* Book Details Card */}
         <Card>
-          <CardHeader
-            title={editing ? "Edit Book" : "Book Details"}
-            subtitle={editing ? "Update fields and save changes." : "View book metadata and cover art."}
-          />
+          {editing ? (
+            <CardHeader
+              title="Edit Book"
+              subtitle="Update fields and save changes."
+            />
+          ) : (
+            <div className="px-6 pt-6 pb-5 border-b border-slate-100">
+              <h1 className="text-3xl font-bold text-slate-900 leading-tight">{book.title}</h1>
+              <div className="mt-1.5">
+                {book.author_id ? (
+                  <button
+                    type="button"
+                    className="text-base text-blue-600 underline hover:text-blue-800"
+                    onClick={() => nav(`/authors/${book.author_id}`)}
+                  >
+                    {book.author_name || `Author #${book.author_id}`}
+                  </button>
+                ) : (
+                  <span className="text-base text-slate-400">No author assigned</span>
+                )}
+              </div>
+              <div className="mt-2 flex items-center gap-3">
+                {book.series_name && (
+                  <span className="text-sm italic text-slate-500">
+                    {book.series_display || `${book.series_name}, Book ${book.series_position}`}
+                  </span>
+                )}
+                <Button
+                  variant="secondary"
+                  onClick={() => nav("/series", book.series_name ? { state: { series: book.series_name } } : {})}
+                >
+                  Manage Series
+                </Button>
+              </div>
+            </div>
+          )}
           <CardContent>
             {/* Action buttons */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Button variant="secondary" onClick={() => nav("/books")}>
                   All Books
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() =>
-                    nav("/series", book.series_name ? { state: { series: book.series_name } } : {})
-                  }
-                >
-                  Manage Series
                 </Button>
               </div>
               <div className="flex items-center gap-2">

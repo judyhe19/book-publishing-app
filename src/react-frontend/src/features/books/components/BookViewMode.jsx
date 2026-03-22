@@ -1,5 +1,4 @@
 // src/features/books/components/BookViewMode.jsx
-import { useNavigate } from "react-router-dom";
 import { DetailField } from "../../../shared/components";
 import { formatMonthYear } from "../../../shared/utils/dateUtils";
 import CoverImage from "./CoverImage";
@@ -19,43 +18,16 @@ function formatMoney(x) {
  * Used in BookDetailPage when not in edit mode.
  */
 export default function BookViewMode({ book }) {
-  const nav = useNavigate();
-
   return (
     <div className="mt-4">
-      {/* Title */}
-      <h1 className="text-3xl font-bold leading-tight text-slate-900">{book.title}</h1>
-
-      {/* Author */}
-      <div className="mt-2">
-        {book.author_id ? (
-          <button
-            type="button"
-            className="text-lg text-blue-600 underline hover:text-blue-800"
-            onClick={() => nav(`/authors/${book.author_id}`)}
-          >
-            {book.author_name || `Author #${book.author_id}`}
-          </button>
-        ) : (
-          <span className="text-lg text-slate-400">No author assigned</span>
-        )}
-      </div>
-
-      {/* Series */}
-      {book.series_name && (
-        <p className="mt-1 text-sm italic text-slate-500">
-          {book.series_display || `${book.series_name}, Book ${book.series_position}`}
-        </p>
-      )}
-
       {/* Cover + grouped info */}
-      <div className="mt-6 flex flex-col gap-8 sm:flex-row">
+      <div className="flex flex-col gap-8 sm:flex-row">
         {/* Cover art */}
         <div className="flex-shrink-0">
           <CoverImage
             path={book.cover_image_path}
             title={book.title}
-            className="h-80 w-60"
+            className="h-[30rem] w-80"
           />
         </div>
 

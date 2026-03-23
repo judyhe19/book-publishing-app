@@ -103,7 +103,11 @@ class TestIngramCSVHappyPath:
         assert row["book_title"] == "The Long Way"
         assert row["quantity"] == 5
         assert row["sale_source"] == "distributor"
+        assert row["distributor"] == "Ingram Spark"
+        assert row["format"] == "print"
+        assert row["currency"] == "USD"
         assert row["publisher_revenue"] == "18.05"
+        assert row["publisher_revenue_original"] == "18.05"
         assert row["author_paid"] is False
         assert row["date"] == "2025-09"
         # author_royalty = 0.15 * 18.05 = 2.7075 → 2.71

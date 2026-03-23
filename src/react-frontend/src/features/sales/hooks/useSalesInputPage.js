@@ -49,6 +49,8 @@ export const useSalesInputPage = () => {
                     date: lastRow.date,
                     book: lastRow.book,
                     sale_source: lastRow.sale_source,
+                    distributor: lastRow.distributor,
+                    format: lastRow.format,
                 },
             ];
         });
@@ -64,11 +66,11 @@ export const useSalesInputPage = () => {
         setError(null);
 
         // Drop the trailing auto-generated row if the user hasn't entered
-        // any unique data into it (quantity / publisher_revenue / comment).
+        // any unique data into it.
         let rowsToSubmit = [...rows];
         if (rowsToSubmit.length > 1) {
             const last = rowsToSubmit[rowsToSubmit.length - 1];
-            if (!last.quantity && !last.publisher_revenue && !last.comment) {
+            if (!last.quantity && !last.publisher_revenue && !last.comment && !last.publisher_revenue_original) {
                 rowsToSubmit = rowsToSubmit.slice(0, -1);
             }
         }

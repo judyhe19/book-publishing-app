@@ -1,5 +1,5 @@
 // src/features/sales/components/SaleInputRow.jsx
-import React, { useCallback } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import AsyncSelect from "react-select/async";
 import {
   Input,
@@ -71,6 +71,47 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
 
   // Compute auto-royalty for display
   const autoRoyalty = computeAuthorRoyalty(row.sale_source, row.publisher_revenue, effectiveBook);
+
+  const [currencyError, setCurrencyError] = useState(null);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!isDistributor || !row.currency || row.currency === "USD") {
+      setCurrencyError(null);
+      return;
+    }
+
+    const amount = Number(row.publisher_revenue_original);
+    if (Number.isNaN(amount) || amount <= 0) {
+      if (row.publisher_revenue !== "") {
+        onChange(index, "publisher_revenue", "");
+      }
+      setCurrencyError(null);
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      import("../api/salesApi").then(({ convertCurrency }) => {
+        convertCurrency(amount, row.currency)
+          .then((res) => {
+            setCurrencyError(null);
+            if (res.usd_amount) {
+              const formattedUsd = Number(res.usd_amount).toFixed(2);
+              if (formattedUsd !== String(row.publisher_revenue)) {
+                onChange(index, "publisher_revenue", formattedUsd);
+              }
+            }
+          })
+          .catch((err) => {
+            const errorMsg = err.error || err.message || (typeof err === "string" ? err : "Invalid currency.");
+            setCurrencyError(errorMsg);
+            onChange(index, "publisher_revenue", "");
+          });
+      });
+    }, 600);
+
+    return () => clearTimeout(timeoutId);
+  }, [row.publisher_revenue_original, row.currency, isDistributor]);
 
   return (
     <Card>
@@ -216,26 +257,40 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
               type="text"
               placeholder="USD"
               value={row.currency || ""}
-              onChange={(e) => handleField("currency", e.target.value.toUpperCase())}
+              onChange={(e) => {
+                setCurrencyError(null);
+                handleField("currency", e.target.value.toUpperCase());
+              }}
               onBlur={fireBlur}
+              className={currencyError ? "border-red-500 bg-red-50 text-red-900" : ""}
             />
           </div>
 
           {/* Publisher Revenue */}
-          <div className="w-36">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Revenue</label>
+          <div className="w-40">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {isDistributor && row.currency && row.currency !== 'USD' ? `Revenue (${row.currency})` : 'Revenue (USD)'}
+            </label>
             {isDistributor ? (
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <span className="text-gray-500 text-sm">$</span>
+                  <span className="text-gray-500 text-sm">
+                    {!row.currency || row.currency === 'USD' ? '$' : row.currency}
+                  </span>
                 </div>
                 <Input
                   type="number"
                   step="0.01"
-                  className="pl-7"
+                  className={(!row.currency || row.currency === 'USD') ? "pl-7" : "pl-12"}
                   placeholder="0.00"
-                  value={row.publisher_revenue}
-                  onChange={(e) => handleField("publisher_revenue", e.target.value)}
+                  value={(!row.currency || row.currency === 'USD') ? row.publisher_revenue : (row.publisher_revenue_original || '')}
+                  onChange={(e) => {
+                    if (!row.currency || row.currency === 'USD') {
+                      handleField("publisher_revenue", e.target.value);
+                    } else {
+                      handleField("publisher_revenue_original", e.target.value);
+                    }
+                  }}
                   onBlur={fireBlur}
                 />
               </div>
@@ -245,6 +300,18 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
               </div>
             )}
           </div>
+
+          {/* Original currency revenue — read-only when non-USD */}
+          {isDistributor && row.currency && row.currency !== "USD" && (
+            <div className="w-36">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Revenue (USD)
+              </label>
+              <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 h-[38px] flex items-center">
+                {row.publisher_revenue ? formatMoney(row.publisher_revenue) : "—"}
+              </div>
+            </div>
+          )}
 
           {/* Author Royalty (auto-computed, read-only) */}
           <div className="w-36">
@@ -266,6 +333,10 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
             </div>
           </div>
         </div>
+
+        {currencyError && (
+          <div className="text-red-500 text-sm mt-1">{currencyError}</div>
+        )}
 
         {/* Row 3: Comment */}
         <div className="flex flex-wrap gap-4 items-start">

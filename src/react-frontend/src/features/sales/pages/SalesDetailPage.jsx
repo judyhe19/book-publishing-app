@@ -197,7 +197,7 @@ export default function SalesDetailPage() {
       base.currency = form.currency || "USD";
       if (base.currency === "USD") {
         base.publisher_revenue = String(form.publisher_revenue);
-        base.publisher_revenue_original = null;
+        base.publisher_revenue_original = base.publisher_revenue;
       } else {
         base.publisher_revenue_original = String(form.publisher_revenue_original);
         // Do not send publisher_revenue so the backend recalculates it.

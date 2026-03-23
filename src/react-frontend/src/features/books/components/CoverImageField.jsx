@@ -26,6 +26,7 @@ export default function CoverImageField({
   onFileChange,
   title = "",
   label = "Cover image (optional)",
+  imageClassName,
 }) {
   const fileInputRef = useRef(null);
   const [error, setError] = useState(null);
@@ -139,7 +140,7 @@ export default function CoverImageField({
 
       {hasImage && (
         <div className="mt-3">
-          <CoverImage path={displayUrl} title={title} />
+          <CoverImage path={displayUrl} title={title} className={imageClassName} />
         </div>
       )}
     </FormField>

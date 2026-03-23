@@ -151,154 +151,187 @@ export default function CreateBookPage() {
         <Card>
           <CardHeader title="Create Book" subtitle="Add a new book to the catalog." />
           <CardContent>
-            <form className="space-y-5" onSubmit={onSubmit}>
-              {/* Title */}
-              <FormField label="Title">
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
-              </FormField>
+            <form onSubmit={onSubmit}>
+              {authorsErr && <ErrorAlert className="mb-5">Failed to load authors: {authorsErr}</ErrorAlert>}
 
-              {/* Publication date */}
-              <MonthPicker
-                label="Publication date (month, year)"
-                value={publicationMonth}
-                onChange={setPublicationMonth}
-                required
-              />
+              <div className="divide-y divide-slate-100">
+                {/* Title & Author — no section header, mirrors edit mode */}
+                <div className="pb-5 space-y-4">
+                  <FormField label="Title">
+                    <Input
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="text-lg font-semibold"
+                      required
+                    />
+                  </FormField>
+                  <div className="flex items-end gap-3">
+                    <div className="flex-1 min-w-0">
+                      <AuthorPicker
+                        authorOptions={authorOptions}
+                        selectedAuthorId={selectedAuthorId}
+                        setSelectedAuthorId={setSelectedAuthorId}
+                        authorSearch={authorSearch}
+                        setAuthorSearch={setAuthorSearch}
+                        required
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      className="shrink-0 whitespace-nowrap"
+                      onClick={() => nav("/authors/create", { state: { returnTo: "/books/input" } })}
+                    >
+                      New Author
+                    </Button>
+                  </div>
+                </div>
 
-              {/* ISBNs */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField label="ISBN-13">
-                  <Input
-                    value={isbn13}
-                    onChange={(e) => setIsbn13(e.target.value)}
-                    placeholder="978..."
-                    required
-                  />
-                </FormField>
-                <FormField label="ISBN-10 (optional)">
-                  <Input
-                    value={isbn10}
-                    onChange={(e) => setIsbn10(e.target.value)}
-                    placeholder="0441172717"
-                  />
-                </FormField>
-              </div>
-
-              {/* Amazon ASIN */}
-              <FormField label="Amazon ASIN — ebook (optional)">
-                <Input
-                  value={amazonAsin}
-                  onChange={(e) => setAmazonAsin(e.target.value.toUpperCase())}
-                  placeholder="e.g. B09XYZ1234"
-                  maxLength={10}
-                />
-                <p className="mt-1 text-xs text-slate-400">
-                  10-character alphanumeric identifier from Amazon (e.g. B09XYZ1234).
-                </p>
-              </FormField>
-
-              {/* Pricing */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField label="Cover price">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={coverPrice}
-                    onChange={(e) => setCoverPrice(e.target.value)}
-                    placeholder="19.99"
-                    required
-                  />
-                </FormField>
-                <FormField label="Print cost">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={printCost}
-                    onChange={(e) => setPrintCost(e.target.value)}
-                    placeholder="4.25"
-                    required
-                  />
-                </FormField>
-              </div>
-
-              {/* Author */}
-              {authorsErr && <ErrorAlert>Failed to load authors: {authorsErr}</ErrorAlert>}
-
-              <div className="flex items-end justify-center gap-3 w-full">
-                <div className="flex-1 min-w-0">
-                  <AuthorPicker
-                    authorOptions={authorOptions}
-                    selectedAuthorId={selectedAuthorId}
-                    setSelectedAuthorId={setSelectedAuthorId}
-                    authorSearch={authorSearch}
-                    setAuthorSearch={setAuthorSearch}
-                    required
+                {/* Series */}
+                <div className="py-5">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Series
+                  </p>
+                  <SeriesPicker
+                    seriesName={seriesName}
+                    setSeriesName={setSeriesName}
+                    seriesPosition={seriesPosition}
+                    setSeriesPosition={setSeriesPosition}
+                    seriesOptions={seriesOptions}
+                    originalSeriesName={null}
                   />
                 </div>
 
-                <Button
-                  type="button"
-                  className="shrink-0 whitespace-nowrap"
-                  onClick={() => nav("/authors/create", { state: { returnTo: "/books/input" } })}
-                >
-                  New Author
-                </Button>
-              </div>
+                {/* Publication Info */}
+                <div className="py-5">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Publication Info
+                  </p>
+                  <div className="space-y-4">
+                    <MonthPicker
+                      label="Publication month, year"
+                      value={publicationMonth}
+                      onChange={setPublicationMonth}
+                      required
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField label="ISBN-13">
+                        <Input
+                          value={isbn13}
+                          onChange={(e) => setIsbn13(e.target.value)}
+                          placeholder="978..."
+                          required
+                        />
+                      </FormField>
+                      <FormField label="ISBN-10 (optional)">
+                        <Input
+                          value={isbn10}
+                          onChange={(e) => setIsbn10(e.target.value)}
+                          placeholder="0441172717"
+                        />
+                      </FormField>
+                    </div>
+                    <FormField label="Amazon ASIN — ebook (optional)">
+                      <Input
+                        value={amazonAsin}
+                        onChange={(e) => setAmazonAsin(e.target.value.toUpperCase())}
+                        placeholder="e.g. B09XYZ1234"
+                        maxLength={10}
+                      />
+                      <p className="mt-1 text-xs text-slate-400">
+                        10-character alphanumeric identifier from Amazon (e.g. B09XYZ1234).
+                      </p>
+                    </FormField>
+                  </div>
+                </div>
 
+                {/* Pricing */}
+                <div className="py-5">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Pricing
+                  </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField label="Cover price ($)">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={coverPrice}
+                        onChange={(e) => setCoverPrice(e.target.value)}
+                        placeholder="19.99"
+                        required
+                      />
+                    </FormField>
+                    <FormField label="Print cost ($)">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={printCost}
+                        onChange={(e) => setPrintCost(e.target.value)}
+                        placeholder="4.25"
+                        required
+                      />
+                    </FormField>
+                  </div>
+                </div>
 
-              {/* Royalty rates */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField label="Distributor royalty rate (%)">
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="1"
-                    value={distributorRoyaltyRate}
-                    onChange={(e) => setDistributorRoyaltyRate(e.target.value)}
-                    required
+                {/* Royalty Rates */}
+                <div className="py-5">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Royalty Rates
+                  </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField label="Distributor royalty rate (%)">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={distributorRoyaltyRate}
+                        onChange={(e) => setDistributorRoyaltyRate(e.target.value)}
+                        required
+                      />
+                      <p className="mt-1 text-xs text-slate-400">
+                        Changes only affect future sales.
+                      </p>
+                    </FormField>
+                    <FormField label="Hand-sold royalty rate (%)">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={handSoldRoyaltyRate}
+                        onChange={(e) => setHandSoldRoyaltyRate(e.target.value)}
+                        required
+                      />
+                      <p className="mt-1 text-xs text-slate-400">
+                        Changes only affect future sales.
+                      </p>
+                    </FormField>
+                  </div>
+                </div>
+
+                {/* Cover Image */}
+                <div className="pt-5">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Cover Image
+                  </p>
+                  <CoverImageField
+                    value={coverImagePath}
+                    onChange={setCoverImagePath}
+                    onFileChange={setCoverImageFile}
+                    title={title}
+                    label=""
                   />
-                  <p className="mt-1 text-xs text-slate-400">Percentage (0–100), e.g. 50 for 50%</p>
-                </FormField>
-                <FormField label="Hand-sold royalty rate (%)">
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="1"
-                    value={handSoldRoyaltyRate}
-                    onChange={(e) => setHandSoldRoyaltyRate(e.target.value)}
-                    required
-                  />
-                  <p className="mt-1 text-xs text-slate-400">Percentage (0–100), e.g. 20 for 20%</p>
-                </FormField>
+                </div>
               </div>
-
-              {/* Series */}
-              <SeriesPicker
-                seriesName={seriesName}
-                setSeriesName={setSeriesName}
-                seriesPosition={seriesPosition}
-                setSeriesPosition={setSeriesPosition}
-                seriesOptions={seriesOptions}
-                originalSeriesName={null}
-              />
-
-              {/* Cover image */}
-              <CoverImageField
-                value={coverImagePath}
-                onChange={setCoverImagePath}
-                onFileChange={setCoverImageFile}
-                title={title}
-              />
 
               {/* Error message */}
-              {err && <ErrorAlert>{err}</ErrorAlert>}
+              {err && <ErrorAlert className="mt-5">{err}</ErrorAlert>}
 
               {/* Actions */}
-              <div className="flex items-center justify-end gap-2">
+              <div className="mt-5 flex items-center justify-end gap-2">
                 <Button type="button" variant="secondary" onClick={() => nav("/books")}>
                   Cancel
                 </Button>

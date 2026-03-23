@@ -228,14 +228,20 @@ export default function BookDetailPage() {
                 )}
               </div>
               <div className="mt-2 flex items-center gap-3">
-                {book.series_name && (
-                  <span className="text-sm italic text-slate-500">
-                    {book.series_display || `${book.series_name}, Book ${book.series_position}`}
-                  </span>
-                )}
+                <span className="text-sm italic text-slate-500">
+                  {book.series_name
+                    ? (book.series_display || `${book.series_name}, Book ${book.series_position}`)
+                    : "Not part of a series"}
+                </span>
+
                 <Button
                   variant="secondary"
-                  onClick={() => nav("/series", book.series_name ? { state: { series: book.series_name } } : {})}
+                  onClick={() =>
+                    nav(
+                      "/series",
+                      book.series_name ? { state: { series: book.series_name } } : {}
+                    )
+                  }
                 >
                   Manage Series
                 </Button>

@@ -16,6 +16,7 @@ from .views.cover_thumbnail import CoverThumbnailView
 from .views.cover_image import CoverImageView
 from .views.series import SeriesListView, SeriesReorderView
 from .views.royalty_report import AuthorRoyaltyReportView
+from .views.currency import ConvertCurrencyView
 
 # ----- DRF Router -----
 router = DefaultRouter(trailing_slash=True)
@@ -44,6 +45,13 @@ urlpatterns = [
         "sales/book/<int:book_pk>/totals",
         BookSalesTotalsView.as_view({"get": "retrieve"}),
         name="book-sales-totals",
+    ),
+
+    # Live currency conversion
+    path(
+        "sales/convert-currency/",
+        ConvertCurrencyView.as_view(),
+        name="convert-currency",
     ),
 
     # Cover image upload

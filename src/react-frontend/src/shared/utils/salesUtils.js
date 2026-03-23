@@ -5,13 +5,14 @@
 export const EMPTY_ROW = {
     date: '',
     book: null,
-    format: '',
+    format: 'print',
     quantity: '',
     kenp: '',
-    sale_source: '',
-    distributor: '',
+    sale_source: 'distributor',
+    distributor: 'Other',
     currency: 'USD',
     publisher_revenue: '',
+    publisher_revenue_original: '',
     author_royalty: '',
     author_paid: false,
     comment: '',
@@ -22,7 +23,7 @@ export const EMPTY_ROW = {
  */
 export const transformRowToSaleData = (row) => {
     const isKU = row.format === 'kindle unlimited';
-    return {
+    const base = {
         book: row.book ? row.book.value : null,
         date: row.date,
         format: row.format || null,
@@ -31,18 +32,31 @@ export const transformRowToSaleData = (row) => {
         sale_source: row.sale_source,
         distributor: row.distributor || null,
         currency: row.currency || 'USD',
-        publisher_revenue: parseFloat(row.publisher_revenue),
         author_royalty: parseFloat(row.author_royalty || 0),
         author_paid: Boolean(row.author_paid),
         comment: row.comment || '',
     };
+    
+    if (base.sale_source === 'distributor') {
+        if (base.currency !== 'USD') {
+            base.publisher_revenue_original = parseFloat(row.publisher_revenue_original);
+        } else {
+            const usdRevenue = parseFloat(row.publisher_revenue);
+            base.publisher_revenue = usdRevenue;
+            base.publisher_revenue_original = usdRevenue;
+        }
+    } else {
+        base.publisher_revenue = parseFloat(row.publisher_revenue);
+    }
+    
+    return base;
 };
 
 /**
  * Checks if a row has any data entered (partially or fully filled)
  */
 export const isRowStarted = (row) => {
-    return row.date || row.book || row.quantity || row.kenp || row.publisher_revenue;
+    return row.date || row.book || row.quantity || row.kenp || row.publisher_revenue || row.publisher_revenue_original;
 };
 
 /**

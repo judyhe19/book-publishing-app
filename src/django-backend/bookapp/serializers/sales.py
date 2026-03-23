@@ -2,7 +2,7 @@ from rest_framework import serializers
 from decimal import Decimal
 from ..models import Sale, Book
 from .fields import MonthYearField
-
+from bookapp.utils.currency_converter import CurrencyConverter, CurrencyConversionError
 
 class SaleMonthYearField(MonthYearField):
     """Sale-specific error wording."""
@@ -136,7 +136,7 @@ class SaleWriteSerializer(serializers.ModelSerializer):
         required=False,
         default="print",
         error_messages={
-            "invalid_choice": "Format must be 'print', 'ebook', or 'kindle unlimited'.",
+            "invalid_choice": "Format must be 'Print', 'Ebook', or 'Kindle Unlimited'.",
         },
     )
 
@@ -228,8 +228,8 @@ class SaleWriteSerializer(serializers.ModelSerializer):
             allowed_formats = DISTRIBUTOR_FORMAT_MAP.get(current_distributor, [])
             if current_format not in allowed_formats:
                 raise serializers.ValidationError({
-                    "format": f"Format '{current_format}' is not valid for distributor '{current_distributor}'. "
-                              f"Allowed: {', '.join(allowed_formats)}."
+                    "format": f"Format '{current_format}' is not valid for distributor type '{current_distributor}'. "
+                              f"Allowed formats for this distributor type: {', '.join(allowed_formats)}."
                 })
 
         # ------------------------------------------------------------------
@@ -294,9 +294,22 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                 # revenue = quantity * (cover_price - print_cost)
                 revenue = Decimal(str(current_qty)) * (current_book.cover_price - current_book.print_cost)
                 data["publisher_revenue"] = revenue
+                data["publisher_revenue_original"] = revenue
         elif current_source == "distributor":
-            # Require the user to provide it for distributor sales, UNLESS we are patching and it already exists
-            if data.get("publisher_revenue") is None and not instance:
+            # Map legacy or USD frontend input
+            if data.get("publisher_revenue") is not None and data.get("publisher_revenue_original") is None:
+                data["publisher_revenue_original"] = data["publisher_revenue"]
+
+            orig_revenue = data.get("publisher_revenue_original")
+            if orig_revenue is not None and current_currency:
+                converter = CurrencyConverter()
+                try:
+                    data["publisher_revenue"] = converter.to_usd(orig_revenue, current_currency)
+                except CurrencyConversionError as e:
+                    raise serializers.ValidationError({"currency": str(e)})
+
+            # Require the user to provide it for distributor sales (or we computed it above)
+            if data.get("publisher_revenue") is None and not (instance and getattr(instance, 'publisher_revenue', None) is not None):
                 raise serializers.ValidationError({
                     "publisher_revenue": "Publisher revenue is required for distributor sales."
                 })

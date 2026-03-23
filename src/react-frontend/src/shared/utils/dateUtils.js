@@ -19,16 +19,23 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December",
 ];
 
+const MONTH_NAMES_SHORT = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
 /**
  * Formats a YYYY-MM string as "Month Year", e.g. "2023-01" → "January 2023".
+ * If `short` is true, returns "Jan 2023".
  * Returns fallback for falsy or unparseable input.
  */
-export function formatMonthYear(dateStr, fallback = "") {
+export function formatMonthYear(dateStr, fallback = "", short = false) {
   if (!dateStr) return fallback;
   const parts = dateStr.split("-");
   if (parts.length !== 2) return dateStr;
   const y = parseInt(parts[0], 10);
   const m = parseInt(parts[1], 10);
   if (isNaN(y) || isNaN(m) || m < 1 || m > 12) return dateStr;
-  return `${MONTH_NAMES[m - 1]} ${y}`;
+  const monthName = short ? MONTH_NAMES_SHORT[m - 1] : MONTH_NAMES[m - 1];
+  return `${monthName} ${y}`;
 }

@@ -57,6 +57,32 @@ export default function SalesFilters({ filters, onDateChange, onFilterChange }) 
           <option value="Handsold">Handsold</option>
         </select>
       </div>
+      <div className="flex-1 max-w-sm">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Distributor</label>
+        <select
+          value={filters.distributor}
+          onChange={(e) => onFilterChange("distributor", e.target.value)}
+          className={inputClass}
+        >
+          <option value="">All Distributors</option>
+          <option value="Ingram Spark">Ingram Spark</option>
+          <option value="Amazon">Amazon</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div className="flex-1 max-w-sm">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Format</label>
+        <select
+          value={filters.format}
+          onChange={(e) => onFilterChange("format", e.target.value)}
+          className={inputClass}
+        >
+          <option value="">All Formats</option>
+          <option value="print">Print</option>
+          <option value="ebook">Ebook</option>
+          <option value="kindle unlimited">Kindle Unlimited</option>
+        </select>
+      </div>
     </div>
   );
 }

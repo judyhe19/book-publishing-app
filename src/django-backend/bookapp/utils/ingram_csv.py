@@ -219,7 +219,9 @@ class IngramSparkCSVParser(SalesImportParser):
                 "sale_source": "distributor",
                 "distributor": self.DISTRIBUTOR_NAME,
                 "format": "print",
+                "currency": "USD",
                 "publisher_revenue": net_comp_raw,
+                "publisher_revenue_original": net_comp_raw,
                 "author_royalty": author_royalty_val,
             }
 
@@ -280,6 +282,7 @@ class IngramSparkCSVParser(SalesImportParser):
             "format": "print",
             "currency": "USD",
             "publisher_revenue": str(self._money(net_comp)),
+            "publisher_revenue_original": str(self._money(net_comp)),
             "author_royalty": str(author_royalty),
             "author_paid": False,
             "comment": comment,

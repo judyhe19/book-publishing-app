@@ -71,6 +71,10 @@ export default function IngramCSVImportPage() {
         date: row.date,
         quantity: row.quantity,
         sale_source: row.sale_source,
+        distributor: row.distributor,
+        format: row.format,
+        currency: row.currency,
+        publisher_revenue_original: row.publisher_revenue_original,
         publisher_revenue: row.publisher_revenue,
         author_royalty: row.author_royalty,
         author_paid: row.author_paid,
@@ -182,9 +186,9 @@ export default function IngramCSVImportPage() {
                     </div>
                   </div>
 
-                  {/* Row 2: Source, Qty, Revenue, Royalty */}
+                  {/* Row 2: Source, Distributor, Format, Currency, Qty, Revenue, Royalty */}
                   <div className="flex flex-wrap gap-4 items-end">
-                    <div className="w-40">
+                    <div className="w-32">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Sale Source
                       </label>
@@ -192,7 +196,31 @@ export default function IngramCSVImportPage() {
                         {row.sale_source}
                       </div>
                     </div>
-                    <div className="w-28">
+                    <div className="w-32">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Distributor
+                      </label>
+                      <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 h-[38px] flex items-center">
+                        {row.distributor}
+                      </div>
+                    </div>
+                    <div className="w-24">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Format
+                      </label>
+                      <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 h-[38px] flex items-center capitalize">
+                        {row.format}
+                      </div>
+                    </div>
+                    <div className="w-24">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Currency
+                      </label>
+                      <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 h-[38px] flex items-center">
+                        {row.currency}
+                      </div>
+                    </div>
+                    <div className="w-24">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Quantity
                       </label>
@@ -200,7 +228,7 @@ export default function IngramCSVImportPage() {
                         {row.quantity}
                       </div>
                     </div>
-                    <div className="w-36">
+                    <div className="w-32">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Revenue
                       </label>

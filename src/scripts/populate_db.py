@@ -13,7 +13,6 @@ import datetime
 import random
 import string
 import sys
-
 import requests
 
 # ── Configuration ──────────────────────────────────────────────────────────────
@@ -103,6 +102,11 @@ def generate_isbn13():
     return "978" + core + random.choice(string.digits)
 
 
+def generate_asin():
+    """Generate a random 10-character Amazon ASIN starting with B0."""
+    return "B0" + "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+
 def generate_books(session, authors, count=150):
     """Create `count` books via the API."""
     if count <= 0:
@@ -129,6 +133,7 @@ def generate_books(session, authors, count=150):
             "publication_date": pub_date.strftime("%Y-%m"),
             "isbn_13": generate_isbn13(),
             "isbn_10": None,
+            "amazon_asin_ebook": generate_asin() if random.random() < 0.5 else None,
             "author_id": selected[0]["id"] if "id" in selected[0] else selected[0].get("author_id"),
             "distributor_author_royalty_rate": str(round(random.uniform(0.05, 0.20), 2)),
             "hand_sold_author_royalty_rate": "0.20",
@@ -172,6 +177,18 @@ def generate_sales(session, books, count=500):
         return
     print(f"Generating {count} sales...")
 
+    distributors = ["Ingram Spark", "Amazon", "Other"]
+    formats = ["print", "ebook", "kindle unlimited"]
+    currencies = [
+        ("USD", 1.0),
+        ("GBP", 1.27),
+        ("EUR", 1.08),
+        ("CAD", 0.74),
+        ("AUD", 0.65),
+        ("JPY", 0.0066),
+        ("INR", 0.012),
+    ]
+
     sales_data = []
     for _ in range(count):
         book = random.choice(books)
@@ -192,12 +209,44 @@ def generate_sales(session, books, count=500):
             except (ValueError, IndexError):
                 pass
 
-        quantity = random.randint(1, 100)
-        unit_price = random.uniform(10, 50)
-        revenue = round(unit_price * quantity, 2)
-
         sale_source = random.choice(SALE_SOURCES)
-        author_royalty = round(revenue * random.uniform(0.05, 0.20), 2)
+
+        # Distributor field
+        distributor = random.choice(distributors) if sale_source == "distributor" else None
+
+        # Choose a valid format
+        if sale_source == "handsold":
+            sale_format = "print"
+        else:
+            if distributor == "Ingram Spark":
+                sale_format = "print"
+            elif distributor == "Amazon":
+                sale_format = random.choice(["print", "ebook", "kindle unlimited"])
+            else:
+                sale_format = random.choice(["print", "ebook"])
+
+        # Determine quantity and KENP based on format
+        if sale_format == "kindle unlimited":
+            quantity = None
+            kenp = random.randint(100, 5000)
+        else:
+            quantity = random.randint(1, 100)
+            kenp = None
+
+        # Revenue with occasional non-USD currency for distributor sales
+        unit_price = random.uniform(10, 50)
+        qty_for_calc = quantity if quantity else random.randint(1, 20)
+        currency_code, exchange_rate = ("USD", 1.0)
+        publisher_revenue_original = None
+
+        if sale_source == "distributor" and random.random() < 0.3:
+            # 30% of distributor sales are in foreign currency
+            currency_code, exchange_rate = random.choice(currencies[1:])  # skip USD
+            publisher_revenue_original = round(unit_price * qty_for_calc, 2)
+            revenue = round(publisher_revenue_original * exchange_rate, 2)
+        else:
+            revenue = round(unit_price * qty_for_calc, 2)
+
         author_paid = random.choice([True, False])
         comment = random.choice(SAMPLE_COMMENTS)
 
@@ -207,10 +256,19 @@ def generate_sales(session, books, count=500):
             "quantity": quantity,
             "publisher_revenue": str(revenue),
             "sale_source": sale_source,
-            "author_royalty": str(author_royalty),
             "author_paid": author_paid,
             "comment": comment,
+            "format": sale_format,
+            "currency": currency_code,
         }
+
+        if distributor:
+            sale_obj["distributor"] = distributor
+        if publisher_revenue_original is not None:
+            sale_obj["publisher_revenue_original"] = str(publisher_revenue_original)
+        if kenp is not None:
+            sale_obj["kenp"] = kenp
+
         sales_data.append(sale_obj)
 
     url = f"{BASE_URL}/api/sales/create-many/"

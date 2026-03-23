@@ -63,13 +63,14 @@ export default function SalesDetailPage() {
     });
     setSelectedBook({
       value: book.id,
-      label: formatBookLabel(book.title, book.isbn_13),
+      label: formatBookLabel(book.title, book.isbn_13, book.amazon_asin_ebook),
       authors: book.authors || [],
       publication_date: book.publication_date,
       distributor_author_royalty_rate: book.distributor_author_royalty_rate,
       hand_sold_author_royalty_rate: book.hand_sold_author_royalty_rate,
       cover_price: book.cover_price,
       print_cost: book.print_cost,
+      amazon_asin_ebook: book.amazon_asin_ebook,
     });
   }, [sale, book]);
 
@@ -98,6 +99,51 @@ export default function SalesDetailPage() {
       setForm((prev) => ({ ...prev, author_royalty: computed }));
     }
   }, [form?.publisher_revenue, selectedBook, isDistributor, isHandsold, sale?.sale_source]);
+
+  // ---------------------------------------------------------------
+  // Auto-convert currency to USD when original revenue or currency changes
+  // ---------------------------------------------------------------
+  const [currencyError, setCurrencyError] = useState(null);
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => {
+    if (!form || !isDistributor || !form.currency || form.currency === "USD") {
+      setCurrencyError(null);
+      return;
+    }
+
+    const amount = Number(form.publisher_revenue_original);
+    if (Number.isNaN(amount) || amount <= 0) {
+      if (form.publisher_revenue !== "") {
+        setForm((prev) => ({ ...prev, publisher_revenue: "" }));
+      }
+      setCurrencyError(null);
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      import("../api/salesApi").then(({ convertCurrency }) => {
+        convertCurrency(amount, form.currency)
+          .then((res) => {
+            setCurrencyError(null);
+            if (res.usd_amount) {
+              // Format to 2 decimal places to be consistent with UI
+              const formattedUsd = Number(res.usd_amount).toFixed(2);
+              if (formattedUsd !== String(form.publisher_revenue)) {
+                setForm((prev) => ({ ...prev, publisher_revenue: formattedUsd }));
+              }
+            }
+          })
+          .catch((err) => {
+            const errorMsg = err.error || err.message || (typeof err === 'string' ? err : "Invalid currency.");
+            setCurrencyError(errorMsg);
+            setForm((prev) => ({ ...prev, publisher_revenue: "" })); // clear preview
+          });
+      });
+    }, 600); // 600ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [form?.publisher_revenue_original, form?.currency, isDistributor]);
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -137,16 +183,31 @@ export default function SalesDetailPage() {
 
   const payload = useMemo(() => {
     if (!form || !form.book_id) return null;
-    return {
+    
+    const base = {
       date: form.date,
       book: form.book_id,
       quantity: isKU ? null : Number(form.quantity),
       kenp: isKU ? (Number(form.kenp) || null) : null,
-      publisher_revenue: String(form.publisher_revenue),
       author_paid: form.author_paid,
       comment: form.comment,
     };
-  }, [form, isKU]);
+
+    if (isDistributor) {
+      base.currency = form.currency || "USD";
+      if (base.currency === "USD") {
+        base.publisher_revenue = String(form.publisher_revenue);
+        base.publisher_revenue_original = base.publisher_revenue;
+      } else {
+        base.publisher_revenue_original = String(form.publisher_revenue_original);
+        // Do not send publisher_revenue so the backend recalculates it.
+      }
+    } else {
+      base.publisher_revenue = String(form.publisher_revenue);
+    }
+    
+    return base;
+  }, [form, isKU, isDistributor]);
 
   function reloadBack() {
     const returnTo = searchParams.get("returnTo");
@@ -243,15 +304,34 @@ export default function SalesDetailPage() {
                 </div>
               </div>
             )}
-            {form.currency && (
+            {isDistributor ? (
+              <div className="w-24">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+                <Input
+                  type="text"
+                  maxLength={3}
+                  value={form.currency || "USD"}
+                  onChange={(e) => {
+                    setCurrencyError(null);
+                    handleChange("currency", e.target.value.toUpperCase());
+                  }}
+                  placeholder="USD"
+                  className={currencyError ? "border-red-500 bg-red-50 text-red-900" : ""}
+                />
+              </div>
+            ) : form.currency ? (
               <div className="w-20">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
                 <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200">
                   {form.currency}
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
+
+          {currencyError && (
+            <div className="text-red-500 text-sm">{currencyError}</div>
+          )}
 
           {/* Editable fields */}
           <div className="grid grid-cols-2 gap-4">
@@ -292,23 +372,31 @@ export default function SalesDetailPage() {
           </div>
 
           <div className="flex flex-wrap gap-4">
-            {/* Publisher Revenue — only editable for distributor */}
+            {/* Publisher Revenue — editable for distributor */}
             <div className="flex-1 min-w-[140px]">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Revenue (USD)
+                {isDistributor && form.currency && form.currency !== 'USD' ? `Revenue (${form.currency})` : 'Revenue (USD)'}
               </label>
               {isDistributor ? (
                 <div className="relative">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <span className="text-gray-500 text-sm">$</span>
+                    <span className="text-gray-500 text-sm">
+                      {!form.currency || form.currency === 'USD' ? '$' : form.currency}
+                    </span>
                   </div>
                   <Input
                     type="number"
                     step="0.01"
-                    className="pl-7"
+                    className={(!form.currency || form.currency === 'USD') ? "pl-7" : "pl-12"}
                     placeholder="0.00"
-                    value={form.publisher_revenue}
-                    onChange={(e) => handleChange("publisher_revenue", e.target.value)}
+                    value={(!form.currency || form.currency === 'USD') ? form.publisher_revenue : (form.publisher_revenue_original ?? '')}
+                    onChange={(e) => {
+                      if (!form.currency || form.currency === 'USD') {
+                        handleChange("publisher_revenue", e.target.value);
+                      } else {
+                        handleChange("publisher_revenue_original", e.target.value);
+                      }
+                    }}
                   />
                 </div>
               ) : (
@@ -318,14 +406,14 @@ export default function SalesDetailPage() {
               )}
             </div>
 
-            {/* Original currency revenue — only when non-USD */}
-            {form.publisher_revenue_original && form.currency && form.currency !== "USD" && (
+            {/* Original currency revenue — read-only when non-USD */}
+            {isDistributor && form.currency && form.currency !== "USD" && (
               <div className="flex-1 min-w-[140px]">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Revenue ({form.currency})
+                  Revenue (USD)
                 </label>
                 <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200">
-                  {formatMoney(form.publisher_revenue_original)}
+                  {formatMoney(form.publisher_revenue, "$0.00")}
                 </div>
               </div>
             )}

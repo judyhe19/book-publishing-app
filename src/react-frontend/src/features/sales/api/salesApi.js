@@ -58,3 +58,10 @@ export async function importAmazonXLSX(file) {
   formData.append("file", file);
   return apiFormFetch("/api/sales/import-amazon-xlsx/", formData);
 }
+
+/**
+ * Convert a given amount and currency to USD.
+ */
+export function convertCurrency(amount, currency) {
+  return apiFetch(`/api/sales/convert-currency/?amount=${encodeURIComponent(amount)}&currency=${encodeURIComponent(currency)}`);
+}

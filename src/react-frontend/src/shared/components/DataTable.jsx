@@ -41,8 +41,8 @@ export function DataTable({
   };
 
   return (
-    <div className="rounded-lg border border-slate-200">
-      <table className={`${fixedLayout ? "w-full table-fixed" : "min-w-full"} divide-y divide-gray-200`}>
+    <div className="rounded-lg border border-slate-200 overflow-hidden">
+      <table className="w-full table-fixed divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
             {columns.map((col, idx) => {
@@ -55,9 +55,9 @@ export function DataTable({
                 <th
                   key={idx}
                   onClick={col.sortKey && onSort ? () => onSort(col.sortKey) : undefined}
-                  className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${alignClass} ${
+                  className={`px-3 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider ${alignClass} ${
                     col.sortKey && onSort ? "cursor-pointer hover:bg-gray-100" : ""
-                  } ${fixedLayout ? (col.className || "") : ""}`}
+                  } ${col.className || ""}`}
                 >
                   {col.label} {renderSortIcon(col.sortKey)}
                 </th>
@@ -68,7 +68,7 @@ export function DataTable({
         <tbody className="bg-white divide-y divide-gray-200">
           {loading ? (
             <tr>
-              <td colSpan={columns.length} className="px-6 py-12 text-center">
+              <td colSpan={columns.length} className="px-3 py-12 text-center">
                 <div className="flex justify-center items-center gap-2 text-slate-500">
                   <Spinner />
                   <span>{loadingMessage}</span>
@@ -77,7 +77,7 @@ export function DataTable({
             </tr>
           ) : !data || data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-6 py-4 text-center text-gray-500">
+              <td colSpan={columns.length} className="px-3 py-4 text-center text-gray-500">
                 {emptyMessage}
               </td>
             </tr>
@@ -91,7 +91,7 @@ export function DataTable({
                 {columns.map((col, idx) => (
                   <td
                     key={idx}
-                    className={`px-6 py-4 text-sm text-gray-500 ${
+                    className={`px-3 py-3 text-sm text-gray-500 ${
                       col.className !== undefined ? col.className : "whitespace-nowrap"
                     }`}
                   >

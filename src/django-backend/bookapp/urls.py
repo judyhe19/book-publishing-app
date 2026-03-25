@@ -17,6 +17,7 @@ from .views.cover_image import CoverImageView
 from .views.series import SeriesListView, SeriesReorderView
 from .views.royalty_report import AuthorRoyaltyReportView
 from .views.currency import ConvertCurrencyView
+from .views.isbn_lookup import IsbnLookupView
 
 # ----- DRF Router -----
 router = DefaultRouter(trailing_slash=True)
@@ -52,6 +53,13 @@ urlpatterns = [
         "sales/convert-currency/",
         ConvertCurrencyView.as_view(),
         name="convert-currency",
+    ),
+
+    # ISBN lookup via Google Books
+    path(
+        "books/isbn-lookup/",
+        IsbnLookupView.as_view(),
+        name="isbn-lookup",
     ),
 
     # Cover image upload

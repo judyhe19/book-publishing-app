@@ -12,3 +12,4 @@ pylint
 pylint-django
 requests
 openpyxl
+rapidfuzz

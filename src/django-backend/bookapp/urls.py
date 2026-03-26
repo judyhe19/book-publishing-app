@@ -18,6 +18,8 @@ from .views.series import SeriesListView, SeriesReorderView
 from .views.royalty_report import AuthorRoyaltyReportView
 from .views.currency import ConvertCurrencyView
 from .views.isbn_lookup import IsbnLookupView
+from .views.isbn_cover_proxy import IsbnCoverProxyView
+from .views.cover_download import CoverImageDownloadView
 
 # ----- DRF Router -----
 router = DefaultRouter(trailing_slash=True)
@@ -61,12 +63,24 @@ urlpatterns = [
         IsbnLookupView.as_view(),
         name="isbn-lookup",
     ),
+    path(
+        "books/isbn-lookup/cover/",
+        IsbnCoverProxyView.as_view(),
+        name="isbn-lookup-cover",
+    ),
 
-    # Cover image upload
+    # Cover image upload (manual file upload)
     path(
         "books/upload-cover/",
         CoverImageUploadView.as_view(),
         name="upload-cover",
+    ),
+
+    # Cover image download (fetch from Google Books URL and save to static storage)
+    path(
+        "books/download-cover/",
+        CoverImageDownloadView.as_view(),
+        name="download-cover",
     ),
 
     # Cover image thumbnail (resized for table/list views)

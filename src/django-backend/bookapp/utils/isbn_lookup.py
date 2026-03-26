@@ -8,7 +8,12 @@ Usage:
     data = lookup.fetch("9780134685991")   # ISBN-13 or ISBN-10
 """
 
+import logging
+
 import requests
+from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 GOOGLE_BOOKS_API_URL = "https://www.googleapis.com/books/v1/volumes"
@@ -50,10 +55,15 @@ class IsbnLookup:
     # ──────────────────────────────────────────────────────────────────────
 
     def _fetch_raw(self, isbn: str) -> requests.Response:
+        params = {"q": f"isbn:{isbn}"}
+        api_key = getattr(settings, "GOOGLE_BOOKS_API_KEY", None)
+        if api_key:
+            params["key"] = api_key
+
         try:
             response = requests.get(
                 GOOGLE_BOOKS_API_URL,
-                params={"q": f"isbn:{isbn}"},
+                params=params,
                 timeout=10,
             )
         except requests.RequestException as exc:
@@ -62,6 +72,7 @@ class IsbnLookup:
             ) from exc
 
         if not response.ok:
+            logger.error("Google Books API error for ISBN %s: %s", isbn, response.text)
             raise IsbnLookupError(
                 f"Google Books API returned HTTP {response.status_code} for ISBN {isbn}."
             )

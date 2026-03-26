@@ -1,4 +1,4 @@
-# Booksite Backup & Restore Admin Guide
+# Booksite Backup Admin Guide
 
 This document explains how to:
 - Set up the backup system from scratch

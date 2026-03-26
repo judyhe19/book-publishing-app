@@ -1,0 +1,200 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ENV_FILE="/opt/booksite-backup/backup.env"
+if [[ ! -f "$ENV_FILE" ]]; then
+  echo "Missing env file: $ENV_FILE" >&2
+  exit 1
+fi
+
+# shellcheck disable=SC1090
+source "$ENV_FILE"
+
+: "${APP_DIR:?APP_DIR must be set in $ENV_FILE}"
+: "${COMPOSE_FILE:?COMPOSE_FILE must be set in $ENV_FILE}"
+: "${DB_SERVICE:?DB_SERVICE must be set in $ENV_FILE}"
+: "${BACKEND_SERVICE:?BACKEND_SERVICE must be set in $ENV_FILE}"
+: "${DB_NAME:?DB_NAME must be set in $ENV_FILE}"
+: "${DB_USER:?DB_USER must be set in $ENV_FILE}"
+: "${LOCAL_STAGING:?LOCAL_STAGING must be set in $ENV_FILE}"
+: "${BACKUP_HOST:?BACKUP_HOST must be set in $ENV_FILE}"
+: "${BACKUP_USER:?BACKUP_USER must be set in $ENV_FILE}"
+: "${SSH_KEY:?SSH_KEY must be set in $ENV_FILE}"
+: "${REMOTE_INCOMING:?REMOTE_INCOMING must be set in $ENV_FILE}"
+: "${REMOTE_REPO:?REMOTE_REPO must be set in $ENV_FILE}"
+: "${REMOTE_RESTIC_PASS_FILE:?REMOTE_RESTIC_PASS_FILE must be set in $ENV_FILE}"
+
+TIMESTAMP="$(date +%F_%H-%M-%S)"
+HOSTNAME_SHORT="$(hostname -s)"
+RUN_DIR="${LOCAL_STAGING}/backup_${TIMESTAMP}"
+LOG_DIR="/opt/booksite-backup/logs"
+LOG_FILE="${LOG_DIR}/backup_${TIMESTAMP}.log"
+
+SSH_OPTS=(
+  -i "$SSH_KEY"
+  -o BatchMode=yes
+  -o StrictHostKeyChecking=yes
+  -o UserKnownHostsFile=/root/.ssh/known_hosts
+)
+
+mkdir -p "$RUN_DIR" "$LOG_DIR"
+
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+cleanup() {
+  rm -rf "$RUN_DIR"
+}
+trap cleanup EXIT
+
+send_discord_notification() {
+  local status="$1"
+  local message="$2"
+
+  if [[ -z "${DISCORD_WEBHOOK_URL:-}" ]]; then
+    echo "DISCORD_WEBHOOK_URL not set; skipping Discord notification"
+    return 0
+  fi
+
+  local content
+  content=$(cat <<EOF
+{
+  "content": "**Booksite Backup ${status}**\\nVM: \`${HOSTNAME_SHORT}\`\\nTime: \`${TIMESTAMP}\`\\n${message}"
+}
+EOF
+)
+
+  curl -sS -H "Content-Type: application/json" \
+       -X POST \
+       -d "$content" \
+       "$DISCORD_WEBHOOK_URL" >/dev/null
+}
+
+on_error() {
+  local exit_code=$?
+  echo "Backup failed with exit code ${exit_code} at $(date -Is)"
+  tail -n 40 "$LOG_FILE" > /tmp/booksite_backup_tail.txt || true
+  local tail_text
+  tail_text="$(sed 's/"/\\"/g' /tmp/booksite_backup_tail.txt | tr '\n' ' ' | cut -c1-1200)"
+  send_discord_notification "FAILED" "Exit code: \`${exit_code}\`\\nRecent log output:\\n\`\`\`${tail_text}\`\`\`"
+  exit "$exit_code"
+}
+trap on_error ERR
+
+echo "=== Starting backup at $(date -Is) ==="
+
+echo "--- Checking required paths and commands ---"
+test -d "$APP_DIR"
+test -f "$COMPOSE_FILE"
+test -f "$SSH_KEY"
+command -v docker >/dev/null
+command -v ssh >/dev/null
+command -v scp >/dev/null
+command -v curl >/dev/null
+
+echo "--- Available docker compose services ---"
+SERVICES="$(docker compose -f "$COMPOSE_FILE" config --services)"
+printf '%s\n' "$SERVICES"
+
+echo "--- Checking docker services exist ---"
+if ! printf '%s\n' "$SERVICES" | grep -q "^${DB_SERVICE}$"; then
+  echo "Error: DB service '${DB_SERVICE}' not found in docker-compose" >&2
+  exit 1
+fi
+
+if ! printf '%s\n' "$SERVICES" | grep -q "^${BACKEND_SERVICE}$"; then
+  echo "Error: backend service '${BACKEND_SERVICE}' not found in docker-compose" >&2
+  exit 1
+fi
+
+echo "--- Checking docker services are running ---"
+DB_CONTAINER="$(docker compose -f "$COMPOSE_FILE" ps -q "$DB_SERVICE")"
+if [[ -z "$DB_CONTAINER" ]]; then
+  echo "Error: could not determine container ID for DB service '${DB_SERVICE}'" >&2
+  exit 1
+fi
+
+BACKEND_CONTAINER="$(docker compose -f "$COMPOSE_FILE" ps -q "$BACKEND_SERVICE")"
+if [[ -z "$BACKEND_CONTAINER" ]]; then
+  echo "Error: could not determine container ID for backend service '${BACKEND_SERVICE}'" >&2
+  exit 1
+fi
+
+if [[ "$(docker inspect -f '{{.State.Running}}' "$DB_CONTAINER")" != "true" ]]; then
+  echo "Error: DB container is not running" >&2
+  exit 1
+fi
+
+if [[ "$(docker inspect -f '{{.State.Running}}' "$BACKEND_CONTAINER")" != "true" ]]; then
+  echo "Error: backend container is not running" >&2
+  exit 1
+fi
+
+echo "--- Dumping PostgreSQL ---"
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" \
+  pg_dump -U "$DB_USER" -d "$DB_NAME" -F p > "${RUN_DIR}/db.sql"
+
+if [[ ! -s "${RUN_DIR}/db.sql" ]]; then
+  echo "Error: database dump file is empty" >&2
+  exit 1
+fi
+
+echo "--- Archiving cover art from backend container ---"
+docker exec "$BACKEND_CONTAINER" sh -c '
+  set -eu
+  test -d /app/static/img/covers
+  tar -C /app/static/img/covers -czf - .
+' > "${RUN_DIR}/covers.tar.gz"
+
+if [[ ! -s "${RUN_DIR}/covers.tar.gz" ]]; then
+  echo "Error: cover art archive is empty" >&2
+  exit 1
+fi
+
+echo "--- Writing metadata ---"
+cat > "${RUN_DIR}/metadata.json" <<EOF
+{
+  "timestamp": "${TIMESTAMP}",
+  "hostname": "${HOSTNAME_SHORT}",
+  "app_dir": "${APP_DIR}",
+  "compose_file": "${COMPOSE_FILE}",
+  "db_name": "${DB_NAME}",
+  "db_user": "${DB_USER}",
+  "db_service": "${DB_SERVICE}",
+  "backend_service": "${BACKEND_SERVICE}",
+  "container_covers_dir": "/app/static/img/covers"
+}
+EOF
+
+echo "--- Copying bundle to backup server ---"
+ssh "${SSH_OPTS[@]}" "${BACKUP_USER}@${BACKUP_HOST}" \
+  "mkdir -p '${REMOTE_INCOMING}/backup_${TIMESTAMP}'"
+
+scp "${SSH_OPTS[@]}" \
+  "${RUN_DIR}/db.sql" \
+  "${RUN_DIR}/covers.tar.gz" \
+  "${RUN_DIR}/metadata.json" \
+  "${BACKUP_USER}@${BACKUP_HOST}:${REMOTE_INCOMING}/backup_${TIMESTAMP}/"
+
+echo "--- Creating restic snapshot on backup server ---"
+ssh "${SSH_OPTS[@]}" "${BACKUP_USER}@${BACKUP_HOST}" \
+  "restic --repo '${REMOTE_REPO}' \
+          --password-file '${REMOTE_RESTIC_PASS_FILE}' \
+          backup '${REMOTE_INCOMING}/backup_${TIMESTAMP}' \
+          --tag booksite --tag ${HOSTNAME_SHORT}"
+
+echo "--- Applying retention policy ---"
+ssh "${SSH_OPTS[@]}" "${BACKUP_USER}@${BACKUP_HOST}" \
+  "restic --repo '${REMOTE_REPO}' \
+          --password-file '${REMOTE_RESTIC_PASS_FILE}' \
+          forget --prune \
+          --keep-daily 7 \
+          --keep-weekly 4 \
+          --keep-monthly 12 \
+          --tag booksite"
+
+echo "--- Removing raw incoming bundle on backup server ---"
+ssh "${SSH_OPTS[@]}" "${BACKUP_USER}@${BACKUP_HOST}" \
+  "rm -rf '${REMOTE_INCOMING}/backup_${TIMESTAMP}'"
+
+echo "=== Backup completed successfully at $(date -Is) ==="
+send_discord_notification "SUCCEEDED" "Backup completed successfully."

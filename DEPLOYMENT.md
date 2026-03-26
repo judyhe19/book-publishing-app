@@ -147,3 +147,32 @@ After `deploy.sh` completes:
 - **Logs**: `sudo docker compose logs -f` (Run on server)
 - **Update**:
   Simply run `./deploy.sh` from your local machine again.
+
+## 6. Disaster Recovery (Restore from Backup)
+
+This section is for using previously backed up data instead of starting with empty/default data.
+
+This should be used in scenarios such as:
+- Server failure
+- Data loss
+- Migration to a new VM
+
+### 6.1 Prerequisites
+
+Before performing a restore, the system must already be deployed:
+
+- Complete **Sections 1–5** of this guide
+- Application must be running on the production server
+- Backup system must be configured and accessible
+
+### 6.2 Restore Procedure
+
+To restore the system from a backup, follow the instructions in the [**Restore & Backup Validation Guide.**](./backups/restore_backup.md)
+
+This includes:
+- Selecting a snapshot
+- Verifying backup integrity
+- Restoring the database and static files
+- Restarting the application
+- Validating the restored system
+

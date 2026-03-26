@@ -236,6 +236,7 @@ out/
 # Local env / secrets
 .env.*
 !.env.example
+!.env.backup.example
 *.pem
 *.key
 *.crt

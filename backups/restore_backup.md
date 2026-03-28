@@ -33,6 +33,14 @@ restic --repo /srv/restic/booksite-repo check
 
 ## 3. Restore snapshot to backup VM
 
+First clear backup directory:
+
+```bash
+rm -rf /tmp/restore
+```
+
+Restore snapshot:
+
 ```bash
 restic \
   --repo /srv/restic/booksite-repo \

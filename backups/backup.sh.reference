@@ -187,6 +187,7 @@ ssh "${SSH_OPTS[@]}" "${BACKUP_USER}@${BACKUP_HOST}" \
   "restic --repo '${REMOTE_REPO}' \
           --password-file '${REMOTE_RESTIC_PASS_FILE}' \
           forget --prune \
+          --group-by host,tags \
           --keep-daily 7 \
           --keep-weekly 4 \
           --keep-monthly 12 \

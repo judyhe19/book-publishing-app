@@ -11,6 +11,8 @@ export function Button({ children, variant = "primary", className = "", ...props
       ? "bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-400"
       : variant === "success"
       ? "bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-400"
+      : variant === "warning"
+      ? "bg-yellow-600 text-white hover:bg-yellow-700 focus:ring-2 focus:ring-yellow-400"
       : "border border-slate-200 text-slate-900 hover:bg-slate-50 disabled:opacity-60";
 
   return (

@@ -47,6 +47,7 @@ def make_book(*, isbn_13, title, author, series_name=None, series_position=None)
 
 
 def make_sale(book, date, quantity=10, revenue="100.00", source="distributor", paid=False):
+    distributor = "Ingram Spark" if source == "distributor" else None
     return Sale.objects.create(
         book=book,
         date=date,
@@ -54,6 +55,8 @@ def make_sale(book, date, quantity=10, revenue="100.00", source="distributor", p
         publisher_revenue=Decimal(revenue),
         author_royalty=Decimal(revenue) * book.distributor_author_royalty_rate if source == "distributor" else Decimal(revenue) * book.hand_sold_author_royalty_rate,
         sale_source=source,
+        distributor=distributor,
+        format="print",
         author_paid=paid,
     )
 
@@ -137,11 +140,11 @@ class TestRoyaltyReportAggregation:
         book_data = resp.data["data"][book.id]
 
         # Q1
-        assert book_data["2025 Q1"]["quantity_sold"] == 10
+        assert book_data["2025 Q1"]["quantity_sold_total"] == 10
         assert Decimal(book_data["2025 Q1"]["royalty_total"]) == Decimal("10.00")
 
         # Q2
-        assert book_data["2025 Q2"]["quantity_sold"] == 20
+        assert book_data["2025 Q2"]["quantity_sold_total"] == 20
         assert Decimal(book_data["2025 Q2"]["royalty_total"]) == Decimal("20.00")
 
     def test_handsold_quantity(self, authed_client):
@@ -158,8 +161,8 @@ class TestRoyaltyReportAggregation:
         assert resp.status_code == 200
 
         book_data = resp.data["data"][book.id]["2025 Q1"]
-        assert book_data["quantity_sold"] == 15  # 10 + 5
-        assert book_data["quantity_handsold"] == 5
+        assert book_data["quantity_sold_total"] == 15  # 10 + 5
+        assert book_data["quantity_sold_print_handsold"] == 5
 
     def test_paid_unpaid_split(self, authed_client):
         author = make_author("Dave")
@@ -198,11 +201,11 @@ class TestRoyaltyReportAggregation:
 
         # All-time should include only sales within the selected quarter range
         all_time = resp.data["data"][book.id]["All Time"]
-        assert all_time["quantity_sold"] == 30  # 10 + 20 (Q2 2024 sale is outside range)
+        assert all_time["quantity_sold_total"] == 30  # 10 + 20 (Q2 2024 sale is outside range)
 
         # Totals (all books) all-time
         totals_all_time = resp.data["totals"]["All Time"]
-        assert totals_all_time["quantity_sold"] == 30
+        assert totals_all_time["quantity_sold_total"] == 30
 
     def test_all_books_totals(self, authed_client):
         author = make_author("Frank")
@@ -219,7 +222,7 @@ class TestRoyaltyReportAggregation:
         assert resp.status_code == 200
 
         totals = resp.data["totals"]["2025 Q1"]
-        assert totals["quantity_sold"] == 30
+        assert totals["quantity_sold_total"] == 30
         assert Decimal(totals["royalty_total"]) == Decimal("30.00")
 
 

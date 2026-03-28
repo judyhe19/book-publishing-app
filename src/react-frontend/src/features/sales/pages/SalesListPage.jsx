@@ -1,7 +1,8 @@
 // src/features/sales/pages/SalesListPage.jsx
-import React from "react";
+import React, { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSalesList } from "../hooks/useSalesList";
+import { exportSalesCSV } from "../api/salesApi";
 import { SalesFilters, SalesTable } from "../components";
 import {
   Button,
@@ -28,6 +29,24 @@ export default function SalesListPage() {
     toggleShowAll,
   } = useSalesList();
 
+  const handleExportCSV = useCallback(async () => {
+    const activeFilters = {};
+    if (filters.start_date) activeFilters.start_date = filters.start_date;
+    if (filters.end_date) activeFilters.end_date = filters.end_date;
+    if (filters.author_name) activeFilters.author_name = filters.author_name;
+    if (filters.sale_source) activeFilters.sale_source = filters.sale_source.toLowerCase();
+    if (filters.distributor) activeFilters.distributor = filters.distributor;
+    if (filters.format) activeFilters.sale_format = filters.format;
+    if (filters.ordering) activeFilters.ordering = filters.ordering;
+
+    try {
+      await exportSalesCSV(new URLSearchParams(activeFilters).toString());
+    } catch (err) {
+      console.error("CSV export failed:", err);
+      alert("Failed to export CSV. Please try again.");
+    }
+  }, [filters]);
+
   return (
     <div className="p-6 max-w-full mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -44,6 +63,9 @@ export default function SalesListPage() {
           </Button>
           <Button variant="success" onClick={() => navigate("/sales/import-xlsx")}>
             Import from XLSX
+          </Button>
+          <Button variant="warning" onClick={handleExportCSV}>
+            Export CSV
           </Button>
           <Button onClick={() => navigate("/sales/input")}>Input New Sales</Button>
         </div>

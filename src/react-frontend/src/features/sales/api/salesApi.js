@@ -65,3 +65,35 @@ export async function importAmazonXLSX(file) {
 export function convertCurrency(amount, currency) {
   return apiFetch(`/api/sales/convert-currency/?amount=${encodeURIComponent(amount)}&currency=${encodeURIComponent(currency)}`);
 }
+
+/**
+ * Export filtered sales as CSV. Triggers a file download in the browser.
+ */
+export async function exportSalesCSV(queryParams = "") {
+  const qs = queryParams ? `?${queryParams}` : "";
+  const res = await fetch(`/api/sales/export-csv/${qs}`, {
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    const err = new Error("Failed to export CSV");
+    err.status = res.status;
+    throw err;
+  }
+
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+
+  // Extract filename from Content-Disposition header, fallback to default
+  const disposition = res.headers.get("Content-Disposition") || "";
+  const match = disposition.match(/filename="?(.+?)"?$/);
+  const filename = match ? match[1] : "hp-sales-export.csv";
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}

@@ -6,6 +6,7 @@ from ..models import Author
 from ..utils.isbn_lookup import IsbnLookup, IsbnLookupError
 from ..utils.isbn_normalizer import normalize_volume_info
 from ..utils.author_matcher import match_author
+from ..utils.series_lookup import SeriesLookup
 
 
 class IsbnLookupView(APIView):
@@ -44,5 +45,10 @@ class IsbnLookupView(APIView):
             data["author_match"] = match_author(raw_authors[0], candidates)
         else:
             data["author_match"] = None
+
+        # Fetch series info from Open Library (best-effort, never raises).
+        series_data = SeriesLookup().fetch(isbn)
+        data["series_name"] = series_data["series_name"]
+        data["series_position"] = series_data["series_position"]
 
         return Response(data)

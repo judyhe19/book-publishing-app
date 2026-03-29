@@ -65,6 +65,7 @@ export default function CreateBookPage() {
   const [isbnModalOpen, setIsbnModalOpen] = useState(false);
   const [isbnCoverUrl, setIsbnCoverUrl] = useState(null);
   const [isbnWarning, setIsbnWarning] = useState(null);
+  const [isbnSeriesWarning, setIsbnSeriesWarning] = useState(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
@@ -111,6 +112,39 @@ export default function CreateBookPage() {
       setIsbnWarning(
         `Author "${data.authors[0]}" from Google Books could not be automatically matched. Please select an author manually.`
       );
+    }
+
+    // Series handling
+    const rawSeriesName = data.series_name ?? null;
+    const rawSeriesPos  = data.series_position ?? null;
+
+    if (rawSeriesName) {
+      setSeriesName(rawSeriesName);
+      if (rawSeriesPos !== null) {
+        const existing = seriesOptions.find(s => s.name === rawSeriesName);
+        if (existing) {
+          const maxPos = existing.count + 1;
+          if (rawSeriesPos >= 1 && rawSeriesPos <= maxPos) {
+            setSeriesPosition(String(rawSeriesPos));
+            setIsbnSeriesWarning(null);
+          } else {
+            setIsbnSeriesWarning(
+              `Open Library suggests position ${rawSeriesPos} for "${rawSeriesName}", ` +
+              `but this series has ${existing.count} book${existing.count === 1 ? "" : "s"} ` +
+              `(valid positions: 1–${maxPos}). Please set the position manually.`
+            );
+          }
+        } else {
+          // Series not yet in the system — any position is valid
+          setSeriesPosition(String(rawSeriesPos));
+          setIsbnSeriesWarning(null);
+        }
+      } else {
+        // Name with no position — SeriesPicker autofill handles it
+        setIsbnSeriesWarning(null);
+      }
+    } else {
+      setIsbnSeriesWarning(null);
     }
   }
 
@@ -181,7 +215,7 @@ export default function CreateBookPage() {
             <button
               type="button"
               className="mr-6 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-              onClick={() => setIsbnModalOpen(true)}
+              onClick={() => { setIsbnModalOpen(true); setIsbnWarning(null); setIsbnSeriesWarning(null); }}
             >
               Import from ISBN
             </button>
@@ -191,6 +225,9 @@ export default function CreateBookPage() {
               {authorsErr && <ErrorAlert className="mb-5">Failed to load authors: {authorsErr}</ErrorAlert>}
               {isbnWarning && (
                 <ErrorAlert variant="warning" className="mb-5">{isbnWarning}</ErrorAlert>
+              )}
+              {isbnSeriesWarning && (
+                <ErrorAlert variant="warning" className="mb-5">{isbnSeriesWarning}</ErrorAlert>
               )}
 
               <div className="divide-y divide-slate-100">

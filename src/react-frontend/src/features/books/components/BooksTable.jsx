@@ -53,7 +53,7 @@ function buildBooksColumns({ showAuthor, extraColumns }) {
       label: "",
       className: "w-16 pr-0",
       render: (b) => {
-        if (!b.cover_image_path) return null;
+        if (!b.cover_image_path) return <div className="h-16" />;
         const src = `/api/books/cover-thumbnail/?path=${encodeURIComponent(b.cover_image_path)}`;
         return (
           <img

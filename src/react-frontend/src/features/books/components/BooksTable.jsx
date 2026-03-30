@@ -75,7 +75,7 @@ function buildBooksColumns({ showAuthor, extraColumns }) {
   if (showAuthor) {
     cols.push({
       label: "Author",
-      sortKey: "author_name",
+      sortKey: "first_author_name",
       className: "w-[16%] whitespace-nowrap",
       render: (b) => (
         <span className="text-slate-700">

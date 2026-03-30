@@ -129,7 +129,7 @@ export function buildAuthorRoyaltyColumns() {
     {
       label: "Total Author Royalty",
       sortKey: "total_author_royalty",
-      className: "whitespace-nowrap",
+      className: "w-44 whitespace-nowrap",
       render: (b) => (
         <span className="tabular-nums">{money(getNum(b.total_author_royalty ?? 0))}</span>
       ),
@@ -137,7 +137,7 @@ export function buildAuthorRoyaltyColumns() {
     {
       label: "Paid Author Royalty",
       sortKey: "paid_author_royalty",
-      className: "whitespace-nowrap",
+      className: "w-44 whitespace-nowrap",
       render: (b) => (
         <span className="tabular-nums">{money(getNum(b.paid_author_royalty ?? 0))}</span>
       ),
@@ -145,7 +145,7 @@ export function buildAuthorRoyaltyColumns() {
     {
       label: "Unpaid Author Royalty",
       sortKey: "unpaid_author_royalty",
-      className: "whitespace-nowrap",
+      className: "w-44 whitespace-nowrap",
       render: (b) => (
         <span className="tabular-nums">{money(getNum(b.unpaid_author_royalty ?? 0))}</span>
       ),

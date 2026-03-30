@@ -185,11 +185,11 @@ export default function SeriesEditorPage() {
             subtitle="Select a series to reorder or remove books."
           />
           <CardContent>
-            <div className="flex items-center justify-between gap-2 mb-6">
+            {/* <div className="flex items-center justify-between gap-2 mb-6">
               <Button variant="secondary" onClick={() => nav("/books")}>
                 All Books
               </Button>
-            </div>
+            </div> */}
 
             {/* Series selector */}
             <div className="mb-6">

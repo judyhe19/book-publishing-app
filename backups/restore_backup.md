@@ -62,6 +62,12 @@ It is strongly recommended to first perform this restore on a test environment t
 
 Run on production VM:
 
+First clear backup directory:
+
+```bash
+rm -rf /tmp/restore
+```
+
 ```bash
 scp -i /srv/booksite/book_ssh/backup_vcm_ed25519 -r \
   backupuser@vcm-52662.vm.duke.edu:/tmp/restore/srv/restic/incoming/backup_* \

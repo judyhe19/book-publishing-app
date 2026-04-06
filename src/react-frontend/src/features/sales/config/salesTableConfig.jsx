@@ -114,7 +114,7 @@ export const TABLE_COLUMNS = [
                 <div className="flex flex-col text-xs leading-snug">
                     <span className="font-medium text-gray-900 truncate" title={`${origRev} ${currency}`}>{origRev} {currency}</span>
                     {currency !== 'USD' ? (
-                        <span className="text-gray-500 truncate mt-0.5" title={`$${usdRev} USD`}>${usdRev} USD</span>
+                        <span className="text-gray-500 truncate mt-0.5" title={`$${usdRev} USD`}>${usdRev}</span>
                     ) : (
                         <span className="text-gray-400 mt-0.5 truncate opacity-50 select-none">-</span>
                     )}

@@ -45,6 +45,7 @@ export default function AuthorListPage() {
               placeholder="Search name or email…"
             />
           </div>
+          <Button variant="secondary" onClick={() => navigate("/sales/authors")}>Author Payments</Button>
           <Button onClick={() => navigate("/authors/create")}>New Author</Button>
         </div>
       </div>

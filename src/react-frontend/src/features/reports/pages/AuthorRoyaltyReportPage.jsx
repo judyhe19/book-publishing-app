@@ -270,17 +270,17 @@ function QuarterTable({ label, books, data, totals, totalsLabel = "Subtotal" }) 
         <thead>
           <tr>
             <th style={{ minWidth: "200px" }}>Book</th>
-            <th className="num">Qty Sold (Print, Handsold)</th>
-            <th className="num">Qty Sold (Print, Ingram Spark)</th>
-            <th className="num">Qty Sold (Print, Amazon)</th>
-            <th className="num">Qty Sold (eBook, Amazon)</th>
-            <th className="num">Qty Sold (Print, Other)</th>
-            <th className="num">Qty Sold (eBook, Other)</th>
-            <th className="num">Qty Sold (Total)</th>
+            <th className="num">Qty Sold<br />Print<br />Handsold</th>
+            <th className="num">Qty Sold<br />Print<br />Ingram</th>
+            <th className="num">Qty Sold<br />Print<br />Amazon</th>
+            <th className="num">Qty Sold<br />eBook<br />Amazon</th>
+            <th className="num">Qty Sold<br />Print<br />Other</th>
+            <th className="num">Qty Sold<br />eBook<br />Other</th>
+            <th className="num">Qty Sold<br />Total</th>
             <th className="num">KENP</th>
-            <th className="num">Royalty (Unpaid)</th>
-            <th className="num">Royalty (Paid)</th>
-            <th className="num">Royalty (Total)</th>
+            <th className="num">Royalty<br />Unpaid</th>
+            <th className="num">Royalty<br />Paid</th>
+            <th className="num">Royalty<br />Total</th>
           </tr>
         </thead>
         <tbody>
@@ -335,21 +335,21 @@ function AllBooksTable({ quarters, totals }) {
   return (
     <div className="quarter-section">
       <h2>All Books</h2>
-      <table className="report-table">
+      <table className="report-table all-books-table">
         <thead>
           <tr>
-            <th style={{ minWidth: "200px" }}>Quarter</th>
-            <th className="num">Qty Sold (Print, Handsold)</th>
-            <th className="num">Qty Sold (Print, Ingram Spark)</th>
-            <th className="num">Qty Sold (Print, Amazon)</th>
-            <th className="num">Qty Sold (eBook, Amazon)</th>
-            <th className="num">Qty Sold (Print, Other)</th>
-            <th className="num">Qty Sold (eBook, Other)</th>
-            <th className="num">Qty Sold (Total)</th>
+            <th>Quarter</th>
+            <th className="num">Qty Sold<br />Print<br />Handsold</th>
+            <th className="num">Qty Sold<br />Print<br />Ingram</th>
+            <th className="num">Qty Sold<br />Print<br />Amazon</th>
+            <th className="num">Qty Sold<br />eBook<br />Amazon</th>
+            <th className="num">Qty Sold<br />Print<br />Other</th>
+            <th className="num">Qty Sold<br />eBook<br />Other</th>
+            <th className="num">Qty Sold<br />Total</th>
             <th className="num">KENP</th>
-            <th className="num">Royalty (Unpaid)</th>
-            <th className="num">Royalty (Paid)</th>
-            <th className="num">Royalty (Total)</th>
+            <th className="num">Royalty<br />Unpaid</th>
+            <th className="num">Royalty<br />Paid</th>
+            <th className="num">Royalty<br />Total</th>
           </tr>
         </thead>
         <tbody>

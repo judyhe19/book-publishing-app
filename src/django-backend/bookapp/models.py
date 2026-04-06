@@ -28,6 +28,18 @@ class Author(models.Model):
         null=True,
         help_text="Author's primary contact email"
     )
+    paypal = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Author's account name for PayPal (paypal.me username, not email)"
+    )
+    venmo = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Author's account name for Venmo"
+    )
 
     def __str__(self):
         return self.name

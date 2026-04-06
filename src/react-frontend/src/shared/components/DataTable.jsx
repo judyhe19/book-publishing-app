@@ -59,7 +59,7 @@ export function DataTable({
                     col.sortKey && onSort ? "cursor-pointer hover:bg-gray-100" : ""
                   } ${col.className || ""}`}
                 >
-                  {col.label} {renderSortIcon(col.sortKey)}
+                  {col.label} {!col.hideSortIcon && renderSortIcon(col.sortKey)}
                 </th>
               );
             })}

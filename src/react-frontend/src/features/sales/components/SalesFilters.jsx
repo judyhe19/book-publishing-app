@@ -79,7 +79,7 @@ export default function SalesFilters({ filters, onDateChange, onFilterChange }) 
         >
           <option value="">All Formats</option>
           <option value="print">Print</option>
-          <option value="ebook">Ebook</option>
+          <option value="ebook">eBook</option>
           <option value="kindle unlimited">Kindle Unlimited</option>
         </select>
       </div>

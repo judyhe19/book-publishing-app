@@ -162,7 +162,7 @@ class Sale(models.Model):
 
     FORMAT_CHOICES = [
         ("print", "Print"),
-        ("ebook", "Ebook"),
+        ("ebook", "eBook"),
         ("kindle unlimited", "Kindle Unlimited"),
     ]
 

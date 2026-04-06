@@ -2,7 +2,7 @@
 import React from "react";
 import AuthorPaymentsGroupCard from "./AuthorPaymentsGroupCard";
 
-export default function AuthorPaymentsGroupList({ groups, onMarkAllPaid, onGoBook, onGoSale }) {
+export default function AuthorPaymentsGroupList({ groups, onMarkAllPaid, onGoSale }) {
   return (
     <div className="space-y-4">
       {groups.map((g) => (
@@ -10,7 +10,6 @@ export default function AuthorPaymentsGroupList({ groups, onMarkAllPaid, onGoBoo
           key={g.author.id}
           group={g}
           onMarkAllPaid={() => onMarkAllPaid(g.author)}
-          onGoBook={onGoBook}
           onGoSale={onGoSale}
         />
       ))}

@@ -53,7 +53,7 @@ function buildBooksColumns({ showAuthor, extraColumns }) {
       label: "",
       className: "w-16 pr-0",
       render: (b) => {
-        if (!b.cover_image_path) return null;
+        if (!b.cover_image_path) return <div className="h-16" />;
         const src = `/api/books/cover-thumbnail/?path=${encodeURIComponent(b.cover_image_path)}`;
         return (
           <img
@@ -75,7 +75,7 @@ function buildBooksColumns({ showAuthor, extraColumns }) {
   if (showAuthor) {
     cols.push({
       label: "Author",
-      sortKey: "author_name",
+      sortKey: "first_author_name",
       className: "w-[16%] whitespace-nowrap",
       render: (b) => (
         <span className="text-slate-700">
@@ -129,7 +129,7 @@ export function buildAuthorRoyaltyColumns() {
     {
       label: "Total Author Royalty",
       sortKey: "total_author_royalty",
-      className: "whitespace-nowrap",
+      className: "w-44 whitespace-nowrap",
       render: (b) => (
         <span className="tabular-nums">{money(getNum(b.total_author_royalty ?? 0))}</span>
       ),
@@ -137,7 +137,7 @@ export function buildAuthorRoyaltyColumns() {
     {
       label: "Paid Author Royalty",
       sortKey: "paid_author_royalty",
-      className: "whitespace-nowrap",
+      className: "w-44 whitespace-nowrap",
       render: (b) => (
         <span className="tabular-nums">{money(getNum(b.paid_author_royalty ?? 0))}</span>
       ),
@@ -145,7 +145,7 @@ export function buildAuthorRoyaltyColumns() {
     {
       label: "Unpaid Author Royalty",
       sortKey: "unpaid_author_royalty",
-      className: "whitespace-nowrap",
+      className: "w-44 whitespace-nowrap",
       render: (b) => (
         <span className="tabular-nums">{money(getNum(b.unpaid_author_royalty ?? 0))}</span>
       ),

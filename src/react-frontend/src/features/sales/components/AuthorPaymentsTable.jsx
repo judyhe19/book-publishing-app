@@ -1,18 +1,20 @@
 // src/features/sales/components/AuthorPaymentsTable.jsx
 import React from "react";
+import { Link } from "react-router-dom";
 import { formatMonthYear } from "../../../shared/utils/dateUtils";
 import { DataTable, PaymentStatusBadge } from "../../../shared/components";
 
-const getColumns = (onGoBook) => [
+const getColumns = () => [
   {
     label: "Book Title",
     render: (r) => (
-      <button
-        className="font-medium text-blue-600"
-        onClick={(e) => { e.stopPropagation(); onGoBook(r.sale.book); }}
+      <Link
+        to={`/books/${r.sale.book}`}
+        className="font-medium text-blue-600 underline hover:text-blue-800"
+        onClick={(e) => e.stopPropagation()}
       >
         {r.sale.book_title}
-      </button>
+      </Link>
     ),
   },
   {
@@ -42,10 +44,10 @@ const getColumns = (onGoBook) => [
   },
 ];
 
-export default function AuthorPaymentsTable({ rows, onGoBook, onGoSale }) {
+export default function AuthorPaymentsTable({ rows, onGoSale }) {
   const columns = React.useMemo(
-    () => getColumns(onGoBook),
-    [onGoBook]
+    () => getColumns(),
+    []
   );
 
   // DataTable uses `row.id` for the key, so we need to inject an id

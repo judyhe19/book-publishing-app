@@ -1,6 +1,6 @@
 // src/features/books/pages/BookDetailPage.jsx
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -216,13 +216,12 @@ export default function BookDetailPage() {
               <h1 className="text-3xl font-bold text-slate-900 leading-tight">{book.title}</h1>
               <div className="mt-1.5">
                 {book.author_id ? (
-                  <button
-                    type="button"
+                  <Link
+                    to={`/authors/${book.author_id}`}
                     className="text-base text-blue-600 underline hover:text-blue-800"
-                    onClick={() => nav(`/authors/${book.author_id}`)}
                   >
                     {book.author_name || `Author #${book.author_id}`}
-                  </button>
+                  </Link>
                 ) : (
                   <span className="text-base text-slate-400">No author assigned</span>
                 )}
@@ -251,11 +250,11 @@ export default function BookDetailPage() {
           <CardContent>
             {/* Action buttons */}
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
+              {/* <div className="flex items-center gap-2">
                 <Button variant="secondary" onClick={() => nav("/books")}>
                   All Books
                 </Button>
-              </div>
+              </div> */}
               <div className="flex items-center gap-2">
               {!editing ? (
                 <>

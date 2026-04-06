@@ -42,7 +42,7 @@ export function DataTable({
 
   return (
     <div className="rounded-lg border border-slate-200 overflow-hidden">
-      <table className="w-full table-fixed divide-y divide-gray-200">
+      <table className={`w-full ${fixedLayout ? "table-fixed" : "table-auto"} divide-y divide-gray-200`}>
         <thead className="bg-gray-50">
           <tr>
             {columns.map((col, idx) => {

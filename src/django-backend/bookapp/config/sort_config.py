@@ -8,7 +8,7 @@ SALES_SORT_FIELD_MAP = {
     'publisher_revenue': 'publisher_revenue',
     'publisher_revenue_original': 'publisher_revenue_original',
     'book_title': 'book__title',
-    'authors': 'author_name',
+    'authors': 'first_author_name',
     'author_royalty': 'author_royalty',
     'paid_status': 'author_paid',
     'sale_source': 'sale_source',

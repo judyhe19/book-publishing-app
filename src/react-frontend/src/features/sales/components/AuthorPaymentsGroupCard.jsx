@@ -9,7 +9,7 @@ function money(x) {
   return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
-export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid, onGoBook, onGoSale }) {
+export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid, onGoSale }) {
   const { author, rows, unpaidTotal, unpaidCount } = group;
 
   // Per-author pagination state
@@ -51,7 +51,7 @@ export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid, onGoBook
         </div>
 
         <div className="mt-4">
-          <AuthorPaymentsTable rows={paginatedRows} onGoBook={onGoBook} onGoSale={onGoSale} />
+          <AuthorPaymentsTable rows={paginatedRows} onGoSale={onGoSale} />
 
           {/* Per-author pagination controls */}
           {totalRows > pageSize && (

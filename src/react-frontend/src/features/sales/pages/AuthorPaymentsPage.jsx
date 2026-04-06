@@ -32,7 +32,6 @@ export default function AuthorPaymentsPage() {
     payAllUnpaidForAuthor,
   } = useAuthorPayments();
 
-  const onGoBook = (bookId) => navigate(`/books/${bookId}`);
   const onGoSale = (saleId) => navigate(`/sale/${saleId}`);
 
   return (
@@ -68,7 +67,6 @@ export default function AuthorPaymentsPage() {
             <AuthorPaymentsGroupList
               groups={authorGroups}
               onMarkAllPaid={openConfirm}
-              onGoBook={onGoBook}
               onGoSale={onGoSale}
             />
 

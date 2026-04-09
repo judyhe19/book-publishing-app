@@ -20,7 +20,12 @@ export default function AuthorModifyPage() {
   const { author, loading, saving, error, save, remove } = useAuthorModify(authorId);
   const { books, hasSales, loadingBooks } = useAuthorBooks(authorId);
 
-  const [form, setForm] = useState({ name: "", email: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    paypal: "",
+    venmo: "",
+  });
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
@@ -28,18 +33,24 @@ export default function AuthorModifyPage() {
     setForm({
       name: author.name || "",
       email: author.email || "",
+      paypal: author.paypal || "",
+      venmo: author.venmo || "",
     });
   }, [author]);
 
   const payload = useMemo(() => {
     const name = form.name?.trim();
     const email = form.email?.trim();
+    const paypal = form.paypal?.trim();
+    const venmo = form.venmo?.trim();
 
     if (!name) return null;
 
     return {
       name,
       email: email || "",
+      paypal: paypal || "",
+      venmo: venmo || "",
     };
   }, [form]);
 
@@ -116,6 +127,35 @@ export default function AuthorModifyPage() {
                 value={form.email}
                 onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                 disabled={saving}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                PayPal Username
+              </label>
+              <input
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                value={form.paypal}
+                onChange={(e) => setForm((p) => ({ ...p, paypal: e.target.value }))}
+                disabled={saving}
+                placeholder="e.g., douglasadams"
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                PayPal.me username (not email)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Venmo Username
+              </label>
+              <input
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                value={form.venmo}
+                onChange={(e) => setForm((p) => ({ ...p, venmo: e.target.value }))}
+                disabled={saving}
+                placeholder="e.g., douglasadams"
               />
             </div>
           </div>

@@ -20,7 +20,9 @@ export default function AuthorCreatePage() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-900">Create New Author</h1>
-        <p className="text-slate-500 mt-1">Enter the author’s name and email address.</p>
+        <p className="text-slate-500 mt-1">
+          Enter the author’s name, email, and optional payment accounts.
+        </p>
       </div>
 
       {error && (
@@ -33,6 +35,7 @@ export default function AuthorCreatePage() {
         <Card>
           <CardContent>
             <div className="space-y-4">
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Name
@@ -56,6 +59,34 @@ export default function AuthorCreatePage() {
                   placeholder="e.g., douglasadams@example.com"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  PayPal Username
+                </label>
+                <input
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  value={form.paypal}
+                  onChange={(e) => handleChange("paypal", e.target.value)}
+                  placeholder="e.g., douglasadams"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  PayPal.me username (not email)
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Venmo Username
+                </label>
+                <input
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  value={form.venmo}
+                  onChange={(e) => handleChange("venmo", e.target.value)}
+                  placeholder="e.g., douglasadams"
+                />
+              </div>
+
             </div>
 
             <div className="mt-8 flex justify-end gap-4">

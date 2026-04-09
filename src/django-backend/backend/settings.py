@@ -154,3 +154,16 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Branding settings (can be overridden by environment variables)
+
+PUBLISHER_NAME = os.getenv("PUBLISHER_NAME", "Hypothetical Publishing")
+APP_TITLE = os.getenv("APP_TITLE", "Book Publishing Application")
+PUBLISHER_LOGO_PATH = os.getenv(
+    "PUBLISHER_LOGO_PATH",
+    "/static/img/branding/hypotheticalpublishing.png",
+)
+PUBLISHER_FAVICON_PATH = os.getenv(
+    "PUBLISHER_FAVICON_PATH",
+    "/static/img/branding/hypotheticalpublishing.png",
+)

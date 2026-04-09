@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='sale',
             name='format',
-            field=models.CharField(choices=[('print', 'Print'), ('ebook', 'Ebook'), ('kindle unlimited', 'Kindle Unlimited')], default='print', max_length=30),
+            field=models.CharField(choices=[('print', 'Print'), ('ebook', 'eBook'), ('kindle unlimited', 'Kindle Unlimited')], default='print', max_length=30),
         ),
         migrations.AddField(
             model_name='sale',

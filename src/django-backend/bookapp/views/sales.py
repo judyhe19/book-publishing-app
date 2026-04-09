@@ -283,7 +283,7 @@ class SaleViewSet(ModelViewSet):
 
     FORMAT_DISPLAY = {
         "print": "Print",
-        "ebook": "Ebook",
+        "ebook": "eBook",
         "kindle unlimited": "Kindle Unlimited",
     }
 

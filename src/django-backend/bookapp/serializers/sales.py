@@ -136,7 +136,7 @@ class SaleWriteSerializer(serializers.ModelSerializer):
         required=False,
         default="print",
         error_messages={
-            "invalid_choice": "Format must be 'Print', 'Ebook', or 'Kindle Unlimited'.",
+            "invalid_choice": "Format must be 'Print', 'eBook', or 'Kindle Unlimited'.",
         },
     )
 

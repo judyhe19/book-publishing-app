@@ -291,8 +291,8 @@ export default function SalesDetailPage() {
             {form.format && (
               <div className="w-36">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Format</label>
-                <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 capitalize">
-                  {form.format}
+                <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200">
+                  {{ print: 'Print', ebook: 'eBook', 'kindle unlimited': 'Kindle Unlimited' }[form.format] || form.format}
                 </div>
               </div>
             )}
@@ -310,7 +310,7 @@ export default function SalesDetailPage() {
                 <Input
                   type="text"
                   maxLength={3}
-                  value={form.currency || "USD"}
+                  value={form.currency}
                   onChange={(e) => {
                     setCurrencyError(null);
                     handleChange("currency", e.target.value.toUpperCase());
@@ -347,9 +347,18 @@ export default function SalesDetailPage() {
               {isKU ? (
                 <>
                   <label className="block text-sm font-medium text-gray-700 mb-1">KENP</label>
-                  <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200">
-                    {form.kenp || "—"}
-                  </div>
+                  <Input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={form.kenp}
+                    onChange={(e) => handleChange("kenp", e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "." || e.key === "e" || e.key === "E") {
+                        e.preventDefault();
+                      }
+                    }}
+                  />
                 </>
               ) : (
                 <>

@@ -114,7 +114,13 @@ class AuthorPaymentsViewSet(ViewSet):
             unpaid_count = int(row["unpaid_count"]) if row else 0
 
             groups[a.id] = {
-                "author": {"id": a.id, "name": a.name},
+                "author": {
+                "id": a.id,
+                "name": a.name,
+                "email": a.email,
+                "paypal": a.paypal,
+                "venmo": a.venmo,
+                },
                 # return as string to avoid float display rounding issues
                 "unpaidTotal": str(unpaid_total),
                 "unpaidCount": unpaid_count,

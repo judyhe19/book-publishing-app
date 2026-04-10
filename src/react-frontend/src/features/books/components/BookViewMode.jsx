@@ -99,7 +99,7 @@ export default function BookViewMode({ book }) {
               <DetailField label="Distributor">
                 {pct(book.distributor_author_royalty_rate)}
               </DetailField>
-              <DetailField label="Hand-Sold">
+              <DetailField label="Hand-Sold/Kickstarter">
                 {pct(book.hand_sold_author_royalty_rate)}
               </DetailField>
             </div>

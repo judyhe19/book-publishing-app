@@ -236,7 +236,7 @@ export default function BookEditMode({
                   Changes only affect future sales.
                 </p>
               </FormField>
-              <FormField label="Hand-sold royalty rate (%)">
+              <FormField label="Hand-sold/Kickstarter royalty rate (%)">
                 <Input
                   type="number"
                   min="0"

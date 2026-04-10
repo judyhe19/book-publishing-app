@@ -18,6 +18,8 @@ export function useCreateAuthor() {
       const payload = {
         name: form.name?.trim(),
         email: form.email?.trim(),
+        paypal: form.paypal?.trim() || null,
+        venmo: form.venmo?.trim() || null,
       };
       const created = await createAuthor(payload);
       return created; // caller can navigate

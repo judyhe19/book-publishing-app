@@ -9,6 +9,27 @@ function money(x) {
   return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
+function paymentAmount(x) {
+  const n = Number(x);
+  if (Number.isNaN(n)) return "0.00";
+  return n.toFixed(2);
+}
+
+function buildPayPalLink(username, amount) {
+  if (!username) return null;
+  return `https://paypal.me/${encodeURIComponent(username)}/${paymentAmount(amount)}USD`;
+}
+
+function buildVenmoLink(username, amount, note) {
+  if (!username) return null;
+
+  const params = new URLSearchParams();
+  params.set("amount", paymentAmount(amount));
+  if (note) params.set("note", note);
+
+  return `https://venmo.com/${encodeURIComponent(username)}?${params.toString()}`;
+}
+
 export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid, onGoSale }) {
   const { author, rows, unpaidTotal, unpaidCount } = group;
 
@@ -32,6 +53,14 @@ export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid, onGoSale
     setPage(1);
   };
 
+  const paypalLink = buildPayPalLink(author.paypal, unpaidTotal);
+  const venmoLink = buildVenmoLink(
+    author.venmo,
+    unpaidTotal,
+    `Book royalty payment for ${author.name}`
+  );
+
+
   return (
     <Card>
       <CardContent>
@@ -43,6 +72,33 @@ export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid, onGoSale
               <span className="font-semibold text-slate-900">{money(unpaidTotal)}</span>{" "}
               ({unpaidCount} unpaid record{unpaidCount === 1 ? "" : "s"})
             </p>
+            {(author.paypal || author.venmo) && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {paypalLink && (
+                  <a
+                    href={paypalLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Pay with PayPal
+                  </a>
+                )}
+
+                {venmoLink && (
+                  <a
+                    href={venmoLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-white bg-slate-800 hover:bg-slate-900 transition"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Pay with Venmo
+                  </a>
+                )}
+              </div>
+            )}
           </div>
 
           <Button disabled={unpaidCount === 0} onClick={onMarkAllPaid}>

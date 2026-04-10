@@ -53,6 +53,17 @@ export default function BookViewMode({ book }) {
                   <span className="font-mono">{book.amazon_asin_ebook || "—"}</span>
                 </DetailField>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <DetailField label="Kickstarter tag — ebook">
+                  <span className="font-mono">{book.kickstarter_item_tag_ebook || "—"}</span>
+                </DetailField>
+                <DetailField label="Kickstarter tag — print">
+                  <span className="font-mono">{book.kickstarter_item_tag_print || "—"}</span>
+                </DetailField>
+              </div>
+              <DetailField label="Released">
+                {book.released ? "Yes" : "No"}
+              </DetailField>
               {/* {book.amazon_asin_ebook && (
                 <DetailField label="Amazon ASIN (ebook)">
                   <span className="font-mono">{book.amazon_asin_ebook}</span>

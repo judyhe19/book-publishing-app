@@ -138,6 +138,18 @@ if [[ ! -s "${RUN_DIR}/db.sql" ]]; then
   exit 1
 fi
 
+echo "--- Archiving branding images from backend container ---"
+docker exec "$BACKEND_CONTAINER" sh -c '
+  set -eu
+  test -d /app/static/img/branding
+  tar -C /app/static/img/branding -czf - .
+' > "${RUN_DIR}/branding.tar.gz"
+
+if [[ ! -s "${RUN_DIR}/branding.tar.gz" ]]; then
+  echo "Error: branding archive is empty" >&2
+  exit 1
+fi
+
 echo "--- Archiving cover art from backend container ---"
 docker exec "$BACKEND_CONTAINER" sh -c '
   set -eu
@@ -161,7 +173,8 @@ cat > "${RUN_DIR}/metadata.json" <<EOF
   "db_user": "${DB_USER}",
   "db_service": "${DB_SERVICE}",
   "backend_service": "${BACKEND_SERVICE}",
-  "container_covers_dir": "/app/static/img/covers"
+  "container_covers_dir": "/app/static/img/covers",
+  "container_branding_dir": "/app/static/img/branding"
 }
 EOF
 
@@ -172,6 +185,7 @@ ssh "${SSH_OPTS[@]}" "${BACKUP_USER}@${BACKUP_HOST}" \
 scp "${SSH_OPTS[@]}" \
   "${RUN_DIR}/db.sql" \
   "${RUN_DIR}/covers.tar.gz" \
+  "${RUN_DIR}/branding.tar.gz" \
   "${RUN_DIR}/metadata.json" \
   "${BACKUP_USER}@${BACKUP_HOST}:${REMOTE_INCOMING}/backup_${TIMESTAMP}/"
 

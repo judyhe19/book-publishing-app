@@ -46,6 +46,13 @@ export default function CreateBookPage() {
   // Amazon ASIN
   const [amazonAsin, setAmazonAsin] = useState("");
 
+  // Kickstarter tags
+  const [kickstarterTagEbook, setKickstarterTagEbook] = useState("");
+  const [kickstarterTagPrint, setKickstarterTagPrint] = useState("");
+
+  // Release status
+  const [released, setReleased] = useState(false);
+
   // Author (single author model)
   const [authorOptions, setAuthorOptions] = useState([]);
   const [authorsLoading, setAuthorsLoading] = useState(true);
@@ -134,6 +141,9 @@ export default function CreateBookPage() {
         series_position: seriesName.trim() === "" || seriesPosition === "" ? null : Number(seriesPosition),
         cover_image_path: finalCoverImagePath,
         amazon_asin_ebook: amazonAsin.trim() === "" ? null : amazonAsin.trim().toUpperCase(),
+        released,
+        kickstarter_item_tag_ebook: kickstarterTagEbook.trim() === "" ? null : kickstarterTagEbook.trim(),
+        kickstarter_item_tag_print: kickstarterTagPrint.trim() === "" ? null : kickstarterTagPrint.trim(),
       };
 
       await booksApi.createBook(payload);
@@ -241,6 +251,35 @@ export default function CreateBookPage() {
                         10-character alphanumeric identifier from Amazon (e.g. B09XYZ1234).
                       </p>
                     </FormField>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField label="Kickstarter tag — ebook (optional)">
+                        <Input
+                          value={kickstarterTagEbook}
+                          onChange={(e) => setKickstarterTagEbook(e.target.value)}
+                          placeholder="e.g. ebook-the-hobbit"
+                          maxLength={128}
+                        />
+                      </FormField>
+                      <FormField label="Kickstarter tag — print (optional)">
+                        <Input
+                          value={kickstarterTagPrint}
+                          onChange={(e) => setKickstarterTagPrint(e.target.value)}
+                          placeholder="e.g. paperback-the-hobbit"
+                          maxLength={128}
+                        />
+                      </FormField>
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <span className="text-sm font-medium text-slate-700">Released</span>
+                        <input
+                          type="checkbox"
+                          checked={released}
+                          onChange={(e) => setReleased(e.target.checked)}
+                          className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                      </label>
+                    </div>
                   </div>
                 </div>
 
@@ -295,7 +334,7 @@ export default function CreateBookPage() {
                         Changes only affect future sales.
                       </p>
                     </FormField>
-                    <FormField label="Hand-sold royalty rate (%)">
+                    <FormField label="Hand-sold/Kickstarter royalty rate (%)">
                       <Input
                         type="number"
                         min="0"

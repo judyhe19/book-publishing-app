@@ -41,6 +41,14 @@ export default function BookEditMode({
   // Amazon
   amazonAsin,
   setAmazonAsin,
+  // Kickstarter tags
+  kickstarterTagEbook,
+  setKickstarterTagEbook,
+  kickstarterTagPrint,
+  setKickstarterTagPrint,
+  // Release status
+  released,
+  setReleased,
   // Series
   seriesName,
   setSeriesName,
@@ -147,6 +155,35 @@ export default function BookEditMode({
                   10-character alphanumeric identifier from Amazon (e.g. B09XYZ1234).
                 </p>
               </FormField>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Kickstarter tag — ebook (optional)">
+                  <Input
+                    value={kickstarterTagEbook}
+                    onChange={(e) => setKickstarterTagEbook(e.target.value)}
+                    placeholder="e.g. ebook-the-hobbit"
+                    maxLength={128}
+                  />
+                </FormField>
+                <FormField label="Kickstarter tag — print (optional)">
+                  <Input
+                    value={kickstarterTagPrint}
+                    onChange={(e) => setKickstarterTagPrint(e.target.value)}
+                    placeholder="e.g. paperback-the-hobbit"
+                    maxLength={128}
+                  />
+                </FormField>
+              </div>
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <span className="text-sm font-medium text-slate-700">Released</span>
+                  <input
+                    type="checkbox"
+                    checked={released}
+                    onChange={(e) => setReleased(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </label>
+              </div>
             </div>
           </div>
 
@@ -199,7 +236,7 @@ export default function BookEditMode({
                   Changes only affect future sales.
                 </p>
               </FormField>
-              <FormField label="Hand-sold royalty rate (%)">
+              <FormField label="Hand-sold/Kickstarter royalty rate (%)">
                 <Input
                   type="number"
                   min="0"

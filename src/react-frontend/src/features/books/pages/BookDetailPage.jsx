@@ -54,6 +54,9 @@ export default function BookDetailPage() {
   const [seriesName, setSeriesName] = useState("");
   const [seriesPosition, setSeriesPosition] = useState("");
   const [seriesOptions, setSeriesOptions] = useState([]);
+  const [kickstarterTagEbook, setKickstarterTagEbook] = useState("");
+  const [kickstarterTagPrint, setKickstarterTagPrint] = useState("");
+  const [released, setReleased] = useState(false);
 
   // Populate form from book data
   function populateFormFromBook(b) {
@@ -73,6 +76,9 @@ export default function BookDetailPage() {
     setAmazonAsin(b.amazon_asin_ebook || "");
     setSeriesName(b.series_name || "");
     setSeriesPosition(b.series_position != null ? String(b.series_position) : "");
+    setKickstarterTagEbook(b.kickstarter_item_tag_ebook || "");
+    setKickstarterTagPrint(b.kickstarter_item_tag_print || "");
+    setReleased(b.released ?? false);
   }
 
   // Load book and authors
@@ -151,6 +157,9 @@ export default function BookDetailPage() {
         print_cost: printCost,
         cover_image_path: finalCoverImagePath,
         amazon_asin_ebook: amazonAsin.trim() === "" ? null : amazonAsin.trim().toUpperCase(),
+        released,
+        kickstarter_item_tag_ebook: kickstarterTagEbook.trim() === "" ? null : kickstarterTagEbook.trim(),
+        kickstarter_item_tag_print: kickstarterTagPrint.trim() === "" ? null : kickstarterTagPrint.trim(),
         series_name: seriesName.trim() === "" ? null : seriesName.trim(),
         series_position: seriesPosition === "" || seriesPosition == null ? null : Number(seriesPosition),
       };
@@ -319,6 +328,12 @@ export default function BookDetailPage() {
                 onCoverImageFileChange={setCoverImageFile}
                 amazonAsin={amazonAsin}
                 setAmazonAsin={setAmazonAsin}
+                kickstarterTagEbook={kickstarterTagEbook}
+                setKickstarterTagEbook={setKickstarterTagEbook}
+                kickstarterTagPrint={kickstarterTagPrint}
+                setKickstarterTagPrint={setKickstarterTagPrint}
+                released={released}
+                setReleased={setReleased}
                 seriesName={seriesName}
                 setSeriesName={setSeriesName}
                 seriesPosition={seriesPosition}

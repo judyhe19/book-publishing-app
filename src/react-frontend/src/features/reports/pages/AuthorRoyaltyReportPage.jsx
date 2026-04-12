@@ -271,8 +271,10 @@ function QuarterTable({ label, books, data, totals, totalsLabel = "Subtotal" }) 
           <tr>
             <th style={{ minWidth: "200px" }}>Book</th>
             <th className="num">Qty Sold<br />Print<br />Handsold</th>
+            <th className="num">Qty Sold<br />Print<br />Kickstarter</th>
             <th className="num">Qty Sold<br />Print<br />Ingram</th>
             <th className="num">Qty Sold<br />Print<br />Amazon</th>
+            <th className="num">Qty Sold<br />eBook<br />Kickstarter</th>
             <th className="num">Qty Sold<br />eBook<br />Amazon</th>
             <th className="num">Qty Sold<br />Print<br />Other</th>
             <th className="num">Qty Sold<br />eBook<br />Other</th>
@@ -295,8 +297,10 @@ function QuarterTable({ label, books, data, totals, totalsLabel = "Subtotal" }) 
                   <span className="book-title">{book.title}</span>
                 </td>
                 <td className="num">{row.quantity_sold_print_handsold ?? 0}</td>
+                <td className="num">{row.quantity_sold_print_kickstarter ?? 0}</td>
                 <td className="num">{row.quantity_sold_print_ingram_spark ?? 0}</td>
                 <td className="num">{row.quantity_sold_print_amazon ?? 0}</td>
+                <td className="num">{row.quantity_sold_ebook_kickstarter ?? 0}</td>
                 <td className="num">{row.quantity_sold_ebook_amazon ?? 0}</td>
                 <td className="num">{row.quantity_sold_print_other ?? 0}</td>
                 <td className="num">{row.quantity_sold_ebook_other ?? 0}</td>
@@ -313,8 +317,10 @@ function QuarterTable({ label, books, data, totals, totalsLabel = "Subtotal" }) 
           <tr className="totals-row">
             <td>{totalsLabel}</td>
             <td className="num">{totals[label]?.quantity_sold_print_handsold ?? 0}</td>
+            <td className="num">{totals[label]?.quantity_sold_print_kickstarter ?? 0}</td>
             <td className="num">{totals[label]?.quantity_sold_print_ingram_spark ?? 0}</td>
             <td className="num">{totals[label]?.quantity_sold_print_amazon ?? 0}</td>
+            <td className="num">{totals[label]?.quantity_sold_ebook_kickstarter ?? 0}</td>
             <td className="num">{totals[label]?.quantity_sold_ebook_amazon ?? 0}</td>
             <td className="num">{totals[label]?.quantity_sold_print_other ?? 0}</td>
             <td className="num">{totals[label]?.quantity_sold_ebook_other ?? 0}</td>
@@ -340,8 +346,10 @@ function AllBooksTable({ quarters, totals }) {
           <tr>
             <th>Quarter</th>
             <th className="num">Qty Sold<br />Print<br />Handsold</th>
+            <th className="num">Qty Sold<br />Print<br />Kickstarter</th>
             <th className="num">Qty Sold<br />Print<br />Ingram</th>
             <th className="num">Qty Sold<br />Print<br />Amazon</th>
+            <th className="num">Qty Sold<br />eBook<br />Kickstarter</th>
             <th className="num">Qty Sold<br />eBook<br />Amazon</th>
             <th className="num">Qty Sold<br />Print<br />Other</th>
             <th className="num">Qty Sold<br />eBook<br />Other</th>
@@ -359,8 +367,10 @@ function AllBooksTable({ quarters, totals }) {
               <tr key={qinfo.label}>
                 <td><span className="book-title">{qinfo.label}</span></td>
                 <td className="num">{row.quantity_sold_print_handsold ?? 0}</td>
+                <td className="num">{row.quantity_sold_print_kickstarter ?? 0}</td>
                 <td className="num">{row.quantity_sold_print_ingram_spark ?? 0}</td>
                 <td className="num">{row.quantity_sold_print_amazon ?? 0}</td>
+                <td className="num">{row.quantity_sold_ebook_kickstarter ?? 0}</td>
                 <td className="num">{row.quantity_sold_ebook_amazon ?? 0}</td>
                 <td className="num">{row.quantity_sold_print_other ?? 0}</td>
                 <td className="num">{row.quantity_sold_ebook_other ?? 0}</td>
@@ -377,8 +387,10 @@ function AllBooksTable({ quarters, totals }) {
           <tr className="totals-row">
             <td>Total</td>
             <td className="num">{totals["All Time"]?.quantity_sold_print_handsold ?? 0}</td>
+            <td className="num">{totals["All Time"]?.quantity_sold_print_kickstarter ?? 0}</td>
             <td className="num">{totals["All Time"]?.quantity_sold_print_ingram_spark ?? 0}</td>
             <td className="num">{totals["All Time"]?.quantity_sold_print_amazon ?? 0}</td>
+            <td className="num">{totals["All Time"]?.quantity_sold_ebook_kickstarter ?? 0}</td>
             <td className="num">{totals["All Time"]?.quantity_sold_ebook_amazon ?? 0}</td>
             <td className="num">{totals["All Time"]?.quantity_sold_print_other ?? 0}</td>
             <td className="num">{totals["All Time"]?.quantity_sold_ebook_other ?? 0}</td>

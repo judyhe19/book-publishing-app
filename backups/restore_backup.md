@@ -52,6 +52,7 @@ restic \
 Expected output structure:
 - /tmp/restore/.../backup_<timestamp>/db.sql
 - /tmp/restore/.../backup_<timestamp>/covers.tar.gz
+- /tmp/restore/.../backup_<timestamp>/branding.tar.gz
 - /tmp/restore/.../backup_<timestamp>/metadata.json
 
 
@@ -107,7 +108,7 @@ cat /tmp/restore/db.sql | \
   docker compose exec -T db psql -U judy -d "book-app"
 ```
 
-## 7. Restore static files (covers)
+## 7. Restore static files (covers, logos)
 
 Start backend:
 
@@ -121,6 +122,8 @@ Get container:
 ```bash
 BACKEND_CONTAINER=$(docker compose ps -q backend)
 ```
+
+### Restore Covers
 
 Clear existing files:
 
@@ -137,6 +140,25 @@ tar -xzf /tmp/restore/covers.tar.gz -C /tmp/covers-restore
 
 docker cp /tmp/covers-restore/. \
   "$BACKEND_CONTAINER":/app/static/img/covers/
+```
+
+### Restore Branding
+
+Clear existing files:
+
+```bash
+docker exec "$BACKEND_CONTAINER" mkdir -p /app/static/img/branding
+docker exec "$BACKEND_CONTAINER" sh -c 'rm -rf /app/static/img/branding/*'
+```
+
+Extract + copy:
+
+```bash
+mkdir -p /tmp/branding-restore
+tar -xzf /tmp/restore/branding.tar.gz -C /tmp/branding-restore
+
+docker cp /tmp/branding-restore/. \
+  "$BACKEND_CONTAINER":/app/static/img/branding/
 ```
 
 ## 8. Restart application
@@ -166,6 +188,7 @@ After restore:
 - No DB errors in logs
 - Data appears in UI
 - Cover images load correctly
+- Branding (logo + favicon) appears correctly in UI
 
 ## Full validation (best practice)
 
@@ -195,10 +218,16 @@ Check row counts:
 docker compose exec -T db psql -U judy -d "book-app" -c 'SELECT COUNT(*) FROM book;'
 ```
 
-Check files:
+Check cover files:
 
 ```bash
 docker exec "$BACKEND_CONTAINER" ls /app/static/img/covers
+```
+
+Check branding files:
+
+```bash
+docker exec "$BACKEND_CONTAINER" ls /app/static/img/branding
 ```
 
 ## Optional: restic integrity check
@@ -215,5 +244,6 @@ restic --repo /srv/restic/booksite-repo check
 - Always verify snapshot before restoring
 - Do not restore while app is running
 - Covers + DB must both be restored for consistency
+- Branding images are required for correct white-label display
 
 # End

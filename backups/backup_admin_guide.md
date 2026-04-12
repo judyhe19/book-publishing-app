@@ -19,7 +19,7 @@ Backup system design:
 - Push-based backups from production → backup VM
 - Uses:
   - PostgreSQL dump (`pg_dump`)
-  - Static files archive (cover images)
+  - Static files archive (cover images, logo images)
   - restic for versioned storage + retention
 - Retention policy:
   - 7 daily

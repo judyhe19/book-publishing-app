@@ -134,13 +134,15 @@ export const TABLE_COLUMNS = [
         sortKey: 'sale_source',
         className: 'w-[3%] truncate',
         render: (sale) => {
-            const label = sale.sale_source === 'handsold' ? 'Handsold' : 'Distributor';
-            const color = sale.sale_source === 'handsold'
-                ? 'bg-purple-100 text-purple-700'
-                : 'bg-blue-100 text-blue-700';
+            const SOURCE_CONFIG = {
+                distributor: { label: 'Distributor', color: 'bg-blue-100 text-blue-700' },
+                handsold:    { label: 'Handsold',    color: 'bg-purple-100 text-purple-700' },
+                kickstarter: { label: 'Kickstarter', color: 'bg-orange-100 text-orange-700' },
+            };
+            const config = SOURCE_CONFIG[sale.sale_source] || { label: sale.sale_source, color: 'bg-gray-100 text-gray-700' };
             return (
-                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${color}`} title={label}>
-                    {label}
+                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${config.color}`} title={config.label}>
+                    {config.label}
                 </span>
             );
         },

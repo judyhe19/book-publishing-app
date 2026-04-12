@@ -76,6 +76,8 @@ export default function SalesDetailPage() {
 
   const isDistributor = sale?.sale_source === "distributor";
   const isHandsold = sale?.sale_source === "handsold";
+  const isKickstarter = sale?.sale_source === "kickstarter";
+  const isComputedRevenue = isHandsold || isKickstarter;
   const isKU = form?.format === "kindle unlimited";
 
   // ---------------------------------------------------------------
@@ -86,7 +88,7 @@ export default function SalesDetailPage() {
   useEffect(() => {
     if (!form || !sale?.sale_source || !selectedBook) return;
 
-    const rate = isHandsold
+    const rate = isComputedRevenue
       ? Number(selectedBook?.hand_sold_author_royalty_rate ?? 0)
       : Number(selectedBook?.distributor_author_royalty_rate ?? 0);
     const revenue = Number(form.publisher_revenue);
@@ -98,7 +100,7 @@ export default function SalesDetailPage() {
     if (computed !== String(form.author_royalty)) {
       setForm((prev) => ({ ...prev, author_royalty: computed }));
     }
-  }, [form?.publisher_revenue, selectedBook, isDistributor, isHandsold, sale?.sale_source]);
+  }, [form?.publisher_revenue, selectedBook, isDistributor, isComputedRevenue, sale?.sale_source]);
 
   // ---------------------------------------------------------------
   // Auto-convert currency to USD when original revenue or currency changes
@@ -155,7 +157,7 @@ export default function SalesDetailPage() {
 
     // Recalculate author_royalty for the new book's royalty rate
     if (sale?.sale_source && form) {
-      const rate = isHandsold
+      const rate = isComputedRevenue
         ? Number(option?.hand_sold_author_royalty_rate ?? 0)
         : Number(option?.distributor_author_royalty_rate ?? 0);
       const revenue = Number(form.publisher_revenue);
@@ -167,9 +169,10 @@ export default function SalesDetailPage() {
 
   const handleDateChange = (newDate) => {
     handleChange("date", newDate);
-    // Clear book if its publication date is after the new sale date
-    if (selectedBook && newDate) {
-      const bookPubDate = selectedBook.publication_date;
+    // Clear book if sale date moved before publication date (released books only)
+    const bookData = selectedBook || book;
+    if (bookData?.released && newDate) {
+      const bookPubDate = bookData.publication_date;
       if (bookPubDate) {
         const [saleYear, saleMonth] = newDate.split("-").map(Number);
         const [pubYear, pubMonth] = bookPubDate.split("-").map(Number);
@@ -253,6 +256,15 @@ export default function SalesDetailPage() {
       </PageHeader>
 
       {error && <ErrorAlert variant="leftBorder" className="mb-4">{error}</ErrorAlert>}
+
+      {sale?.is_projected && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+          </svg>
+          <span><strong>Projected Sale</strong> — This book has not been released yet. Author royalties will not be paid until release.</span>
+        </div>
+      )}
 
       {form && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-5">
@@ -340,7 +352,7 @@ export default function SalesDetailPage() {
               <MonthPicker
                 value={form.date}
                 onChange={handleDateChange}
-                min={selectedBook?.publication_date || book?.publication_date}
+                min={(selectedBook?.released || book?.released) ? (selectedBook?.publication_date || book?.publication_date) : undefined}
               />
             </div>
             <div>

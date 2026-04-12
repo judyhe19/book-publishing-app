@@ -16,6 +16,7 @@ class SaleSerializer(serializers.ModelSerializer):
     book_title = serializers.CharField(source="book.title", read_only=True)
     date = MonthYearField(read_only=True)
     author_names = serializers.SerializerMethodField()
+    is_projected = serializers.SerializerMethodField()
 
     class Meta:
         model = Sale
@@ -25,6 +26,7 @@ class SaleSerializer(serializers.ModelSerializer):
             "author_paid", "comment", "author_names",
             "distributor", "format", "currency",
             "publisher_revenue_original", "kenp",
+            "is_projected",
         ]
 
     def get_author_names(self, obj):
@@ -32,6 +34,10 @@ class SaleSerializer(serializers.ModelSerializer):
         if author:
             return [author.name]
         return []
+
+    def get_is_projected(self, obj):
+        """Projected = the sale's book has not been released yet."""
+        return not getattr(obj.book, "released", True)
 
 
 class PlaceholderDecimalField(serializers.DecimalField):
@@ -281,9 +287,10 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                 })
 
         # ------------------------------------------------------------------
-        # Sale date cannot precede book publication date
+        # Sale date cannot precede book publication date (released books only)
+        # Unreleased books are exempt — their sales are pre-orders.
         # ------------------------------------------------------------------
-        if sale_date and current_book:
+        if sale_date and current_book and getattr(current_book, "released", False):
             pub = current_book.publication_date
             if (sale_date.year, sale_date.month) < (pub.year, pub.month):
                 sale_label = sale_date.strftime("%B %Y")

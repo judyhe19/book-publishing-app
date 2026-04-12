@@ -20,6 +20,7 @@ export const useBookSearch = ({ date } = {}) => {
             const params = new URLSearchParams({ q: inputValue || '' });
 
             // Filter by publication date if date is selected
+            // (backend exempts unreleased books from this filter)
             if (date) {
                 const [year, month] = date.split('-').map(Number);
                 if (year && month) {
@@ -56,6 +57,9 @@ export const useBookSearch = ({ date } = {}) => {
                     isbn_13: book.isbn_13,
                     isbn_10: book.isbn_10,
                     amazon_asin_ebook: book.amazon_asin_ebook,
+                    kickstarter_item_tag_ebook: book.kickstarter_item_tag_ebook,
+                    kickstarter_item_tag_print: book.kickstarter_item_tag_print,
+                    released: book.released,
                     author_id: book.author_id,
                     author_name: book.author_name,
                     cover_price: book.cover_price,

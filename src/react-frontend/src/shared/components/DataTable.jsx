@@ -11,6 +11,7 @@ export function DataTable({
   ordering,
   onSort,
   onRowClick,
+  rowClassName,
   emptyMessage = "No data found.",
   loadingMessage = "Loading data...",
   fixedLayout = false,
@@ -85,7 +86,7 @@ export function DataTable({
             data.map((row) => (
               <tr
                 key={row.id}
-                className={`hover:bg-gray-50 ${onRowClick ? "cursor-pointer" : ""}`}
+                className={`hover:bg-gray-50 ${onRowClick ? "cursor-pointer" : ""} ${rowClassName ? rowClassName(row) : ""}`}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
               >
                 {columns.map((col, idx) => (

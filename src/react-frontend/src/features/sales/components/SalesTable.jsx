@@ -49,16 +49,23 @@ export default function SalesTable({ data, loading, ordering, onSort, columns, o
   });
 
   return (
-    <DataTable
-      data={data}
-      columns={enhancedColumns}
-      loading={loading}
-      ordering={ordering}
-      onSort={onSort}
-      onRowClick={onRowClick}
-      emptyMessage="No sales found."
-      loadingMessage="Loading sales data..."
-      fixedLayout
-    />
+    <>
+      <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
+        <span className="inline-block w-4 h-0.5 bg-gray-300 rounded opacity-50"></span>
+        <span className="italic">Greyed-out rows are projected sales (pre-orders for unreleased books).</span>
+      </div>
+      <DataTable
+        data={data}
+        columns={enhancedColumns}
+        loading={loading}
+        ordering={ordering}
+        onSort={onSort}
+        onRowClick={onRowClick}
+        rowClassName={(row) => row.is_projected ? "opacity-50 italic" : ""}
+        emptyMessage="No sales found."
+        loadingMessage="Loading sales data..."
+        fixedLayout
+      />
+    </>
   );
 }

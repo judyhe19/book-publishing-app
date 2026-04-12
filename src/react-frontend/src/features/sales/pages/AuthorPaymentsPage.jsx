@@ -86,10 +86,10 @@ export default function AuthorPaymentsPage() {
 
       <ConfirmDialog
         open={confirm.open}
-        title="Confirm marking unpaid as paid"
+        title="Confirm marking payable sales as paid"
         body={
           confirm.author
-            ? `This will mark all unpaid royalty records for ${confirm.author.name} as paid.`
+            ? `This will mark all non-projected unpaid royalty records for ${confirm.author.name} as paid.`
             : ""
         }
         confirming={paying}

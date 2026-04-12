@@ -3,11 +3,11 @@ import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "../features/auth/store/authStore";
 import { Navbar } from "../shared/components/Navbar";
 
-export function Providers({ children }) {
+export function Providers({ branding,children }) {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Navbar />
+        <Navbar branding={branding}/>
         {children}
       </BrowserRouter>
     </AuthProvider>

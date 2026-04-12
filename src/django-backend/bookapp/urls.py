@@ -17,6 +17,8 @@ from .views.cover_image import CoverImageView
 from .views.series import SeriesListView, SeriesReorderView
 from .views.royalty_report import AuthorRoyaltyReportView
 from .views.currency import ConvertCurrencyView
+from .views.branding_image import BrandingImageView
+from .views.branding import BrandingView
 
 # ----- DRF Router -----
 router = DefaultRouter(trailing_slash=True)
@@ -85,6 +87,9 @@ urlpatterns = [
         AuthorRoyaltyReportView.as_view(),
         name="author-royalty-report",
     ),
+
+    path("branding/image/", BrandingImageView.as_view(), name="branding-image"),
+    path("branding/", BrandingView.as_view(), name="branding"),
 
 
     # Router-generated URLs for books, sales, authors

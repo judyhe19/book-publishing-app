@@ -234,7 +234,7 @@ class AuthorViewSet(ModelViewSet):
             qs = (
                 Sale.objects
                 .select_for_update()
-                .filter(book__author=author, author_paid=False)
+                .filter(book__author=author, author_paid=False, book__released=True)
             )
 
             sale_ids = list(qs.values_list("id", flat=True))

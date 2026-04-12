@@ -48,12 +48,16 @@ def make_book(*, isbn_13, title, author, series_name=None, series_position=None)
 
 def make_sale(book, date, quantity=10, revenue="100.00", source="distributor", paid=False):
     distributor = "Ingram Spark" if source == "distributor" else None
+    if source in ("handsold", "kickstarter"):
+        royalty = Decimal(revenue) * book.hand_sold_author_royalty_rate
+    else:
+        royalty = Decimal(revenue) * book.distributor_author_royalty_rate
     return Sale.objects.create(
         book=book,
         date=date,
         quantity=quantity,
         publisher_revenue=Decimal(revenue),
-        author_royalty=Decimal(revenue) * book.distributor_author_royalty_rate if source == "distributor" else Decimal(revenue) * book.hand_sold_author_royalty_rate,
+        author_royalty=royalty,
         sale_source=source,
         distributor=distributor,
         format="print",

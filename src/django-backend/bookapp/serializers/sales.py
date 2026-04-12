@@ -94,7 +94,7 @@ class SaleWriteSerializer(serializers.ModelSerializer):
         error_messages={
             "required": "Sale source is required.",
             "null": "Sale source is required.",
-            "invalid_choice": "Sale source must be 'distributor' or 'handsold'.",
+            "invalid_choice": "Sale source must be 'distributor', 'handsold', or 'kickstarter'.",
         },
     )
 
@@ -205,8 +205,8 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     "distributor": "Distributor is required for distributor sales."
                 })
-        elif current_source == "handsold":
-            # Distributor must not be set for handsold
+        elif current_source in ("handsold", "kickstarter"):
+            # Distributor must not be set for handsold or kickstarter
             if current_distributor:
                 data["distributor"] = None
 
@@ -224,6 +224,11 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     "format": "Handsold sales must use 'print' format."
                 })
+        elif current_source == "kickstarter":
+            if current_format not in ("print", "ebook"):
+                raise serializers.ValidationError({
+                    "format": "Kickstarter sales must use 'print' or 'ebook' format."
+                })
         elif current_source == "distributor" and current_distributor:
             allowed_formats = DISTRIBUTOR_FORMAT_MAP.get(current_distributor, [])
             if current_format not in allowed_formats:
@@ -233,12 +238,12 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                 })
 
         # ------------------------------------------------------------------
-        # Currency locked to USD for handsold
+        # Currency locked to USD for handsold and kickstarter
         # ------------------------------------------------------------------
-        if current_source == "handsold":
+        if current_source in ("handsold", "kickstarter"):
             if current_currency and current_currency != "USD":
                 raise serializers.ValidationError({
-                    "currency": "Currency must be USD for handsold sales."
+                    "currency": "Currency must be USD for handsold and Kickstarter sales."
                 })
             data["currency"] = "USD"
 
@@ -288,8 +293,8 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                 })
 
         # Calculate publisher_revenue
-        if current_source == "handsold":
-            # Computed entirely for handsold, ignore whatever client sends
+        if current_source in ("handsold", "kickstarter"):
+            # Computed entirely for handsold and kickstarter, ignore whatever client sends
             if current_qty is not None and current_book is not None:
                 # revenue = quantity * (cover_price - print_cost)
                 revenue = Decimal(str(current_qty)) * (current_book.cover_price - current_book.print_cost)
@@ -314,15 +319,16 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                     "publisher_revenue": "Publisher revenue is required for distributor sales."
                 })
             # On PATCH, if publisher_revenue is omitted, use the existing one for calculating royalties
-            
+
         current_revenue = data.get("publisher_revenue", instance.publisher_revenue if instance else None)
 
         if current_revenue is not None and current_source and current_book:
-            if current_source == "handsold":
+            if current_source in ("handsold", "kickstarter"):
+                # Both handsold and kickstarter use the hand_sold_author_royalty_rate
                 rate = current_book.hand_sold_author_royalty_rate
             else:
                 rate = current_book.distributor_author_royalty_rate
-                
+
             data["author_royalty"] = current_revenue * rate
 
         return data

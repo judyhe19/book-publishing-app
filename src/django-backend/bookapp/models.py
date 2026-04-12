@@ -202,6 +202,7 @@ class Sale(models.Model):
     SALE_SOURCE_CHOICES = [
         ("distributor", "Distributor"),
         ("handsold", "Handsold"),
+        ("kickstarter", "Kickstarter"),
     ]
 
     FORMAT_CHOICES = [
@@ -238,4 +239,4 @@ class Sale(models.Model):
 
     def __str__(self):
         qty = self.kenp if self.format == "kindle unlimited" else self.quantity
-        return f"{qty} x {self.book.title} on {self.date.strftime('%Y-%m')}"
+        return f"{qty} x {self.book.title} on {self.date.strftime('%Y-%m')}"  # noqa: E501

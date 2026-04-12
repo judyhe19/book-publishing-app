@@ -304,7 +304,11 @@ class SaleViewSet(ModelViewSet):
         writer.writerow(self.CSV_HEADERS)
 
         for sale in qs:
-            source_display = "Distributor" if sale.sale_source == "distributor" else "Handsold"
+            source_display = {
+                "distributor": "Distributor",
+                "handsold": "Handsold",
+                "kickstarter": "Kickstarter",
+            }.get(sale.sale_source, sale.sale_source)
             distributor_display = sale.distributor if sale.sale_source == "distributor" and sale.distributor else "N/A"
             format_display = self.FORMAT_DISPLAY.get(sale.format, sale.format or "")
 

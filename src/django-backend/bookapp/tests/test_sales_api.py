@@ -701,7 +701,8 @@ def test_export_csv_basic(authed_client, user):
     assert row[10] == "100.00"
     assert row[11] == "10.00"
     assert row[12] == "Unpaid"
-    assert row[13] == "test comment"
+    assert row[13] == "False"         # isProjected? — book is released by default
+    assert row[14] == "test comment"
 
 
 def test_export_csv_with_filters(authed_client, user):
@@ -948,5 +949,6 @@ def test_export_csv_kickstarter(authed_client, user):
     assert row[6] == "10"             # quantity
     assert row[7] == "N/A"            # KENP
     assert row[8] == "USD"
-    assert row[13] == "ks campaign"
+    assert row[13] == "False"          # isProjected?
+    assert row[14] == "ks campaign"
 

@@ -58,6 +58,7 @@ class SaleViewSet(ModelViewSet):
             sale_source = self.request.query_params.get("sale_source")
             distributor = self.request.query_params.get("distributor")
             sale_format = self.request.query_params.get("sale_format")
+            projected = self.request.query_params.get("projected")
 
             if book_id:
                 qs = qs.filter(book_id=book_id)
@@ -71,6 +72,12 @@ class SaleViewSet(ModelViewSet):
                 qs = qs.filter(distributor=distributor)
             if sale_format:
                 qs = qs.filter(format=sale_format)
+            if projected is not None:
+                # projected=true → book not released; projected=false → book released
+                if projected.lower() == "true":
+                    qs = qs.filter(book__released=False)
+                elif projected.lower() == "false":
+                    qs = qs.filter(book__released=True)
 
             # Date filtering at month/year granularity
             start_date = self.request.query_params.get("start_date")
@@ -278,12 +285,12 @@ class SaleViewSet(ModelViewSet):
         "Date", "Title", "Author", "Source", "Distributor",
         "Format", "Quantity", "KENP", "Original Currency",
         "Pub. Revenue (Original)", "Pub. Revenue (USD)",
-        "Author Royalty (USD)", "Royalty Status", "Comment",
+        "Author Royalty (USD)", "Royalty Status", "isProjected?", "Comment",
     ]
 
     FORMAT_DISPLAY = {
         "print": "Print",
-        "ebook": "eBook",
+        "ebook": "Ebook",
         "kindle unlimited": "Kindle Unlimited",
     }
 
@@ -333,6 +340,10 @@ class SaleViewSet(ModelViewSet):
             royalty_usd = f"{sale.author_royalty:.2f}" if sale.author_royalty is not None else "0.00"
 
             royalty_status = "Paid" if sale.author_paid else "Unpaid"
+
+            # isProjected? — based on book release status
+            is_projected = "True" if not getattr(sale.book, "released", True) else "False"
+
             comment = sale.comment or ""
 
             writer.writerow([
@@ -349,6 +360,7 @@ class SaleViewSet(ModelViewSet):
                 pub_rev_usd,
                 royalty_usd,
                 royalty_status,
+                is_projected,
                 comment,
             ])
 

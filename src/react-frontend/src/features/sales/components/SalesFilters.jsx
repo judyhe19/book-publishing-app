@@ -55,6 +55,7 @@ export default function SalesFilters({ filters, onDateChange, onFilterChange }) 
           <option value="">All Sources</option>
           <option value="Distributor">Distributor</option>
           <option value="Handsold">Handsold</option>
+          <option value="Kickstarter">Kickstarter</option>
         </select>
       </div>
       <div className="flex-1 max-w-sm">
@@ -81,6 +82,18 @@ export default function SalesFilters({ filters, onDateChange, onFilterChange }) 
           <option value="print">Print</option>
           <option value="ebook">eBook</option>
           <option value="kindle unlimited">Kindle Unlimited</option>
+        </select>
+      </div>
+      <div className="flex-1 max-w-sm">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Projected</label>
+        <select
+          value={filters.projected}
+          onChange={(e) => onFilterChange("projected", e.target.value)}
+          className={inputClass}
+        >
+          <option value="">All</option>
+          <option value="true">Projected Only</option>
+          <option value="false">Confirmed Only</option>
         </select>
       </div>
     </div>

@@ -30,6 +30,8 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
 
   const isDistributor = row.sale_source === "distributor";
   const isHandsold = row.sale_source === "handsold";
+  const isKickstarter = row.sale_source === "kickstarter";
+  const isComputedRevenue = isHandsold || isKickstarter;
   const isKU = row.format === "kindle unlimited";
 
   const handleField = (field, value) => onChange(index, field, value);
@@ -38,7 +40,7 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
     (option) => {
       onChange(index, "book", option);
       // Recompute derived fields for the new book
-      if (row.sale_source === "handsold") {
+      if (row.sale_source === "handsold" || row.sale_source === "kickstarter") {
         const revenue = computeHandsoldRevenue(option, row.quantity);
         onChange(index, "publisher_revenue", revenue);
       }
@@ -48,9 +50,10 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
 
   const handleSaleSourceChange = (source) => {
     handleField("sale_source", source);
-    if (source === "handsold") {
+    if (source === "handsold" || source === "kickstarter") {
       const revenue = computeHandsoldRevenue(effectiveBook, row.quantity);
       handleField("publisher_revenue", revenue);
+      handleField("currency", "USD");
     } else {
       // Clear publisher revenue so user can enter it manually
       handleField("publisher_revenue", "");
@@ -169,6 +172,7 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
               </option>
               <option value="distributor">Distributor</option>
               <option value="handsold">Handsold</option>
+              <option value="kickstarter">Kickstarter</option>
             </select>
           </div>
 
@@ -233,8 +237,8 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
                 onChange={(e) => {
                   const qty = e.target.value;
                   handleField("quantity", qty);
-                  // Recompute revenue when quantity changes for handsold
-                  if (isHandsold && effectiveBook) {
+                  // Recompute revenue when quantity changes for handsold/kickstarter
+                  if (isComputedRevenue && effectiveBook) {
                     const revenue = computeHandsoldRevenue(effectiveBook, qty);
                     handleField("publisher_revenue", revenue);
                   }

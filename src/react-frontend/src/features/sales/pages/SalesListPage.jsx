@@ -37,6 +37,7 @@ export default function SalesListPage() {
     if (filters.sale_source) activeFilters.sale_source = filters.sale_source.toLowerCase();
     if (filters.distributor) activeFilters.distributor = filters.distributor;
     if (filters.format) activeFilters.sale_format = filters.format;
+    if (filters.projected) activeFilters.projected = filters.projected;
     if (filters.ordering) activeFilters.ordering = filters.ordering;
 
     try {

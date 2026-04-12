@@ -287,9 +287,10 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                 })
 
         # ------------------------------------------------------------------
-        # Sale date cannot precede book publication date
+        # Sale date cannot precede book publication date (released books only)
+        # Unreleased books are exempt — their sales are pre-orders.
         # ------------------------------------------------------------------
-        if sale_date and current_book:
+        if sale_date and current_book and getattr(current_book, "released", False):
             pub = current_book.publication_date
             if (sale_date.year, sale_date.month) < (pub.year, pub.month):
                 sale_label = sale_date.strftime("%B %Y")

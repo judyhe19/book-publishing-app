@@ -169,9 +169,10 @@ export default function SalesDetailPage() {
 
   const handleDateChange = (newDate) => {
     handleChange("date", newDate);
-    // Clear book if its publication date is after the new sale date
-    if (selectedBook && newDate) {
-      const bookPubDate = selectedBook.publication_date;
+    // Clear book if sale date moved before publication date (released books only)
+    const bookData = selectedBook || book;
+    if (bookData?.released && newDate) {
+      const bookPubDate = bookData.publication_date;
       if (bookPubDate) {
         const [saleYear, saleMonth] = newDate.split("-").map(Number);
         const [pubYear, pubMonth] = bookPubDate.split("-").map(Number);
@@ -351,7 +352,7 @@ export default function SalesDetailPage() {
               <MonthPicker
                 value={form.date}
                 onChange={handleDateChange}
-                min={selectedBook?.publication_date || book?.publication_date}
+                min={(selectedBook?.released || book?.released) ? (selectedBook?.publication_date || book?.publication_date) : undefined}
               />
             </div>
             <div>

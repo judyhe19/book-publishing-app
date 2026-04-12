@@ -169,11 +169,12 @@ class BookViewSet(ModelViewSet):
             if author_id:
                 qs = qs.filter(author_id=author_id)
 
-            # Search (title, author name, ISBN-13, ISBN-10, Amazon ASIN)
+            # Search (title, author name, ISBN-13, ISBN-10, Amazon ASIN, Kickstarter tags)
             q = self.request.query_params.get("q")
             if q:
                 keywords = q.split()
                 for kw in keywords:
+                    # Strip dashes for ISBN/ASIN matching
                     c_kw = kw.replace("-", "").strip()
                     qs = qs.filter(
                         Q(title__icontains=kw)
@@ -182,12 +183,18 @@ class BookViewSet(ModelViewSet):
                         | Q(amazon_asin_ebook__icontains=c_kw)
                         | Q(author__name__icontains=kw)
                         | Q(series_name__icontains=kw)
+                        # Kickstarter tags: exact match (no dash stripping)
+                        | Q(kickstarter_item_tag_ebook=kw)
+                        | Q(kickstarter_item_tag_print=kw)
                     )
 
             # Optional filter: published_before
+            # Unreleased books are always included (they represent pre-order candidates)
             published_before = self.request.query_params.get("published_before")
             if published_before:
-                qs = qs.filter(publication_date__lte=published_before)
+                qs = qs.filter(
+                    Q(publication_date__lte=published_before) | Q(released=False)
+                )
 
             # Optional filter: series_name (used by Series Editor page)
             series_filter = self.request.query_params.get("series_name")

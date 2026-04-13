@@ -1,6 +1,6 @@
 // src/features/sales/components/AuthorPaymentsGroupCard.jsx
 import React, { useState } from "react";
-import { Card, CardContent, Button, Pagination, ShowAllToggle } from "../../../shared/components";
+import { Card, CardContent, Button, ShowAllToggle } from "../../../shared/components";
 import AuthorPaymentsTable from "./AuthorPaymentsTable";
 
 function money(x) {
@@ -31,9 +31,8 @@ function buildVenmoLink(username, amount, note) {
 }
 
 export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid, onGoSale }) {
-  const { author, rows, unpaidTotal, unpaidCount } = group;
+  const { author, rows, unpaidTotal, unpaidCount, projectedTotal, projectedCount } = group;
 
-  // Per-author pagination state
   const [page, setPage] = useState(1);
   const [showAllRows, setShowAllRows] = useState(false);
   const pageSize = 10;
@@ -41,7 +40,6 @@ export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid, onGoSale
   const totalRows = rows.length;
   const totalPages = Math.ceil(totalRows / pageSize);
 
-  // Get paginated rows
   const paginatedRows = showAllRows
     ? rows
     : rows.slice((page - 1) * pageSize, page * pageSize);
@@ -53,13 +51,15 @@ export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid, onGoSale
     setPage(1);
   };
 
-  const paypalLink = buildPayPalLink(author.paypal, unpaidTotal);
+  const payableTotal = unpaidTotal;
+  const payableCount = unpaidCount;
+
+  const paypalLink = buildPayPalLink(author.paypal, payableTotal);
   const venmoLink = buildVenmoLink(
     author.venmo,
-    unpaidTotal,
+    payableTotal,
     `Book royalty payment for ${author.name}`
   );
-
 
   return (
     <Card>
@@ -67,12 +67,21 @@ export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid, onGoSale
         <div className="flex justify-between items-start gap-4">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">{author.name}</h2>
+
             <p className="text-slate-600 mt-1">
               Unpaid subtotal:{" "}
-              <span className="font-semibold text-slate-900">{money(unpaidTotal)}</span>{" "}
-              ({unpaidCount} unpaid record{unpaidCount === 1 ? "" : "s"})
+              <span className="font-semibold text-slate-900">{money(payableTotal)}</span>{" "}
+              ({payableCount} unpaid record{payableCount === 1 ? "" : "s"})
             </p>
-            {(author.paypal || author.venmo) && (
+
+            <p className="text-amber-700 mt-1">
+              Projected subtotal:{" "}
+              <span className="font-semibold">{money(projectedTotal)}</span>{" "}
+              ({projectedCount} projected record{projectedCount === 1 ? "" : "s"}) — not eligible
+              for payment yet
+            </p>
+
+            {(author.paypal || author.venmo) && payableCount > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {paypalLink && (
                   <a
@@ -101,15 +110,14 @@ export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid, onGoSale
             )}
           </div>
 
-          <Button disabled={unpaidCount === 0} onClick={onMarkAllPaid}>
-            Mark all unpaid as paid
+          <Button disabled={payableCount === 0} onClick={onMarkAllPaid}>
+            Mark payable sales as paid
           </Button>
         </div>
 
         <div className="mt-4">
           <AuthorPaymentsTable rows={paginatedRows} onGoSale={onGoSale} />
 
-          {/* Per-author pagination controls */}
           {totalRows > pageSize && (
             <div className="mt-3 flex items-center justify-between text-sm">
               <span className="text-slate-600">

@@ -176,3 +176,67 @@ This includes:
 - Restarting the application
 - Validating the restored system
 
+## 7. Whitelabel
+
+This application supports white-labeling via server-side configuration, allowing the publisher name, application title, logo, and favicon to be changed without modifying any source code.
+
+### 7.1 Overview
+
+Branding is controlled through:
+- Environment variables in the `.env` file
+- Image files stored on the server in the backend static directory
+
+The frontend dynamically fetches branding information from the backend at runtime, so any updates are reflected automatically after restarting the application.
+
+### 7.2 Configuration
+
+Edit the `.env` file in the deployment directory:
+
+```bash
+cd ~/book-app-deployment
+nano .env
+```
+
+Add or update the following fields:
+
+```bash
+PUBLISHER_NAME=Hypothetical Publishing
+APP_TITLE=Hypothetical Publishing
+PUBLISHER_LOGO_PATH=/static/img/branding/logo.png
+PUBLISHER_FAVICON_PATH=/static/img/branding/logo.png
+```
+
+### 7.3 Updating Branding Images
+
+Place your branding image(s) in the backend container’s static directory:
+
+```bash
+/static/img/branding/
+```
+
+For example:
+
+```bash
+logo.png
+acme-logo.png
+publisher.svg
+```
+
+### 7.4 Applying Changes
+
+After updating the `.env` file and/or branding images, restart the application.
+
+```bash
+docker compose down
+docker compose up -d
+```
+
+This restart is required because environment variables are loaded at application startup.
+
+### 7.5 Result
+
+After restarting:
+- The navbar will display the new publisher name and logo
+- The browser tab title will update
+- The favicon will update
+- All branding will reflect the new publisher configuration

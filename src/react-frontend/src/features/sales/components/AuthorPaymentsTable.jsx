@@ -36,6 +36,17 @@ const getColumns = () => [
     className: "text-right whitespace-nowrap",
     render: (r) => `$${r.author.royalty_amount}`,
   },
+{
+  label: "Eligibility",
+  render: (r) =>
+    r.paid ? (
+      <span className="text-slate-500 font-medium">Already Paid</span>
+    ) : r.projected ? (
+      <span className="text-amber-700 font-medium">Projected</span>
+    ) : (
+      <span className="text-emerald-700 font-medium">Payable</span>
+    ),
+},
   {
     label: "Payment Status",
     render: (r) => (

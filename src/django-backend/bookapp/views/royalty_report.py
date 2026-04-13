@@ -58,6 +58,21 @@ def _aggregate_sales(sales_qs):
             Value(0),
             output_field=IntegerField(),
         ),
+        quantity_sold_print_kickstarter=Coalesce(
+            Sum(
+                Case(
+                    When(
+                        sale_source="kickstarter",
+                        format="print",
+                        then=Coalesce(F("quantity"), Value(0)),
+                    ),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+            ),
+            Value(0),
+            output_field=IntegerField(),
+        ),
         quantity_sold_print_ingram_spark=Coalesce(
             Sum(
                 Case(
@@ -81,6 +96,21 @@ def _aggregate_sales(sales_qs):
                         sale_source="distributor",
                         distributor="Amazon",
                         format="print",
+                        then=Coalesce(F("quantity"), Value(0)),
+                    ),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+            ),
+            Value(0),
+            output_field=IntegerField(),
+        ),
+        quantity_sold_ebook_kickstarter=Coalesce(
+            Sum(
+                Case(
+                    When(
+                        sale_source="kickstarter",
+                        format="ebook",
                         then=Coalesce(F("quantity"), Value(0)),
                     ),
                     default=Value(0),
@@ -185,16 +215,20 @@ def _aggregate_sales(sales_qs):
 
     quantity_sold_total = (
         agg["quantity_sold_print_handsold"]
+        + agg["quantity_sold_print_kickstarter"]
         + agg["quantity_sold_print_ingram_spark"]
         + agg["quantity_sold_print_amazon"]
+        + agg["quantity_sold_ebook_kickstarter"]
         + agg["quantity_sold_ebook_amazon"]
         + agg["quantity_sold_print_other"]
         + agg["quantity_sold_ebook_other"]
     )
     return {
         "quantity_sold_print_handsold": agg["quantity_sold_print_handsold"],
-        "quantity_sold_print_ingram_spark":agg["quantity_sold_print_ingram_spark"],
+        "quantity_sold_print_kickstarter": agg["quantity_sold_print_kickstarter"],
+        "quantity_sold_print_ingram_spark": agg["quantity_sold_print_ingram_spark"],
         "quantity_sold_print_amazon": agg["quantity_sold_print_amazon"],
+        "quantity_sold_ebook_kickstarter": agg["quantity_sold_ebook_kickstarter"],
         "quantity_sold_ebook_amazon": agg["quantity_sold_ebook_amazon"],
         "quantity_sold_print_other": agg["quantity_sold_print_other"],
         "quantity_sold_ebook_other": agg["quantity_sold_ebook_other"],

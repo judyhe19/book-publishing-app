@@ -85,17 +85,18 @@ class AuthorPaymentsViewSet(ViewSet):
             )
 
         # Sales rows for these authors (Evolution 2: book has single author FK)
+        # Exclude projected sales (unreleased books)
         rows_qs = (
             Sale.objects
-            .filter(book__author_id__in=author_ids)
+            .filter(book__author_id__in=author_ids, book__released=True)
             .select_related("book", "book__author")
             .order_by("book__author__name", "book__author_id", "-date", "-id")
         )
 
-        # Aggregate unpaid totals/counts keyed by author_id
+        # Aggregate unpaid totals/counts keyed by author_id (exclude unreleased books)
         unpaid_agg = (
             Sale.objects
-            .filter(book__author_id__in=author_ids, author_paid=False)
+            .filter(book__author_id__in=author_ids, book__released=True, author_paid=False)
             .values("book__author_id")
             .annotate(
                 unpaid_total=Sum(

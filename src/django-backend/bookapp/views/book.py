@@ -100,22 +100,23 @@ class BookViewSet(ModelViewSet):
             .values("total")[:1]
         )
 
+        # Only include royalties for released books (exclude projected/pre-order sales)
         royalty_total_sq = (
-            Sale.objects.filter(book_id=OuterRef("pk"))
+            Sale.objects.filter(book_id=OuterRef("pk"), book__released=True)
             .values("book_id")
             .annotate(total=Coalesce(Sum("author_royalty"), Value(0), output_field=DEC2))
             .values("total")[:1]
         )
 
         royalty_paid_sq = (
-            Sale.objects.filter(book_id=OuterRef("pk"), author_paid=True)
+            Sale.objects.filter(book_id=OuterRef("pk"), book__released=True, author_paid=True)
             .values("book_id")
             .annotate(total=Coalesce(Sum("author_royalty"), Value(0), output_field=DEC2))
             .values("total")[:1]
         )
 
         royalty_unpaid_sq = (
-            Sale.objects.filter(book_id=OuterRef("pk"), author_paid=False)
+            Sale.objects.filter(book_id=OuterRef("pk"), book__released=True, author_paid=False)
             .values("book_id")
             .annotate(total=Coalesce(Sum("author_royalty"), Value(0), output_field=DEC2))
             .values("total")[:1]

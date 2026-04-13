@@ -260,8 +260,8 @@ class AuthorRoyaltyReportView(APIView):
         for y, q in _enumerate_quarters(start_year, start_quarter, end_year, end_quarter):
             quarters.append({"year": y, "quarter": q, "label": f"{y} Q{q}"})
 
-        # All sales for this author's books
-        all_author_sales = Sale.objects.filter(book__author=author)
+        # All sales for this author's released books (exclude projected/pre-order sales)
+        all_author_sales = Sale.objects.filter(book__author=author, book__released=True)
 
         # Overall date range for the selected period
         overall_start, _ = _quarter_date_range(start_year, start_quarter)

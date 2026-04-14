@@ -60,6 +60,16 @@ export async function importAmazonXLSX(file) {
 }
 
 /**
+ * Upload a Backerkit XLSX for validation + preview.
+ * Rows are rolled up into aggregate kickstarter sales records.
+ */
+export async function importBackerkitXLSX(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiFormFetch("/api/sales/import-backerkit-xlsx/", formData);
+}
+
+/**
  * Convert a given amount and currency to USD.
  */
 export function convertCurrency(amount, currency) {

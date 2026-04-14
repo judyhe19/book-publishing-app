@@ -65,6 +65,9 @@ export default function SalesListPage() {
           <Button variant="success" onClick={() => navigate("/sales/import-xlsx")}>
             Import from XLSX
           </Button>
+          <Button variant="success" onClick={() => navigate("/sales/import-backerkit")}>
+            Import from Backerkit
+          </Button>
           <Button variant="warning" onClick={handleExportCSV}>
             Export CSV
           </Button>

@@ -8,6 +8,7 @@ import SalesListPage from "../features/sales/pages/SalesListPage";
 import SalesInputPage from "../features/sales/pages/SalesInputPage";
 import IngramCSVImportPage from "../features/sales/pages/IngramCSVImportPage";
 import AmazonXLSXImportPage from "../features/sales/pages/AmazonXLSXImportPage";
+import BackerkitXLSXImportPage from "../features/sales/pages/BackerkitXLSXImportPage";
 import AuthorPaymentsPage from "../features/sales/pages/AuthorPaymentsPage";
 import SalesDetailPage from "../features/sales/pages/SalesDetailPage";
 import { RequireAuth } from "../features/auth/routes/RequireAuth";
@@ -108,6 +109,15 @@ export function AppRoutes() {
         element={
           <RequireAuth>
             <AmazonXLSXImportPage />
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/sales/import-backerkit"
+        element={
+          <RequireAuth>
+            <BackerkitXLSXImportPage />
           </RequireAuth>
         }
       />

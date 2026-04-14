@@ -1,7 +1,7 @@
 // src/features/sales/pages/BackerkitXLSXImportPage.jsx
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Card, CardContent, ErrorAlert } from "../../../shared/components";
+import { Button, Card, CardContent, ErrorAlert, ConfirmDialog } from "../../../shared/components";
 import { importBackerkitXLSX, createManySales } from "../api/salesApi";
 import { formatMonthYear } from "../../../shared/utils/salesUtils";
 import { formatMoney } from "../../../shared/utils/formatUtils";
@@ -37,11 +37,13 @@ export default function BackerkitXLSXImportPage() {
   const [errors, setErrors] = useState(null);   // string or string[]
   const [skippedRowWarnings, setSkippedRowWarnings] = useState([]);
   const [unknownTagWarnings, setUnknownTagWarnings] = useState([]);
-  const [unknownTagsAcknowledged, setUnknownTagsAcknowledged] = useState(false);
 
   // Step 2 state: preview
   const [previewRows, setPreviewRows] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [showWarningModal, setShowWarningModal] = useState(false);
+
+  const allWarnings = [...skippedRowWarnings, ...unknownTagWarnings];
 
   const handleFileChange = (e) => {
     setFile(e.target.files?.[0] || null);
@@ -49,7 +51,6 @@ export default function BackerkitXLSXImportPage() {
     setErrors(null);
     setSkippedRowWarnings([]);
     setUnknownTagWarnings([]);
-    setUnknownTagsAcknowledged(false);
   };
 
   const handleValidate = async () => {
@@ -57,7 +58,6 @@ export default function BackerkitXLSXImportPage() {
     setSkippedRowWarnings([]);
     setUnknownTagWarnings([]);
     setPreviewRows(null);
-    setUnknownTagsAcknowledged(false);
 
     if (!file) {
       setErrors("Please select an XLSX file.");
@@ -87,10 +87,11 @@ export default function BackerkitXLSXImportPage() {
     }
   };
 
-  const handleConfirmImport = async () => {
+  const doImport = async () => {
     if (!previewRows?.length) return;
 
     setImporting(true);
+    setShowWarningModal(false);
     setErrors(null);
     try {
       const salesData = previewRows.map((row) => ({
@@ -117,20 +118,23 @@ export default function BackerkitXLSXImportPage() {
     }
   };
 
+  const handleConfirmImport = () => {
+    if (!previewRows?.length) return;
+    if (allWarnings.length > 0) {
+      setShowWarningModal(true);
+    } else {
+      doImport();
+    }
+  };
+
   const handleReset = () => {
     setFile(null);
     setPreviewRows(null);
     setErrors(null);
     setSkippedRowWarnings([]);
     setUnknownTagWarnings([]);
-    setUnknownTagsAcknowledged(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
-
-  // Confirm is blocked only when unknown tags exist and haven't been acknowledged
-  const canConfirm =
-    previewRows?.length > 0 &&
-    (!unknownTagWarnings.length || unknownTagsAcknowledged);
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -183,8 +187,8 @@ export default function BackerkitXLSXImportPage() {
         </ErrorAlert>
       )}
 
-      {/* Skipped rows — informational, no acknowledgement required */}
-      {skippedRowWarnings.length > 0 && (
+      {/* Skipped rows — informational */}
+      {skippedRowWarnings.length > 0 && !errors && (
         <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4">
           <p className="text-sm font-medium text-amber-800 mb-2">
             The following rows were skipped because their pledge status was unsuccessful:
@@ -197,28 +201,18 @@ export default function BackerkitXLSXImportPage() {
         </div>
       )}
 
-      {/* Unknown item tags — requires acknowledgement before confirming */}
-      {unknownTagWarnings.length > 0 && (
+      {/* Unknown item tags — informational */}
+      {unknownTagWarnings.length > 0 && !errors && (
         <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4">
           <p className="text-sm font-medium text-amber-800 mb-2">
             The following Kickstarter item tags were not matched to any book (e.g. swag or
-            non-royalty items). Please confirm they do not represent any books before
-            proceeding.
+            non-royalty items). You will be asked to confirm before importing.
           </p>
-          <ul className="list-disc list-inside space-y-1 mb-3">
+          <ul className="list-disc list-inside space-y-1">
             {unknownTagWarnings.map((w, i) => (
               <li key={i} className="text-sm text-amber-700">{w}</li>
             ))}
           </ul>
-          <label className="flex items-center gap-2 text-sm text-amber-800 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={unknownTagsAcknowledged}
-              onChange={(e) => setUnknownTagsAcknowledged(e.target.checked)}
-              className="h-4 w-4 rounded border-amber-400 text-amber-600 focus:ring-amber-500"
-            />
-            I confirm these tags do not represent any books
-          </label>
         </div>
       )}
 
@@ -313,12 +307,32 @@ export default function BackerkitXLSXImportPage() {
             <Button variant="secondary" onClick={handleReset}>
               Cancel
             </Button>
-            <Button onClick={handleConfirmImport} disabled={importing || !canConfirm}>
+            <Button onClick={handleConfirmImport} disabled={importing || !previewRows?.length}>
               {importing ? "Importing..." : `Confirm Import (${previewRows.length})`}
             </Button>
           </div>
         </>
       )}
+
+      {/* Warning confirmation modal */}
+      <ConfirmDialog
+        open={showWarningModal}
+        title="Warnings — proceed with import?"
+        confirmText="Yes, import"
+        onCancel={() => setShowWarningModal(false)}
+        onConfirm={doImport}
+        confirming={importing}
+      >
+        <p className="text-slate-600 mb-3">
+          The following warnings were raised. Do you still want to import the
+          remaining records?
+        </p>
+        <ul className="list-disc list-inside space-y-1 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3">
+          {allWarnings.map((w, i) => (
+            <li key={i}>{w}</li>
+          ))}
+        </ul>
+      </ConfirmDialog>
     </div>
   );
 }

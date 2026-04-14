@@ -22,9 +22,14 @@ const getColumns = () => [
     render: (r) => formatMonthYear(r.sale.date),
   },
   {
-    label: "Quantity",
+    label: "QTY / KENP",
     className: "text-right whitespace-nowrap",
-    render: (r) => r.sale.quantity,
+    render: (r) => {
+      if (r.sale.format === "kindle unlimited" && r.sale.kenp != null) {
+        return `${r.sale.kenp} Pg`;
+      }
+      return r.sale.quantity != null ? r.sale.quantity : <span className="text-gray-400">—</span>;
+    }
   },
   {
     label: "Revenue",

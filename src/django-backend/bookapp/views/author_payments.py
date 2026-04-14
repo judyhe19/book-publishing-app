@@ -168,6 +168,8 @@ class AuthorPaymentsViewSet(ViewSet):
                     "book_title": sale.book.title if sale.book else "",
                     "date": sale.date.strftime("%Y-%m") if sale.date else "",
                     "quantity": sale.quantity,
+                    "kenp": sale.kenp,
+                    "format": sale.format,
                     "publisher_revenue": str(q2(sale.publisher_revenue)),
                     "projected": is_projected,
                 },

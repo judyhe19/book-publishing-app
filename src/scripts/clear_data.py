@@ -16,7 +16,7 @@ ENV_URLS = {
     "prod": "https://vcm-51887.vm.duke.edu"
 }
 USERNAME = "admin"
-PASSWORD = "458group2"
+PASSWORD = "password"
 
 
 def get_session(base_url, username, password):

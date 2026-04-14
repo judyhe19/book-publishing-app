@@ -184,9 +184,8 @@ class BookViewSet(ModelViewSet):
                         | Q(amazon_asin_ebook__icontains=c_kw)
                         | Q(author__name__icontains=kw)
                         | Q(series_name__icontains=kw)
-                        # Kickstarter tags: exact match (no dash stripping)
-                        | Q(kickstarter_item_tag_ebook=kw)
-                        | Q(kickstarter_item_tag_print=kw)
+                        | Q(kickstarter_item_tag_ebook__icontains=kw)
+                        | Q(kickstarter_item_tag_print__icontains=kw)
                     )
 
             # Optional filter: published_before

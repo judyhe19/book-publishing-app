@@ -17,7 +17,7 @@ export default function BooksToolbar({ q, onChangeQ }) {
           <Input
             value={q}
             onChange={(e) => onChangeQ(e.target.value)}
-            placeholder="Search title, author, series, ISBN…"
+            placeholder="Search title, author, series, ISBN, KS tag…"
           />
         </div>
 

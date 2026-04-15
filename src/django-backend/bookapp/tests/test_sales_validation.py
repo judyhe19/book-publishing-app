@@ -31,6 +31,7 @@ def sample_book(user):
         hand_sold_author_royalty_rate=Decimal("0.20"),
         cover_price=Decimal("20.00"),
         print_cost=Decimal("10.00"),
+        released=True,
     )
     return book
 

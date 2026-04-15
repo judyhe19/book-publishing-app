@@ -46,7 +46,7 @@ export function Navbar({ branding }) {
               <Link className="text-sm text-slate-700 hover:text-slate-900" to="/series">
                 Series
               </Link>
-              <Link className="text-sm text-slate-700 hover:text-slate-900" to="/reports/royalty">
+              <Link className="text-sm text-slate-700 hover:text-slate-900" to="/reports">
                 Reports
               </Link>
               <Link className="text-sm text-slate-700 hover:text-slate-900" to="/changepassword">

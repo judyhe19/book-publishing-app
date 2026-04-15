@@ -63,13 +63,13 @@ export default function SalesListPage() {
           >
             💰 Author Payments
           </Button>
-          <Button variant="success" to="/sales/import-csv">
+          <Button variant="primary" to="/sales/import-csv">
             Import from CSV
           </Button>
-          <Button variant="success" to="/sales/import-xlsx">
+          <Button variant="primary" to="/sales/import-xlsx">
             Import from XLSX
           </Button>
-          <Button variant="success" to="/sales/import-backerkit">
+          <Button variant="primary" to="/sales/import-backerkit">
             Import from Backerkit
           </Button>
           <Button variant="warning" onClick={handleExportCSV}>

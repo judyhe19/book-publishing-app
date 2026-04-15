@@ -1,6 +1,5 @@
 // src/features/sales/pages/AuthorPaymentsPage.jsx
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Button,
   Card,
@@ -15,7 +14,6 @@ import { useAuthorPayments } from "../hooks/useAuthorPayments";
 import { AuthorPaymentsGroupList } from "../components";
 
 export default function AuthorPaymentsPage() {
-  const navigate = useNavigate();
   const {
     loading,
     authorGroups,
@@ -32,19 +30,16 @@ export default function AuthorPaymentsPage() {
     payAllUnpaidForAuthor,
   } = useAuthorPayments();
 
-  const onGoBook = (bookId) => navigate(`/books/${bookId}`);
-  const onGoSale = (saleId) => navigate(`/sale/${saleId}`);
-
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <PageHeader
         title="Author Payments"
         subtitle="Grouped by author. Review unpaid royalties and mark them paid."
       >
-        <Button variant="secondary" onClick={() => navigate("/sales")}>
+        <Button variant="secondary" to="/sales">
           Sales Records
         </Button>
-        <Button onClick={() => navigate("/sales/input")}>Input New Sales</Button>
+        <Button to="/sales/input">Input New Sales</Button>
       </PageHeader>
 
       {loading ? (
@@ -68,8 +63,6 @@ export default function AuthorPaymentsPage() {
             <AuthorPaymentsGroupList
               groups={authorGroups}
               onMarkAllPaid={openConfirm}
-              onGoBook={onGoBook}
-              onGoSale={onGoSale}
             />
 
             {!showAll && (
@@ -88,10 +81,10 @@ export default function AuthorPaymentsPage() {
 
       <ConfirmDialog
         open={confirm.open}
-        title="Confirm marking unpaid as paid"
+        title="Confirm marking payable sales as paid"
         body={
           confirm.author
-            ? `This will mark all unpaid royalty records for ${confirm.author.name} as paid.`
+            ? `This will mark all non-projected unpaid royalty records for ${confirm.author.name} as paid.`
             : ""
         }
         confirming={paying}

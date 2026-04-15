@@ -1,6 +1,6 @@
 // src/features/sales/components/AuthorPaymentsGroupCard.jsx
 import React, { useState } from "react";
-import { Card, CardContent, Button, Pagination, ShowAllToggle } from "../../../shared/components";
+import { Card, CardContent, Button, ShowAllToggle } from "../../../shared/components";
 import AuthorPaymentsTable from "./AuthorPaymentsTable";
 
 function money(x) {
@@ -9,10 +9,30 @@ function money(x) {
   return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
-export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid, onGoBook, onGoSale }) {
-  const { author, rows, unpaidTotal, unpaidCount } = group;
+function paymentAmount(x) {
+  const n = Number(x);
+  if (Number.isNaN(n)) return "0.00";
+  return n.toFixed(2);
+}
 
-  // Per-author pagination state
+function buildPayPalLink(username, amount) {
+  if (!username) return null;
+  return `https://paypal.me/${encodeURIComponent(username)}/${paymentAmount(amount)}USD`;
+}
+
+function buildVenmoLink(username, amount, note) {
+  if (!username) return null;
+
+  const params = new URLSearchParams();
+  params.set("amount", paymentAmount(amount));
+  if (note) params.set("note", note);
+
+  return `https://venmo.com/${encodeURIComponent(username)}?${params.toString()}`;
+}
+
+export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid }) {
+  const { author, rows, unpaidTotal, unpaidCount, projectedTotal, projectedCount } = group;
+
   const [page, setPage] = useState(1);
   const [showAllRows, setShowAllRows] = useState(false);
   const pageSize = 10;
@@ -20,7 +40,6 @@ export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid, onGoBook
   const totalRows = rows.length;
   const totalPages = Math.ceil(totalRows / pageSize);
 
-  // Get paginated rows
   const paginatedRows = showAllRows
     ? rows
     : rows.slice((page - 1) * pageSize, page * pageSize);
@@ -32,28 +51,73 @@ export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid, onGoBook
     setPage(1);
   };
 
+  const payableTotal = unpaidTotal;
+  const payableCount = unpaidCount;
+
+  const paypalLink = buildPayPalLink(author.paypal, payableTotal);
+  const venmoLink = buildVenmoLink(
+    author.venmo,
+    payableTotal,
+    `Book royalty payment for ${author.name}`
+  );
+
   return (
     <Card>
       <CardContent>
         <div className="flex justify-between items-start gap-4">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">{author.name}</h2>
+
             <p className="text-slate-600 mt-1">
               Unpaid subtotal:{" "}
-              <span className="font-semibold text-slate-900">{money(unpaidTotal)}</span>{" "}
-              ({unpaidCount} unpaid record{unpaidCount === 1 ? "" : "s"})
+              <span className="font-semibold text-slate-900">{money(payableTotal)}</span>{" "}
+              ({payableCount} unpaid record{payableCount === 1 ? "" : "s"})
             </p>
+
+            <p className="text-amber-700 mt-1">
+              Projected subtotal:{" "}
+              <span className="font-semibold">{money(projectedTotal)}</span>{" "}
+              ({projectedCount} projected record{projectedCount === 1 ? "" : "s"}) — not eligible
+              for payment yet
+            </p>
+
+            {(author.paypal || author.venmo) && payableCount > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {paypalLink && (
+                  <a
+                    href={paypalLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Pay with PayPal
+                  </a>
+                )}
+
+                {venmoLink && (
+                  <a
+                    href={venmoLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-white bg-slate-800 hover:bg-slate-900 transition"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Pay with Venmo
+                  </a>
+                )}
+              </div>
+            )}
           </div>
 
-          <Button disabled={unpaidCount === 0} onClick={onMarkAllPaid}>
-            Mark all unpaid as paid
+          <Button disabled={payableCount === 0} onClick={onMarkAllPaid}>
+            Mark payable sales as paid
           </Button>
         </div>
 
         <div className="mt-4">
-          <AuthorPaymentsTable rows={paginatedRows} onGoBook={onGoBook} onGoSale={onGoSale} />
+          <AuthorPaymentsTable rows={paginatedRows} />
 
-          {/* Per-author pagination controls */}
           {totalRows > pageSize && (
             <div className="mt-3 flex items-center justify-between text-sm">
               <span className="text-slate-600">

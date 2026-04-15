@@ -1,18 +1,20 @@
 // src/features/sales/components/AuthorPaymentsTable.jsx
 import React from "react";
+import { Link } from "react-router-dom";
 import { formatMonthYear } from "../../../shared/utils/dateUtils";
 import { DataTable, PaymentStatusBadge } from "../../../shared/components";
 
-const getColumns = (onGoBook) => [
+const getColumns = () => [
   {
     label: "Book Title",
     render: (r) => (
-      <button
-        className="font-medium text-blue-600"
-        onClick={(e) => { e.stopPropagation(); onGoBook(r.sale.book); }}
+      <Link
+        to={`/books/${r.sale.book}`}
+        className="font-medium text-blue-600 underline hover:text-blue-800"
+        onClick={(e) => e.stopPropagation()}
       >
         {r.sale.book_title}
-      </button>
+      </Link>
     ),
   },
   {
@@ -20,9 +22,14 @@ const getColumns = (onGoBook) => [
     render: (r) => formatMonthYear(r.sale.date),
   },
   {
-    label: "Quantity",
+    label: "QTY / KENP",
     className: "text-right whitespace-nowrap",
-    render: (r) => r.sale.quantity,
+    render: (r) => {
+      if (r.sale.format === "kindle unlimited" && r.sale.kenp != null) {
+        return `${r.sale.kenp} Pg`;
+      }
+      return r.sale.quantity != null ? r.sale.quantity : <span className="text-gray-400">—</span>;
+    }
   },
   {
     label: "Revenue",
@@ -34,6 +41,17 @@ const getColumns = (onGoBook) => [
     className: "text-right whitespace-nowrap",
     render: (r) => `$${r.author.royalty_amount}`,
   },
+{
+  label: "Eligibility",
+  render: (r) =>
+    r.paid ? (
+      <span className="text-slate-500 font-medium">Already Paid</span>
+    ) : r.projected ? (
+      <span className="text-amber-700 font-medium">Projected</span>
+    ) : (
+      <span className="text-emerald-700 font-medium">Payable</span>
+    ),
+},
   {
     label: "Payment Status",
     render: (r) => (
@@ -42,10 +60,10 @@ const getColumns = (onGoBook) => [
   },
 ];
 
-export default function AuthorPaymentsTable({ rows, onGoBook, onGoSale }) {
+export default function AuthorPaymentsTable({ rows }) {
   const columns = React.useMemo(
-    () => getColumns(onGoBook),
-    [onGoBook]
+    () => getColumns(),
+    []
   );
 
   // DataTable uses `row.id` for the key, so we need to inject an id
@@ -58,7 +76,7 @@ export default function AuthorPaymentsTable({ rows, onGoBook, onGoSale }) {
     <DataTable
       data={dataWithId}
       columns={columns}
-      onRowClick={(r) => onGoSale(r.sale.id)}
+      rowTo={(r) => `/sale/${r.sale.id}`}
       emptyMessage="No author payments found."
     />
   );

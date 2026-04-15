@@ -1,7 +1,8 @@
 // src/features/sales/pages/SalesListPage.jsx
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { useSalesList } from "../hooks/useSalesList";
+import { exportSalesCSV } from "../api/salesApi";
 import { SalesFilters, SalesTable } from "../components";
 import {
   Button,
@@ -13,7 +14,8 @@ import {
 } from "../../../shared/components";
 
 export default function SalesListPage() {
-  const navigate = useNavigate();
+  const location = useLocation();
+  const returnToParam = encodeURIComponent(location.pathname + location.search);
   const {
     sales,
     loading,
@@ -28,6 +30,25 @@ export default function SalesListPage() {
     toggleShowAll,
   } = useSalesList();
 
+  const handleExportCSV = useCallback(async () => {
+    const activeFilters = {};
+    if (filters.start_date) activeFilters.start_date = filters.start_date;
+    if (filters.end_date) activeFilters.end_date = filters.end_date;
+    if (filters.author_name) activeFilters.author_name = filters.author_name;
+    if (filters.sale_source) activeFilters.sale_source = filters.sale_source.toLowerCase();
+    if (filters.distributor) activeFilters.distributor = filters.distributor;
+    if (filters.format) activeFilters.sale_format = filters.format;
+    if (filters.projected) activeFilters.projected = filters.projected;
+    if (filters.ordering) activeFilters.ordering = filters.ordering;
+
+    try {
+      await exportSalesCSV(new URLSearchParams(activeFilters).toString());
+    } catch (err) {
+      console.error("CSV export failed:", err);
+      alert("Failed to export CSV. Please try again.");
+    }
+  }, [filters]);
+
   return (
     <div className="p-6 max-w-full mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -36,16 +57,25 @@ export default function SalesListPage() {
           <p className="text-slate-500 mt-1">Manage and view your book sales.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => navigate("/sales/authors")}>
-            Author Payments
+          <Button
+            className="bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-400"
+            to="/sales/authors"
+          >
+            💰 Author Payments
           </Button>
-          <Button variant="success" onClick={() => navigate("/sales/import-csv")}>
+          <Button variant="success" to="/sales/import-csv">
             Import from CSV
           </Button>
-          <Button variant="success" onClick={() => navigate("/sales/import-xlsx")}>
+          <Button variant="success" to="/sales/import-xlsx">
             Import from XLSX
           </Button>
-          <Button onClick={() => navigate("/sales/input")}>Input New Sales</Button>
+          <Button variant="success" to="/sales/import-backerkit">
+            Import from Backerkit
+          </Button>
+          <Button variant="warning" onClick={handleExportCSV}>
+            Export CSV
+          </Button>
+          <Button to="/sales/input">Input New Sales</Button>
         </div>
       </div>
 
@@ -61,13 +91,13 @@ export default function SalesListPage() {
             <ShowAllToggle showAll={showAll} onToggle={toggleShowAll} />
           </div>
 
-          <DualScrollContainer contentWidth={2200} className="mt-4">
+          <DualScrollContainer contentWidth={1100} className="mt-4">
             <SalesTable
               data={sales}
               loading={loading}
               ordering={filters.ordering}
               onSort={handleSort}
-              onRowClick={(sale) => navigate(`/sale/${sale.id}?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
+              rowTo={(sale) => `/sale/${sale.id}?returnTo=${returnToParam}`}
             />
           </DualScrollContainer>
 

@@ -30,6 +30,8 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
 
   const isDistributor = row.sale_source === "distributor";
   const isHandsold = row.sale_source === "handsold";
+  const isKickstarter = row.sale_source === "kickstarter";
+  const isComputedRevenue = isHandsold || isKickstarter;
   const isKU = row.format === "kindle unlimited";
 
   const handleField = (field, value) => onChange(index, field, value);
@@ -38,7 +40,7 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
     (option) => {
       onChange(index, "book", option);
       // Recompute derived fields for the new book
-      if (row.sale_source === "handsold") {
+      if (row.sale_source === "handsold" || row.sale_source === "kickstarter") {
         const revenue = computeHandsoldRevenue(option, row.quantity);
         onChange(index, "publisher_revenue", revenue);
       }
@@ -48,9 +50,19 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
 
   const handleSaleSourceChange = (source) => {
     handleField("sale_source", source);
-    if (source === "handsold") {
+    if (source === "handsold" || source === "kickstarter") {
       const revenue = computeHandsoldRevenue(effectiveBook, row.quantity);
       handleField("publisher_revenue", revenue);
+      handleField("currency", "USD");
+      // Reset format if current format is invalid for new source
+      if (source === "handsold" && row.format !== "print") {
+        handleField("format", "print");
+      }
+      if (source === "kickstarter" && row.format === "kindle unlimited") {
+        handleField("format", "print");
+      }
+      // Clear distributor for non-distributor sources
+      handleField("distributor", "");
     } else {
       // Clear publisher revenue so user can enter it manually
       handleField("publisher_revenue", "");
@@ -59,8 +71,8 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
 
   const handleDateChange = (newDate) => {
     handleField("date", newDate);
-    // Clear book if its publication date is after the new sale date
-    if (row.book?.publication_date && newDate) {
+    // Clear book if its publication date is after the new sale date (released books only)
+    if (row.book?.released && row.book?.publication_date && newDate) {
       const [sy, sm] = newDate.split("-").map(Number);
       const [py, pm] = row.book.publication_date.split("-").map(Number);
       if (py * 100 + pm > sy * 100 + sm) {
@@ -123,12 +135,12 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
               label="Month/Year"
               value={row.date}
               onChange={handleDateChange}
-              min={row.book?.publication_date}
+              min={row.book?.released ? row.book?.publication_date : undefined}
             />
           </div>
           <div className="flex-1 min-w-[200px]">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Book (Title, ISBN or ASIN)
+              Book (Title, ISBN, ASIN, or Kickstarter Tag)
             </label>
             {fixedBook ? (
               <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 h-[38px] flex items-center">
@@ -142,7 +154,7 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
                 defaultOptions
                 onChange={handleBookChange}
                 value={row.book}
-                placeholder="Search..."
+                placeholder="Search by title, ISBN, ASIN, or Kickstarter tag..."
                 menuPortalTarget={document.body}
                 styles={selectStyles}
               />
@@ -169,10 +181,11 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
               </option>
               <option value="distributor">Distributor</option>
               <option value="handsold">Handsold</option>
+              <option value="kickstarter">Kickstarter</option>
             </select>
           </div>
 
-          {/* Format */}
+          {/* Format — options depend on sale source and distributor */}
           <div className="w-44">
             <label className="block text-sm font-medium text-gray-700 mb-1">Format</label>
             <select
@@ -183,8 +196,14 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
             >
               <option value="" disabled>Select...</option>
               <option value="print">Print</option>
-              <option value="ebook">eBook</option>
-              <option value="kindle unlimited">Kindle Unlimited</option>
+              {/* eBook: available for Amazon, Other, Kickstarter (not Ingram Spark or Handsold) */}
+              {!(isHandsold || (isDistributor && row.distributor === "Ingram Spark")) && (
+                <option value="ebook">eBook</option>
+              )}
+              {/* Kindle Unlimited: only for Amazon distributor */}
+              {isDistributor && row.distributor === "Amazon" && (
+                <option value="kindle unlimited">Kindle Unlimited</option>
+              )}
             </select>
           </div>
 
@@ -224,7 +243,7 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
             </div>
           ) : (
             <div className="w-28 relative">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Qty Sold</label>
               <Input
                 type="number"
                 min="1"
@@ -233,8 +252,8 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
                 onChange={(e) => {
                   const qty = e.target.value;
                   handleField("quantity", qty);
-                  // Recompute revenue when quantity changes for handsold
-                  if (isHandsold && effectiveBook) {
+                  // Recompute revenue when quantity changes for handsold/kickstarter
+                  if (isComputedRevenue && effectiveBook) {
                     const revenue = computeHandsoldRevenue(effectiveBook, qty);
                     handleField("publisher_revenue", revenue);
                   }
@@ -252,7 +271,7 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
 
           {/* Currency */}
           <div className="w-20">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Orig. Currency</label>
             <Input
               type="text"
               placeholder="USD"
@@ -269,7 +288,7 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
           {/* Publisher Revenue */}
           <div className="w-40">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {isDistributor && row.currency && row.currency !== 'USD' ? `Revenue (${row.currency})` : 'Revenue (USD)'}
+              {isDistributor && row.currency && row.currency !== 'USD' ? `Pub. Revenue (${row.currency})` : 'Pub. Revenue (USD)'}
             </label>
             {isDistributor ? (
               <div className="relative">
@@ -305,7 +324,7 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
           {isDistributor && row.currency && row.currency !== "USD" && (
             <div className="w-36">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Revenue (USD)
+                Pub. Revenue (USD)
               </label>
               <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 h-[38px] flex items-center">
                 {row.publisher_revenue ? formatMoney(row.publisher_revenue) : "—"}
@@ -315,7 +334,7 @@ export default function SaleInputRow({ index, row, onChange, onBlur, onRemove, i
 
           {/* Author Royalty (auto-computed, read-only) */}
           <div className="w-36">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Author Royalty</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Author Royalty (USD)</label>
             <div className="text-sm text-slate-900 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 h-[38px] flex items-center">
               {autoRoyalty ? `$${autoRoyalty}` : "—"}
             </div>

@@ -27,6 +27,7 @@ export { PaymentStatusBadge } from "./PaymentStatusBadge";
 
 // Form components
 export { FormField } from "./FormField";
+export { QuarterRangePicker } from "./QuarterRangePicker";
 export {
   DateField,
   BookSelect,

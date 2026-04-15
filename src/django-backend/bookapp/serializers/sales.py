@@ -16,6 +16,7 @@ class SaleSerializer(serializers.ModelSerializer):
     book_title = serializers.CharField(source="book.title", read_only=True)
     date = MonthYearField(read_only=True)
     author_names = serializers.SerializerMethodField()
+    is_projected = serializers.SerializerMethodField()
 
     class Meta:
         model = Sale
@@ -25,6 +26,7 @@ class SaleSerializer(serializers.ModelSerializer):
             "author_paid", "comment", "author_names",
             "distributor", "format", "currency",
             "publisher_revenue_original", "kenp",
+            "is_projected",
         ]
 
     def get_author_names(self, obj):
@@ -32,6 +34,10 @@ class SaleSerializer(serializers.ModelSerializer):
         if author:
             return [author.name]
         return []
+
+    def get_is_projected(self, obj):
+        """Projected = the sale's book has not been released yet."""
+        return not getattr(obj.book, "released", True)
 
 
 class PlaceholderDecimalField(serializers.DecimalField):
@@ -94,7 +100,7 @@ class SaleWriteSerializer(serializers.ModelSerializer):
         error_messages={
             "required": "Sale source is required.",
             "null": "Sale source is required.",
-            "invalid_choice": "Sale source must be 'distributor' or 'handsold'.",
+            "invalid_choice": "Sale source must be 'distributor', 'handsold', or 'kickstarter'.",
         },
     )
 
@@ -136,7 +142,7 @@ class SaleWriteSerializer(serializers.ModelSerializer):
         required=False,
         default="print",
         error_messages={
-            "invalid_choice": "Format must be 'Print', 'Ebook', or 'Kindle Unlimited'.",
+            "invalid_choice": "Format must be 'Print', 'eBook', or 'Kindle Unlimited'.",
         },
     )
 
@@ -205,8 +211,8 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     "distributor": "Distributor is required for distributor sales."
                 })
-        elif current_source == "handsold":
-            # Distributor must not be set for handsold
+        elif current_source in ("handsold", "kickstarter"):
+            # Distributor must not be set for handsold or kickstarter
             if current_distributor:
                 data["distributor"] = None
 
@@ -224,6 +230,11 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     "format": "Handsold sales must use 'print' format."
                 })
+        elif current_source == "kickstarter":
+            if current_format not in ("print", "ebook"):
+                raise serializers.ValidationError({
+                    "format": "Kickstarter sales must use 'print' or 'ebook' format."
+                })
         elif current_source == "distributor" and current_distributor:
             allowed_formats = DISTRIBUTOR_FORMAT_MAP.get(current_distributor, [])
             if current_format not in allowed_formats:
@@ -233,12 +244,12 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                 })
 
         # ------------------------------------------------------------------
-        # Currency locked to USD for handsold
+        # Currency locked to USD for handsold and kickstarter
         # ------------------------------------------------------------------
-        if current_source == "handsold":
+        if current_source in ("handsold", "kickstarter"):
             if current_currency and current_currency != "USD":
                 raise serializers.ValidationError({
-                    "currency": "Currency must be USD for handsold sales."
+                    "currency": "Currency must be USD for handsold and Kickstarter sales."
                 })
             data["currency"] = "USD"
 
@@ -276,9 +287,10 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                 })
 
         # ------------------------------------------------------------------
-        # Sale date cannot precede book publication date
+        # Sale date cannot precede book publication date (released books only)
+        # Unreleased books are exempt — their sales are pre-orders.
         # ------------------------------------------------------------------
-        if sale_date and current_book:
+        if sale_date and current_book and getattr(current_book, "released", False):
             pub = current_book.publication_date
             if (sale_date.year, sale_date.month) < (pub.year, pub.month):
                 sale_label = sale_date.strftime("%B %Y")
@@ -288,8 +300,8 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                 })
 
         # Calculate publisher_revenue
-        if current_source == "handsold":
-            # Computed entirely for handsold, ignore whatever client sends
+        if current_source in ("handsold", "kickstarter"):
+            # Computed entirely for handsold and kickstarter, ignore whatever client sends
             if current_qty is not None and current_book is not None:
                 # revenue = quantity * (cover_price - print_cost)
                 revenue = Decimal(str(current_qty)) * (current_book.cover_price - current_book.print_cost)
@@ -314,15 +326,16 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                     "publisher_revenue": "Publisher revenue is required for distributor sales."
                 })
             # On PATCH, if publisher_revenue is omitted, use the existing one for calculating royalties
-            
+
         current_revenue = data.get("publisher_revenue", instance.publisher_revenue if instance else None)
 
         if current_revenue is not None and current_source and current_book:
-            if current_source == "handsold":
+            if current_source in ("handsold", "kickstarter"):
+                # Both handsold and kickstarter use the hand_sold_author_royalty_rate
                 rate = current_book.hand_sold_author_royalty_rate
             else:
                 rate = current_book.distributor_author_royalty_rate
-                
+
             data["author_royalty"] = current_revenue * rate
 
         return data

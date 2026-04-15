@@ -11,6 +11,8 @@ export function DataTable({
   ordering,
   onSort,
   onRowClick,
+  rowTo,
+  rowClassName,
   emptyMessage = "No data found.",
   loadingMessage = "Loading data...",
   fixedLayout = false,
@@ -42,7 +44,7 @@ export function DataTable({
 
   return (
     <div className="rounded-lg border border-slate-200 overflow-hidden">
-      <table className="w-full table-fixed divide-y divide-gray-200">
+      <table className={`w-full ${fixedLayout ? "table-fixed" : "table-auto"} divide-y divide-gray-200`}>
         <thead className="bg-gray-50">
           <tr>
             {columns.map((col, idx) => {
@@ -59,7 +61,7 @@ export function DataTable({
                     col.sortKey && onSort ? "cursor-pointer hover:bg-gray-100" : ""
                   } ${col.className || ""}`}
                 >
-                  {col.label} {renderSortIcon(col.sortKey)}
+                  {col.label} {!col.hideSortIcon && renderSortIcon(col.sortKey)}
                 </th>
               );
             })}
@@ -82,54 +84,69 @@ export function DataTable({
               </td>
             </tr>
           ) : (
-            data.map((row) => (
-              <tr
-                key={row.id}
-                className={`hover:bg-gray-50 ${onRowClick ? "cursor-pointer" : ""}`}
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
-              >
-                {columns.map((col, idx) => (
-                  <td
-                    key={idx}
-                    className={`px-3 py-3 text-sm text-gray-500 ${
-                      col.className !== undefined ? col.className : "whitespace-nowrap"
-                    }`}
-                  >
-                    {col.type === "actions" && col.getActions ? (
-                      <div
-                        className={`flex gap-2 ${
-                          col.className?.includes("text-right") ? "justify-end" : ""
-                        }`}
-                      >
-                        {col.getActions(row).map((action, aIdx) => {
-                          const btn = (
-                            <Button
-                              variant={action.variant || "primary"}
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (action.onClick) action.onClick(row);
-                              }}
-                            >
-                              {action.label}
-                            </Button>
-                          );
-                          return action.to ? (
-                            <Link key={aIdx} to={action.to} onClick={(e) => e.stopPropagation()}>
-                              {btn}
-                            </Link>
-                          ) : (
-                            <React.Fragment key={aIdx}>{btn}</React.Fragment>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      col.render(row)
-                    )}
-                  </td>
-                ))}
-              </tr>
-            ))
+            data.map((row) => {
+              const rowCls = `hover:bg-gray-50 ${onRowClick || rowTo ? "cursor-pointer" : ""} ${rowClassName ? rowClassName(row) : ""}`;
+
+              const cells = columns.map((col, idx) => (
+                <td
+                  key={idx}
+                  className={`px-3 py-3 align-middle text-sm text-gray-500 ${
+                    col.className !== undefined ? col.className : "whitespace-nowrap"
+                  }`}
+                >
+                  {col.type === "actions" && col.getActions ? (
+                    <div
+                      className={`flex gap-2 ${
+                        col.className?.includes("text-right") ? "justify-end" : ""
+                      }`}
+                    >
+                      {col.getActions(row).map((action, aIdx) => {
+                        const btn = (
+                          <Button
+                            variant={action.variant || "primary"}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (action.onClick) action.onClick(row);
+                            }}
+                          >
+                            {action.label}
+                          </Button>
+                        );
+                        return action.to ? (
+                          <Link key={aIdx} to={action.to} onClick={(e) => e.stopPropagation()}>
+                            {btn}
+                          </Link>
+                        ) : (
+                          <React.Fragment key={aIdx}>{btn}</React.Fragment>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    col.render(row)
+                  )}
+                </td>
+              ));
+
+              return rowTo ? (
+                <Link
+                  key={row.id}
+                  to={rowTo(row)}
+                  style={{ display: "table-row" }}
+                  className={rowCls}
+                >
+                  {cells}
+                </Link>
+              ) : (
+                <tr
+                  key={row.id}
+                  className={rowCls}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                >
+                  {cells}
+                </tr>
+              );
+            })
           )}
         </tbody>
       </table>

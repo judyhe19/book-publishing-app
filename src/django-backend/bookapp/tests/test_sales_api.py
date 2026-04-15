@@ -37,6 +37,7 @@ def make_book(*, isbn_13, title="T", author=None, royalty_rate="0.10", cover_pri
         hand_sold_author_royalty_rate=Decimal("0.20"),
         cover_price=Decimal(cover_price),
         print_cost=Decimal(print_cost),
+        released=True,
     )
     return book
 
@@ -645,3 +646,310 @@ def test_filter_by_format(authed_client, user):
     resp = authed_client.get("/api/sales/")
     assert resp.status_code == 200
     assert resp.data["count"] == 3
+
+
+# ======================================================================
+# CSV Export Tests
+# ======================================================================
+
+import csv
+import io
+
+def test_export_csv_basic(authed_client, user):
+    """Test basic CSV export with BOM, headers, and correct values."""
+    a1 = make_author(name="CSV Author")
+    b1 = make_book(isbn_13="9780000000050", title="CSV Book", author=a1, royalty_rate="0.10")
+
+    Sale.objects.create(
+        book=b1, quantity=10, publisher_revenue=Decimal("100.00"),
+        publisher_revenue_original=Decimal("100.00"),
+        author_royalty=Decimal("10.00"), sale_source="distributor",
+        distributor="Ingram Spark", format="print",
+        currency="USD", date="2023-06-01", comment="test comment"
+    )
+
+    resp = authed_client.get("/api/sales/export-csv/")
+    assert resp.status_code == 200
+    assert resp["Content-Type"] == "text/csv; charset=utf-8"
+    assert "hp-sales-export-" in resp["Content-Disposition"]
+    assert resp["Content-Disposition"].endswith('.csv"')
+
+    content = resp.content.decode("utf-8-sig")  # strips BOM
+    reader = csv.reader(io.StringIO(content))
+    rows = list(reader)
+
+    # Header row
+    assert rows[0] == [
+        "Date", "Title", "Author", "Source", "Distributor",
+        "Format", "Quantity", "KENP", "Original Currency",
+        "Pub. Revenue (Original)", "Pub. Revenue (USD)",
+        "Author Royalty (USD)", "Royalty Status", "isProjected?", "Comment",
+    ]
+
+    # Data row
+    assert len(rows) == 2
+    row = rows[1]
+    assert row[0] == "2023-06"
+    assert row[1] == "CSV Book"
+    assert row[2] == "CSV Author"
+    assert row[3] == "Distributor"
+    assert row[4] == "Ingram Spark"
+    assert row[5] == "Print"
+    assert row[6] == "10"
+    assert row[7] == "N/A"
+    assert row[8] == "USD"
+    assert row[9] == "100.00"
+    assert row[10] == "100.00"
+    assert row[11] == "10.00"
+    assert row[12] == "Unpaid"
+    assert row[13] == "False"         # isProjected? — book is released by default
+    assert row[14] == "test comment"
+
+
+def test_export_csv_with_filters(authed_client, user):
+    """Test that CSV export respects filters (only matching records)."""
+    a1 = make_author(name="Filter Author")
+    b1 = make_book(isbn_13="9780000000051", title="Filter Book", author=a1)
+
+    Sale.objects.create(
+        book=b1, quantity=5, publisher_revenue=Decimal("50.00"),
+        publisher_revenue_original=Decimal("50.00"),
+        author_royalty=Decimal("5.00"), sale_source="distributor",
+        distributor="Amazon", format="print",
+        currency="USD", date="2023-01-01"
+    )
+    Sale.objects.create(
+        book=b1, quantity=10, publisher_revenue=Decimal("100.00"),
+        publisher_revenue_original=Decimal("100.00"),
+        author_royalty=Decimal("10.00"), sale_source="distributor",
+        distributor="Amazon", format="print",
+        currency="USD", date="2023-06-01"
+    )
+
+    resp = authed_client.get("/api/sales/export-csv/?start_date=2023-05&end_date=2023-07")
+    content = resp.content.decode("utf-8-sig")
+    rows = list(csv.reader(io.StringIO(content)))
+
+    assert len(rows) == 2  # header + 1 matching row
+    assert rows[1][0] == "2023-06"
+
+
+def test_export_csv_handsold_na_fields(authed_client, user):
+    """Test that handsold records show N/A for Distributor and Print for Format."""
+    a1 = make_author(name="Hand Author")
+    b1 = make_book(isbn_13="9780000000052", title="Hand Book", author=a1,
+                   cover_price="20.00", print_cost="10.00")
+
+    Sale.objects.create(
+        book=b1, quantity=5, publisher_revenue=Decimal("50.00"),
+        publisher_revenue_original=Decimal("50.00"),
+        author_royalty=Decimal("10.00"), sale_source="handsold",
+        distributor=None, format="print",
+        currency="USD", date="2023-03-01"
+    )
+
+    resp = authed_client.get("/api/sales/export-csv/")
+    content = resp.content.decode("utf-8-sig")
+    rows = list(csv.reader(io.StringIO(content)))
+
+    row = rows[1]
+    assert row[3] == "Handsold"
+    assert row[4] == "N/A"  # distributor
+    assert row[5] == "Print"
+
+
+def test_export_csv_kindle_unlimited(authed_client, user):
+    """Test that Kindle Unlimited records show N/A for Quantity and correct KENP."""
+    a1 = make_author(name="KU Author")
+    b1 = make_book(isbn_13="9780000000053", title="KU Book", author=a1)
+
+    Sale.objects.create(
+        book=b1, quantity=None, publisher_revenue=Decimal("30.00"),
+        publisher_revenue_original=Decimal("30.00"),
+        author_royalty=Decimal("3.00"), sale_source="distributor",
+        distributor="Amazon", format="kindle unlimited",
+        kenp=1500, currency="USD", date="2023-04-01"
+    )
+
+    resp = authed_client.get("/api/sales/export-csv/")
+    content = resp.content.decode("utf-8-sig")
+    rows = list(csv.reader(io.StringIO(content)))
+
+    row = rows[1]
+    assert row[5] == "Kindle Unlimited"
+    assert row[6] == "N/A"  # quantity
+    assert row[7] == "1500"  # KENP
+
+
+# ======================================================================
+# Kickstarter Sale Tests
+# ======================================================================
+
+def test_create_sale_kickstarter(authed_client, user):
+    """Test creating a Kickstarter sale computes revenue and royalty correctly."""
+    a1 = make_author(name="KS Author")
+    b1 = make_book(isbn_13="9780000000060", author=a1, royalty_rate="0.10",
+                   cover_price="20.00", print_cost="10.00")
+
+    payload = {
+        "book": b1.id,
+        "quantity": 50,
+        "sale_source": "kickstarter",
+        "date": "2023-01",
+    }
+
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 201, resp.content
+
+    sale = Sale.objects.get(id=resp.data["id"])
+    assert sale.sale_source == "kickstarter"
+    # Kickstarter revenue is 50 * (20.00 - 10.00) = 500.00
+    assert sale.publisher_revenue == Decimal("500.00")
+    # Kickstarter uses hand_sold_author_royalty_rate (0.20)
+    assert sale.author_royalty == Decimal("100.00")
+    assert sale.currency == "USD"
+    assert sale.distributor is None
+
+
+def test_create_sale_kickstarter_ebook(authed_client, user):
+    """Test creating a Kickstarter ebook sale."""
+    a1 = make_author(name="KS eBook Author")
+    b1 = make_book(isbn_13="9780000000061", author=a1, cover_price="15.00", print_cost="5.00")
+
+    payload = {
+        "book": b1.id,
+        "quantity": 20,
+        "sale_source": "kickstarter",
+        "format": "ebook",
+        "date": "2023-06",
+    }
+
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 201, resp.content
+
+    sale = Sale.objects.get(id=resp.data["id"])
+    assert sale.format == "ebook"
+    assert sale.sale_source == "kickstarter"
+    # revenue = 20 * (15.00 - 5.00) = 200.00
+    assert sale.publisher_revenue == Decimal("200.00")
+
+
+def test_filter_by_kickstarter_source(authed_client, user):
+    """Test filtering sales by kickstarter sale_source."""
+    a1 = make_author(name="Filter KS")
+    b1 = make_book(isbn_13="9780000000062", title="KS Filter Book", author=a1)
+
+    Sale.objects.create(
+        book=b1, quantity=10, publisher_revenue=100,
+        author_royalty=10, sale_source="distributor",
+        distributor="Ingram Spark", date="2023-01-01"
+    )
+    s2 = Sale.objects.create(
+        book=b1, quantity=20, publisher_revenue=200,
+        author_royalty=40, sale_source="kickstarter",
+        date="2023-02-01"
+    )
+
+    resp = authed_client.get("/api/sales/?sale_source=kickstarter")
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["id"] == s2.id
+
+
+def test_create_many_kickstarter_sales(authed_client, user):
+    """Test bulk creating Kickstarter sales."""
+    a1 = make_author(name="Bulk KS Author")
+    b1 = make_book(isbn_13="9780000000063", author=a1,
+                   cover_price="20.00", print_cost="10.00")
+
+    payload = [
+        {
+            "book": b1.id,
+            "quantity": 10,
+            "sale_source": "kickstarter",
+            "format": "print",
+            "date": "2023-01",
+        },
+        {
+            "book": b1.id,
+            "quantity": 5,
+            "sale_source": "kickstarter",
+            "format": "ebook",
+            "date": "2023-02",
+        },
+    ]
+
+    resp = authed_client.post("/api/sales/create-many/", payload, format="json")
+    assert resp.status_code == 201, resp.content
+    assert len(resp.data) == 2
+
+    # Verify computed revenue/royalty
+    sale1 = Sale.objects.get(id=resp.data[0]["id"])
+    assert sale1.publisher_revenue == Decimal("100.00")  # 10 * (20-10)
+
+    sale2 = Sale.objects.get(id=resp.data[1]["id"])
+    assert sale2.publisher_revenue == Decimal("50.00")   # 5 * (20-10)
+
+
+def test_edit_kickstarter_sale(authed_client, user):
+    """Test editing a Kickstarter sale recalculates revenue and royalty."""
+    a1 = make_author(name="Edit KS Author")
+    b1 = make_book(isbn_13="9780000000064", author=a1,
+                   cover_price="20.00", print_cost="10.00")
+
+    # Create via API
+    payload = {
+        "book": b1.id,
+        "quantity": 10,
+        "sale_source": "kickstarter",
+        "date": "2023-01",
+    }
+    create_resp = authed_client.post("/api/sales/", payload, format="json")
+    assert create_resp.status_code == 201
+    sale_id = create_resp.data["id"]
+
+    # Update quantity
+    edit_payload = {"quantity": 20}
+    resp = authed_client.patch(f"/api/sales/{sale_id}/", edit_payload, format="json")
+    assert resp.status_code == 200
+
+    sale = Sale.objects.get(id=sale_id)
+    # Recomputed: 20 * (20 - 10) = 200.00
+    assert sale.publisher_revenue == Decimal("200.00")
+    # Royalty: 200 * 0.20 = 40.00
+    assert sale.author_royalty == Decimal("40.00")
+
+
+def test_export_csv_kickstarter(authed_client, user):
+    """Test that Kickstarter records display correctly in CSV export."""
+    a1 = make_author(name="CSV KS Author")
+    b1 = make_book(isbn_13="9780000000065", title="KS CSV Book", author=a1,
+                   cover_price="20.00", print_cost="10.00")
+
+    Sale.objects.create(
+        book=b1, quantity=10, publisher_revenue=Decimal("100.00"),
+        publisher_revenue_original=Decimal("100.00"),
+        author_royalty=Decimal("20.00"), sale_source="kickstarter",
+        distributor=None, format="print",
+        currency="USD", date="2023-07-01", comment="ks campaign"
+    )
+
+    resp = authed_client.get("/api/sales/export-csv/")
+    assert resp.status_code == 200
+
+    content = resp.content.decode("utf-8-sig")
+    rows = list(csv.reader(io.StringIO(content)))
+
+    row = rows[1]
+    assert row[0] == "2023-07"
+    assert row[1] == "KS CSV Book"
+    assert row[2] == "CSV KS Author"
+    assert row[3] == "Kickstarter"    # source display
+    assert row[4] == "N/A"            # distributor
+    assert row[5] == "Print"
+    assert row[6] == "10"             # quantity
+    assert row[7] == "N/A"            # KENP
+    assert row[8] == "USD"
+    assert row[13] == "False"          # isProjected?
+    assert row[14] == "ks campaign"
+

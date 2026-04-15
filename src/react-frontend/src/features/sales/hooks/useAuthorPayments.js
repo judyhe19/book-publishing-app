@@ -90,7 +90,7 @@ export function useAuthorPayments() {
       restoreScroll();
     } catch (e) {
       console.error(e);
-      alert("Failed to mark unpaid sales as paid for this author.");
+      alert("Failed to mark non-projected unpaid sales as paid for this author.");
       // if it failed, still restore (user expects to stay put)
       restoreScroll();
     } finally {

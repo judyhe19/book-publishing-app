@@ -1,0 +1,25 @@
+record_date,source,distributor,format,isbn13,qty_sold,kenp,publisher_revenue,iso_currency,author_paid
+2023/01,distributor,Amazon,kindle unlimited,9780062444134,,347,69.40,USD,y
+2023/02,handsold,,print,9780062699220,10,,,USD,y
+2023/06,distributor,Other,ebook,9780547928203,13,,176.70,USD,y
+2023/07,distributor,Ingram Spark,print,9780547928203,10,,60.91,USD,y
+2023/07,handsold,,print,9780307744432,13,,,USD,y
+2023/08,distributor,Ingram Spark,print,9780553418026,11,,56.93,EUR,y
+2023/09,distributor,Amazon,print,9780547928210,14,,99.27,USD,y
+2023/09,distributor,Ingram Spark,print,9780765397546,9,,10733,JPY,y
+2024/01,distributor,Amazon,kindle unlimited,9780765397539,,437,75.50,EUR,y
+2024/02,handsold,,print,9780553418026,5,,,USD,y
+2024/02,handsold,,print,9781250191786,14,,,USD,y
+2024/03,distributor,Other,ebook,9780547928203,6,,81.55,USD,y
+2024/03,distributor,Other,print,9780553418026,12,,71.89,USD,y
+2024/07,distributor,Amazon,print,9780547928210,6,,42.55,USD,y
+2024/08,distributor,Other,print,9780062936042,5,,4928,JPY,y
+2024/11,handsold,,print,9780307744432,9,,,USD,y
+2025/02,distributor,Other,print,9780765397546,10,,11926,JPY,n
+2025/02,handsold,,print,9780547928210,5,,,USD,n
+2025/04,distributor,Amazon,ebook,9780765397539,14,,111.89,USD,n
+2025/04,distributor,Amazon,print,9780765397539,13,,70.08,USD,n
+2025/08,handsold,,print,9780547928197,9,,,USD,n
+2025/09,handsold,,print,9780547928203,9,,,USD,n
+2025/10,distributor,Ingram Spark,print,9780553418026,15,,89.86,USD,n
+2025/12,distributor,Amazon,kindle unlimited,9780345391803,,303,60.60,USD,n

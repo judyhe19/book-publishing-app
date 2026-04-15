@@ -5,46 +5,23 @@ import { useLocation } from "react-router-dom";
 import { getAllAuthors } from "../../author/api/authorApi";
 import { getAuthorRoyaltyReport } from "../api/reportApi";
 import { formatMoney } from "../../../shared/utils/formatUtils";
+import { getDefaultQuarterRange } from "../../../shared/utils/quarterUtils";
 import {
   PageHeader,
   Button,
   Card,
   CardContent,
   ErrorAlert,
+  QuarterRangePicker,
 } from "../../../shared/components";
 import "./AuthorRoyaltyReportPage.css";
 
-/** Return the current default range: four quarters ending at current quarter. */
-function getDefaultRange() {
-  const now = new Date();
-  const curYear = now.getFullYear();
-  const curMonth = now.getMonth() + 1; // 1-indexed
-  const curQ = Math.ceil(curMonth / 3);
 
-  // End = current quarter
-  let endYear = curYear;
-  let endQ = curQ;
-
-  // Start = 3 quarters before current → 4 quarters total
-  let startYear = curYear;
-  let startQ = curQ - 3;
-  if (startQ <= 0) {
-    startQ += 4;
-    startYear -= 1;
-  }
-
-  return { startYear, startQ, endYear, endQ };
-}
-
-const QUARTER_OPTIONS = [1, 2, 3, 4];
-
-const selectClass =
-  "rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-900";
 
 export default function AuthorRoyaltyReportPage() {
   const location = useLocation();
   const initialAuthor = location.state?.author || null;
-  const defaults = useMemo(() => getDefaultRange(), []);
+  const defaults = useMemo(() => getDefaultQuarterRange(), []);
 
   // Controls state
   const [authors, setAuthors] = useState([]);
@@ -134,55 +111,16 @@ export default function AuthorRoyaltyReportPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Start Quarter
-                </label>
-                <div className="flex gap-1">
-                  <input
-                    type="number"
-                    className={`${selectClass} year-input`}
-                    value={startYear}
-                    onChange={(e) => setStartYear(e.target.value)}
-                    onWheel={(e) => e.target.blur()}
-                    style={{ width: "80px" }}
-                  />
-                  <select
-                    className={selectClass}
-                    value={startQuarter}
-                    onChange={(e) => setStartQuarter(Number(e.target.value))}
-                  >
-                    {QUARTER_OPTIONS.map((q) => (
-                      <option key={q} value={q}>Q{q}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  End Quarter
-                </label>
-                <div className="flex gap-1">
-                  <input
-                    type="number"
-                    className={`${selectClass} year-input`}
-                    value={endYear}
-                    onChange={(e) => setEndYear(e.target.value)}
-                    onWheel={(e) => e.target.blur()}
-                    style={{ width: "80px" }}
-                  />
-                  <select
-                    className={selectClass}
-                    value={endQuarter}
-                    onChange={(e) => setEndQuarter(Number(e.target.value))}
-                  >
-                    {QUARTER_OPTIONS.map((q) => (
-                      <option key={q} value={q}>Q{q}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+              <QuarterRangePicker
+                startYear={startYear}
+                onStartYearChange={setStartYear}
+                startQuarter={startQuarter}
+                onStartQuarterChange={setStartQuarter}
+                endYear={endYear}
+                onEndYearChange={setEndYear}
+                endQuarter={endQuarter}
+                onEndQuarterChange={setEndQuarter}
+              />
 
               <Button
                 onClick={handleGenerate}
@@ -270,17 +208,19 @@ function QuarterTable({ label, books, data, totals, totalsLabel = "Subtotal" }) 
         <thead>
           <tr>
             <th style={{ minWidth: "200px" }}>Book</th>
-            <th className="num">Qty Sold (Print, Handsold)</th>
-            <th className="num">Qty Sold (Print, Ingram Spark)</th>
-            <th className="num">Qty Sold (Print, Amazon)</th>
-            <th className="num">Qty Sold (eBook, Amazon)</th>
-            <th className="num">Qty Sold (Print, Other)</th>
-            <th className="num">Qty Sold (eBook, Other)</th>
-            <th className="num">Qty Sold (Total)</th>
+            <th className="num">Qty Sold<br />Print<br />Handsold</th>
+            <th className="num">Qty Sold<br />Print<br />Kickstarter</th>
+            <th className="num">Qty Sold<br />Print<br />Ingram</th>
+            <th className="num">Qty Sold<br />Print<br />Amazon</th>
+            <th className="num">Qty Sold<br />eBook<br />Kickstarter</th>
+            <th className="num">Qty Sold<br />eBook<br />Amazon</th>
+            <th className="num">Qty Sold<br />Print<br />Other</th>
+            <th className="num">Qty Sold<br />eBook<br />Other</th>
+            <th className="num">Qty Sold<br />Total</th>
             <th className="num">KENP</th>
-            <th className="num">Royalty (Unpaid)</th>
-            <th className="num">Royalty (Paid)</th>
-            <th className="num">Royalty (Total)</th>
+            <th className="num">Royalty<br />Unpaid</th>
+            <th className="num">Royalty<br />Paid</th>
+            <th className="num">Royalty<br />Total</th>
           </tr>
         </thead>
         <tbody>
@@ -295,8 +235,10 @@ function QuarterTable({ label, books, data, totals, totalsLabel = "Subtotal" }) 
                   <span className="book-title">{book.title}</span>
                 </td>
                 <td className="num">{row.quantity_sold_print_handsold ?? 0}</td>
+                <td className="num">{row.quantity_sold_print_kickstarter ?? 0}</td>
                 <td className="num">{row.quantity_sold_print_ingram_spark ?? 0}</td>
                 <td className="num">{row.quantity_sold_print_amazon ?? 0}</td>
+                <td className="num">{row.quantity_sold_ebook_kickstarter ?? 0}</td>
                 <td className="num">{row.quantity_sold_ebook_amazon ?? 0}</td>
                 <td className="num">{row.quantity_sold_print_other ?? 0}</td>
                 <td className="num">{row.quantity_sold_ebook_other ?? 0}</td>
@@ -313,8 +255,10 @@ function QuarterTable({ label, books, data, totals, totalsLabel = "Subtotal" }) 
           <tr className="totals-row">
             <td>{totalsLabel}</td>
             <td className="num">{totals[label]?.quantity_sold_print_handsold ?? 0}</td>
+            <td className="num">{totals[label]?.quantity_sold_print_kickstarter ?? 0}</td>
             <td className="num">{totals[label]?.quantity_sold_print_ingram_spark ?? 0}</td>
             <td className="num">{totals[label]?.quantity_sold_print_amazon ?? 0}</td>
+            <td className="num">{totals[label]?.quantity_sold_ebook_kickstarter ?? 0}</td>
             <td className="num">{totals[label]?.quantity_sold_ebook_amazon ?? 0}</td>
             <td className="num">{totals[label]?.quantity_sold_print_other ?? 0}</td>
             <td className="num">{totals[label]?.quantity_sold_ebook_other ?? 0}</td>
@@ -335,21 +279,23 @@ function AllBooksTable({ quarters, totals }) {
   return (
     <div className="quarter-section">
       <h2>All Books</h2>
-      <table className="report-table">
+      <table className="report-table all-books-table">
         <thead>
           <tr>
-            <th style={{ minWidth: "200px" }}>Quarter</th>
-            <th className="num">Qty Sold (Print, Handsold)</th>
-            <th className="num">Qty Sold (Print, Ingram Spark)</th>
-            <th className="num">Qty Sold (Print, Amazon)</th>
-            <th className="num">Qty Sold (eBook, Amazon)</th>
-            <th className="num">Qty Sold (Print, Other)</th>
-            <th className="num">Qty Sold (eBook, Other)</th>
-            <th className="num">Qty Sold (Total)</th>
+            <th>Quarter</th>
+            <th className="num">Qty Sold<br />Print<br />Handsold</th>
+            <th className="num">Qty Sold<br />Print<br />Kickstarter</th>
+            <th className="num">Qty Sold<br />Print<br />Ingram</th>
+            <th className="num">Qty Sold<br />Print<br />Amazon</th>
+            <th className="num">Qty Sold<br />eBook<br />Kickstarter</th>
+            <th className="num">Qty Sold<br />eBook<br />Amazon</th>
+            <th className="num">Qty Sold<br />Print<br />Other</th>
+            <th className="num">Qty Sold<br />eBook<br />Other</th>
+            <th className="num">Qty Sold<br />Total</th>
             <th className="num">KENP</th>
-            <th className="num">Royalty (Unpaid)</th>
-            <th className="num">Royalty (Paid)</th>
-            <th className="num">Royalty (Total)</th>
+            <th className="num">Royalty<br />Unpaid</th>
+            <th className="num">Royalty<br />Paid</th>
+            <th className="num">Royalty<br />Total</th>
           </tr>
         </thead>
         <tbody>
@@ -359,8 +305,10 @@ function AllBooksTable({ quarters, totals }) {
               <tr key={qinfo.label}>
                 <td><span className="book-title">{qinfo.label}</span></td>
                 <td className="num">{row.quantity_sold_print_handsold ?? 0}</td>
+                <td className="num">{row.quantity_sold_print_kickstarter ?? 0}</td>
                 <td className="num">{row.quantity_sold_print_ingram_spark ?? 0}</td>
                 <td className="num">{row.quantity_sold_print_amazon ?? 0}</td>
+                <td className="num">{row.quantity_sold_ebook_kickstarter ?? 0}</td>
                 <td className="num">{row.quantity_sold_ebook_amazon ?? 0}</td>
                 <td className="num">{row.quantity_sold_print_other ?? 0}</td>
                 <td className="num">{row.quantity_sold_ebook_other ?? 0}</td>
@@ -377,8 +325,10 @@ function AllBooksTable({ quarters, totals }) {
           <tr className="totals-row">
             <td>Total</td>
             <td className="num">{totals["All Time"]?.quantity_sold_print_handsold ?? 0}</td>
+            <td className="num">{totals["All Time"]?.quantity_sold_print_kickstarter ?? 0}</td>
             <td className="num">{totals["All Time"]?.quantity_sold_print_ingram_spark ?? 0}</td>
             <td className="num">{totals["All Time"]?.quantity_sold_print_amazon ?? 0}</td>
+            <td className="num">{totals["All Time"]?.quantity_sold_ebook_kickstarter ?? 0}</td>
             <td className="num">{totals["All Time"]?.quantity_sold_ebook_amazon ?? 0}</td>
             <td className="num">{totals["All Time"]?.quantity_sold_print_other ?? 0}</td>
             <td className="num">{totals["All Time"]?.quantity_sold_ebook_other ?? 0}</td>

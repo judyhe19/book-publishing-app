@@ -5,7 +5,7 @@ import { Button } from "./Button";
 import { useAuth } from "../../features/auth/hooks/useAuth";
 import * as authApi from "../../features/auth/api/authApi";
 
-export function Navbar() {
+export function Navbar({ branding }) {
   const { user, setUser } = useAuth();
   const nav = useNavigate();
 
@@ -18,29 +18,41 @@ export function Navbar() {
   return (
     <div className="sticky top-0 z-10 border-b border-slate-100 bg-white/80 backdrop-blur">
       <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
-        <Link to="/" className="font-semibold text-slate-900">
-          Hypothetical Publishing
+        <Link to="/" className="flex items-center gap-2">
+          {branding?.publisher_logo_url && (
+            <img
+              src={branding.publisher_logo_url}
+              alt={branding.publisher_name}
+              className="h-8 w-8 object-contain"
+            />
+          )}
+          <span className="font-semibold text-slate-900">
+            {branding?.publisher_name || "Loading..."}
+          </span>
         </Link>
 
         <div className="flex items-center gap-3">
           {user ? (
             <>
-              <Link className="text-sm text-slate-700 hover:text-slate-900" to="/books">
+              <Link className="text-sm text-slate-700 hover:text-emerald-900" to="/books">
                 Books
               </Link>
-              <Link className="text-sm text-slate-700 hover:text-slate-900" to="/sales">
+              <Link className="text-sm text-slate-700 hover:text-emerald-900" to="/sales">
                 Sales
               </Link>
-              <Link className="text-sm text-slate-700 hover:text-slate-900" to="/authors">
+              <Link className="text-sm text-slate-700 hover:text-emerald-900" to="/sales/authors">
+                Author Payments
+              </Link>
+              <Link className="text-sm text-slate-700 hover:text-emerald-900" to="/authors">
                 Authors
               </Link>
-              <Link className="text-sm text-slate-700 hover:text-slate-900" to="/series">
+              <Link className="text-sm text-slate-700 hover:text-emerald-900" to="/series">
                 Series
               </Link>
-              <Link className="text-sm text-slate-700 hover:text-slate-900" to="/reports/royalty">
+              <Link className="text-sm text-slate-700 hover:text-emerald-900" to="/reports">
                 Reports
               </Link>
-              <Link className="text-sm text-slate-700 hover:text-slate-900" to="/changepassword">
+              <Link className="text-sm text-slate-700 hover:text-emerald-900" to="/changepassword">
                 Password
               </Link>
               <Button variant="secondary" onClick={onLogout}>

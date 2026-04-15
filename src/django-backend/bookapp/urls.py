@@ -16,10 +16,17 @@ from .views.cover_thumbnail import CoverThumbnailView
 from .views.cover_image import CoverImageView
 from .views.series import SeriesListView, SeriesReorderView
 from .views.royalty_report import AuthorRoyaltyReportView
+from .views.financial_reports import (
+    AllAuthorsRoyaltyReportView,
+    PublisherProfitReportView,
+    AmazonSalesReportView,
+)
 from .views.currency import ConvertCurrencyView
 from .views.isbn_lookup import IsbnLookupView
 from .views.isbn_cover_proxy import IsbnCoverProxyView
 from .views.cover_download import CoverImageDownloadView
+from .views.branding_image import BrandingImageView
+from .views.branding import BrandingView
 
 # ----- DRF Router -----
 router = DefaultRouter(trailing_slash=True)
@@ -101,12 +108,32 @@ urlpatterns = [
     path("series/", SeriesListView.as_view(), name="series-list"),
     path("series/reorder/", SeriesReorderView.as_view(), name="series-reorder"),
 
-    # Author royalty report
+    # Author royalty report (per-author, in-browser preview)
     path(
         "authors/<int:author_id>/royalty-report/",
         AuthorRoyaltyReportView.as_view(),
         name="author-royalty-report",
     ),
+
+    # Financial reports (XLSX exports)
+    path(
+        "reports/all-authors-royalty/",
+        AllAuthorsRoyaltyReportView.as_view(),
+        name="all-authors-royalty-report",
+    ),
+    path(
+        "reports/publisher-profit/",
+        PublisherProfitReportView.as_view(),
+        name="publisher-profit-report",
+    ),
+    path(
+        "reports/amazon-sales/",
+        AmazonSalesReportView.as_view(),
+        name="amazon-sales-report",
+    ),
+
+    path("branding/image/", BrandingImageView.as_view(), name="branding-image"),
+    path("branding/", BrandingView.as_view(), name="branding"),
 
 
     # Router-generated URLs for books, sales, authors

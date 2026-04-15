@@ -1,10 +1,14 @@
 # views/sales.py
 # Refactored to use ModelViewSet (Evolution 2: single author per book)
 
+import csv
 import calendar
+import io
+from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import transaction
+from django.http import HttpResponse
 from django.db.models import (
     Sum, Case, When, Value,
     IntegerField, DecimalField, F,
@@ -24,6 +28,7 @@ from ..config.sort_config import SALES_SORT_FIELD_MAP, SALES_DEFAULT_SORT
 from ..pagination import StandardPagination
 from ..utils.ingram_csv import IngramSparkCSVParser
 from ..utils.amazon_xlsx import AmazonXLSXParser
+from ..utils.backerkit_xlsx import BackerkitXLSXParser
 
 def money(x):
     return Decimal(x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
@@ -46,14 +51,15 @@ class SaleViewSet(ModelViewSet):
         qs = Sale.objects.all()
         qs = qs.select_related("book", "book__author")
 
-        # Filtering (only on list)
-        if self.action == "list":
+        # Filtering (on list and export_csv)
+        if self.action in ("list", "export_csv"):
             book_id = self.request.query_params.get("book_id")
             user_id = self.request.query_params.get("user_id")
             author_name = self.request.query_params.get("author_name")
             sale_source = self.request.query_params.get("sale_source")
             distributor = self.request.query_params.get("distributor")
             sale_format = self.request.query_params.get("sale_format")
+            projected = self.request.query_params.get("projected")
 
             if book_id:
                 qs = qs.filter(book_id=book_id)
@@ -67,6 +73,12 @@ class SaleViewSet(ModelViewSet):
                 qs = qs.filter(distributor=distributor)
             if sale_format:
                 qs = qs.filter(format=sale_format)
+            if projected is not None:
+                # projected=true → book not released; projected=false → book released
+                if projected.lower() == "true":
+                    qs = qs.filter(book__released=False)
+                elif projected.lower() == "false":
+                    qs = qs.filter(book__released=True)
 
             # Date filtering at month/year granularity
             start_date = self.request.query_params.get("start_date")
@@ -234,6 +246,33 @@ class SaleViewSet(ModelViewSet):
         )
 
     # ------------------------------------------------------------------
+    # IMPORT BACKERKIT XLSX — validate + preview (custom action)
+    # ------------------------------------------------------------------
+
+    @action(detail=False, methods=["post"], url_path="import-backerkit-xlsx",
+            parser_classes=[MultiPartParser, FormParser])
+    def import_backerkit_xlsx(self, request):
+        xlsx_file = request.FILES.get("file")
+        if not xlsx_file:
+            return Response(
+                {"errors": ["No file uploaded."], "warnings": []},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        result = BackerkitXLSXParser().parse_and_validate(xlsx_file)
+
+        if result.errors:
+            return Response(
+                {"errors": result.errors, "warnings": result.warnings},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {"preview": result.preview, "warnings": result.warnings, **result.metadata},
+            status=status.HTTP_200_OK,
+        )
+
+    # ------------------------------------------------------------------
     # UPDATE (PATCH) — edit a sale
     # ------------------------------------------------------------------
 
@@ -260,6 +299,100 @@ class SaleViewSet(ModelViewSet):
     def update(self, request, *args, **kwargs):
         kwargs["partial"] = True
         return self.partial_update(request, *args, **kwargs)
+
+    # ------------------------------------------------------------------
+    # EXPORT CSV — all filtered sales as CSV download
+    # ------------------------------------------------------------------
+
+    # Currencies that have no fractional unit (output whole numbers)
+    ZERO_DECIMAL_CURRENCIES = {
+        "JPY", "KRW", "ISK", "HUF", "IDR", "CLP", "VND",
+    }
+
+    CSV_HEADERS = [
+        "Date", "Title", "Author", "Source", "Distributor",
+        "Format", "Quantity", "KENP", "Original Currency",
+        "Pub. Revenue (Original)", "Pub. Revenue (USD)",
+        "Author Royalty (USD)", "Royalty Status", "isProjected?", "Comment",
+    ]
+
+    FORMAT_DISPLAY = {
+        "print": "Print",
+        "ebook": "Ebook",
+        "kindle unlimited": "Kindle Unlimited",
+    }
+
+    @action(detail=False, methods=["get"], url_path="export-csv")
+    def export_csv(self, request):
+        qs = self.get_queryset()
+
+        now = datetime.now()
+        filename = now.strftime("hp-sales-export-%Y-%m-%d-%H%M.csv")
+
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+        # Write UTF-8 BOM
+        response.write("\ufeff")
+
+        writer = csv.writer(response)
+        writer.writerow(self.CSV_HEADERS)
+
+        for sale in qs:
+            source_display = {
+                "distributor": "Distributor",
+                "handsold": "Handsold",
+                "kickstarter": "Kickstarter",
+            }.get(sale.sale_source, sale.sale_source)
+            distributor_display = sale.distributor if sale.sale_source == "distributor" and sale.distributor else "N/A"
+            format_display = self.FORMAT_DISPLAY.get(sale.format, sale.format or "")
+
+            quantity = str(sale.quantity) if sale.format != "kindle unlimited" and sale.quantity is not None else "N/A"
+            kenp = str(sale.kenp) if sale.format == "kindle unlimited" and sale.kenp is not None else "N/A"
+
+            currency = sale.currency or "USD"
+
+            # Pub. Revenue (Original)
+            if sale.publisher_revenue_original is not None:
+                if currency.upper() in self.ZERO_DECIMAL_CURRENCIES:
+                    pub_rev_original = str(int(sale.publisher_revenue_original))
+                else:
+                    pub_rev_original = f"{sale.publisher_revenue_original:.2f}"
+            else:
+                pub_rev_original = ""
+
+            # Pub. Revenue (USD) — always 2 decimal places
+            pub_rev_usd = f"{sale.publisher_revenue:.2f}" if sale.publisher_revenue is not None else ""
+
+            # Author Royalty (USD) — always 2 decimal places
+            royalty_usd = f"{sale.author_royalty:.2f}" if sale.author_royalty is not None else "0.00"
+
+            royalty_status = "Paid" if sale.author_paid else "Unpaid"
+
+            # isProjected? — based on book release status
+            is_projected = "True" if not getattr(sale.book, "released", True) else "False"
+
+            comment = sale.comment or ""
+
+            writer.writerow([
+                sale.date.strftime("%Y-%m"),
+                sale.book.title,
+                sale.book.author.name if sale.book.author else "",
+                source_display,
+                distributor_display,
+                format_display,
+                quantity,
+                kenp,
+                currency,
+                pub_rev_original,
+                pub_rev_usd,
+                royalty_usd,
+                royalty_status,
+                is_projected,
+                comment,
+            ])
+
+        return response
 
     # ------------------------------------------------------------------
     # PAY AUTHOR — custom action (marks author_paid=True on this sale)

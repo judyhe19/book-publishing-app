@@ -1,7 +1,7 @@
 // src/features/sales/pages/AmazonXLSXImportPage.jsx
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Card, CardContent, ErrorAlert } from "../../../shared/components";
+import { Button, Card, CardContent, ErrorAlert, ConfirmDialog } from "../../../shared/components";
 import { importAmazonXLSX, createManySales } from "../api/salesApi";
 import { formatMonthYear } from "../../../shared/utils/salesUtils";
 import { formatMoney } from "../../../shared/utils/formatUtils";
@@ -31,25 +31,23 @@ export default function AmazonXLSXImportPage() {
   const [validating, setValidating] = useState(false);
   const [errors, setErrors] = useState(null);   // string or string[]
   const [warnings, setWarnings] = useState([]); // string[]
-  const [warningsAcknowledged, setWarningsAcknowledged] = useState(false);
 
   // Step 2 state: preview
   const [previewRows, setPreviewRows] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [showWarningModal, setShowWarningModal] = useState(false);
 
   const handleFileChange = (e) => {
     setFile(e.target.files?.[0] || null);
     setPreviewRows(null);
     setErrors(null);
     setWarnings([]);
-    setWarningsAcknowledged(false);
   };
 
   const handleValidate = async () => {
     setErrors(null);
     setWarnings([]);
     setPreviewRows(null);
-    setWarningsAcknowledged(false);
 
     if (!file) {
       setErrors("Please select an XLSX file.");
@@ -73,10 +71,11 @@ export default function AmazonXLSXImportPage() {
     }
   };
 
-  const handleConfirmImport = async () => {
+  const doImport = async () => {
     if (!previewRows?.length) return;
 
     setImporting(true);
+    setShowWarningModal(false);
     setErrors(null);
     try {
       const salesData = previewRows.map((row) => ({
@@ -103,17 +102,22 @@ export default function AmazonXLSXImportPage() {
     }
   };
 
+  const handleConfirmImport = () => {
+    if (!previewRows?.length) return;
+    if (warnings.length > 0) {
+      setShowWarningModal(true);
+    } else {
+      doImport();
+    }
+  };
+
   const handleReset = () => {
     setFile(null);
     setPreviewRows(null);
     setErrors(null);
     setWarnings([]);
-    setWarningsAcknowledged(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
-
-  const canConfirm =
-    previewRows?.length > 0 && (!warnings.length || warningsAcknowledged);
 
   const groupedRows = previewRows ? groupByFormat(previewRows) : null;
 
@@ -168,27 +172,18 @@ export default function AmazonXLSXImportPage() {
         </ErrorAlert>
       )}
 
-      {/* Warnings — non-blocking; require acknowledgement before confirming */}
-      {warnings.length > 0 && (
+      {/* Warnings — informational only */}
+      {warnings.length > 0 && !errors && (
         <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4">
           <p className="text-sm font-medium text-amber-800 mb-2">
             The following rows were skipped (unsupported record types). The
             remaining rows can still be imported.
           </p>
-          <ul className="list-disc list-inside space-y-1 mb-3">
+          <ul className="list-disc list-inside space-y-1">
             {warnings.map((w, i) => (
               <li key={i} className="text-sm text-amber-700">{w}</li>
             ))}
           </ul>
-          <label className="flex items-center gap-2 text-sm text-amber-800 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={warningsAcknowledged}
-              onChange={(e) => setWarningsAcknowledged(e.target.checked)}
-              className="h-4 w-4 rounded border-amber-400 text-amber-600 focus:ring-amber-500"
-            />
-            I acknowledge these warnings and wish to proceed
-          </label>
         </div>
       )}
 
@@ -348,12 +343,32 @@ export default function AmazonXLSXImportPage() {
             <Button variant="secondary" onClick={handleReset}>
               Cancel
             </Button>
-            <Button onClick={handleConfirmImport} disabled={importing || !canConfirm}>
+            <Button onClick={handleConfirmImport} disabled={importing || !previewRows?.length}>
               {importing ? "Importing..." : `Confirm Import (${previewRows.length})`}
             </Button>
           </div>
         </>
       )}
+
+      {/* Warning confirmation modal */}
+      <ConfirmDialog
+        open={showWarningModal}
+        title="Warnings — proceed with import?"
+        confirmText="Yes, import"
+        onCancel={() => setShowWarningModal(false)}
+        onConfirm={doImport}
+        confirming={importing}
+      >
+        <p className="text-slate-600 mb-3">
+          The following warnings were raised. Do you still want to import the
+          remaining records?
+        </p>
+        <ul className="list-disc list-inside space-y-1 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3">
+          {warnings.map((w, i) => (
+            <li key={i}>{w}</li>
+          ))}
+        </ul>
+      </ConfirmDialog>
     </div>
   );
 }

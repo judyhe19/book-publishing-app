@@ -11,6 +11,9 @@ def _normalize_author_name(value: str) -> str:
 def _normalize_author_email(value: str) -> str:
     return str(value).strip().lower()
 
+def _normalize_account_name(value: str) -> str:
+    return str(value).strip()
+
 
 def _validate_author_name(value: str) -> str:
     cleaned = _normalize_author_name(value)
@@ -29,13 +32,19 @@ def _validate_author_email(value: str) -> str:
 class AuthorCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Author
-        fields = ["name", "email"]
+        fields = ["name", "email", "paypal", "venmo"]
 
     def validate_name(self, value):
         return _validate_author_name(value)
 
     def validate_email(self, value):
         return _validate_author_email(value)
+    
+    def validate_paypal(self, value):
+        return _normalize_account_name(value) if value is not None else value
+
+    def validate_venmo(self, value):
+        return _normalize_account_name(value) if value is not None else value
 
     def validate(self, attrs):
         """
@@ -56,13 +65,19 @@ class AuthorCreateSerializer(serializers.ModelSerializer):
 class AuthorUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Author
-        fields = ["name", "email"]
+        fields = ["name", "email", "paypal", "venmo"]
 
     def validate_name(self, value):
         return _validate_author_name(value)
 
     def validate_email(self, value):
         return _validate_author_email(value)
+    
+    def validate_paypal(self, value):
+        return _normalize_account_name(value) if value is not None else value
+
+    def validate_venmo(self, value):
+        return _normalize_account_name(value) if value is not None else value
 
     def validate(self, attrs):
         """
@@ -95,6 +110,8 @@ class AuthorListSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "email",
+            "paypal",
+            "venmo",
             "authored_books_count",
             "total_author_royalty",
             "paid_author_royalty",

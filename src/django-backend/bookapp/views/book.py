@@ -100,22 +100,23 @@ class BookViewSet(ModelViewSet):
             .values("total")[:1]
         )
 
+        # Only include royalties for released books (exclude projected/pre-order sales)
         royalty_total_sq = (
-            Sale.objects.filter(book_id=OuterRef("pk"))
+            Sale.objects.filter(book_id=OuterRef("pk"), book__released=True)
             .values("book_id")
             .annotate(total=Coalesce(Sum("author_royalty"), Value(0), output_field=DEC2))
             .values("total")[:1]
         )
 
         royalty_paid_sq = (
-            Sale.objects.filter(book_id=OuterRef("pk"), author_paid=True)
+            Sale.objects.filter(book_id=OuterRef("pk"), book__released=True, author_paid=True)
             .values("book_id")
             .annotate(total=Coalesce(Sum("author_royalty"), Value(0), output_field=DEC2))
             .values("total")[:1]
         )
 
         royalty_unpaid_sq = (
-            Sale.objects.filter(book_id=OuterRef("pk"), author_paid=False)
+            Sale.objects.filter(book_id=OuterRef("pk"), book__released=True, author_paid=False)
             .values("book_id")
             .annotate(total=Coalesce(Sum("author_royalty"), Value(0), output_field=DEC2))
             .values("total")[:1]
@@ -169,11 +170,12 @@ class BookViewSet(ModelViewSet):
             if author_id:
                 qs = qs.filter(author_id=author_id)
 
-            # Search (title, author name, ISBN-13, ISBN-10, Amazon ASIN)
+            # Search (title, author name, ISBN-13, ISBN-10, Amazon ASIN, Kickstarter tags)
             q = self.request.query_params.get("q")
             if q:
                 keywords = q.split()
                 for kw in keywords:
+                    # Strip dashes for ISBN/ASIN matching
                     c_kw = kw.replace("-", "").strip()
                     qs = qs.filter(
                         Q(title__icontains=kw)
@@ -182,12 +184,17 @@ class BookViewSet(ModelViewSet):
                         | Q(amazon_asin_ebook__icontains=c_kw)
                         | Q(author__name__icontains=kw)
                         | Q(series_name__icontains=kw)
+                        | Q(kickstarter_item_tag_ebook__icontains=kw)
+                        | Q(kickstarter_item_tag_print__icontains=kw)
                     )
 
             # Optional filter: published_before
+            # Unreleased books are always included (they represent pre-order candidates)
             published_before = self.request.query_params.get("published_before")
             if published_before:
-                qs = qs.filter(publication_date__lte=published_before)
+                qs = qs.filter(
+                    Q(publication_date__lte=published_before) | Q(released=False)
+                )
 
             # Optional filter: series_name (used by Series Editor page)
             series_filter = self.request.query_params.get("series_name")

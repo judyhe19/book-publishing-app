@@ -63,8 +63,15 @@ class AuthorViewSet(ModelViewSet):
             qs = qs.annotate(
                 authored_books_count=Count("books", distinct=True),
 
+                # Only include royalties for released books (exclude projected/pre-order sales)
                 total_author_royalty=Coalesce(
-                    Sum("books__sales__author_royalty"),
+                    Sum(
+                        Case(
+                            When(books__released=True, then="books__sales__author_royalty"),
+                            default=Value(0),
+                            output_field=DecimalField(max_digits=12, decimal_places=2),
+                        )
+                    ),
                     Value(0),
                     output_field=DecimalField(max_digits=12, decimal_places=2),
                 ),
@@ -72,7 +79,7 @@ class AuthorViewSet(ModelViewSet):
                 paid_author_royalty=Coalesce(
                     Sum(
                         Case(
-                            When(books__sales__author_paid=True, then="books__sales__author_royalty"),
+                            When(books__released=True, books__sales__author_paid=True, then="books__sales__author_royalty"),
                             default=Value(0),
                             output_field=DecimalField(max_digits=12, decimal_places=2),
                         )
@@ -84,7 +91,7 @@ class AuthorViewSet(ModelViewSet):
                 unpaid_author_royalty=Coalesce(
                     Sum(
                         Case(
-                            When(books__sales__author_paid=False, then="books__sales__author_royalty"),
+                            When(books__released=True, books__sales__author_paid=False, then="books__sales__author_royalty"),
                             default=Value(0),
                             output_field=DecimalField(max_digits=12, decimal_places=2),
                         )
@@ -117,10 +124,12 @@ class AuthorViewSet(ModelViewSet):
 
         name = serializer.validated_data["name"]
         email = serializer.validated_data["email"]
+        paypal = serializer.validated_data.get("paypal")
+        venmo = serializer.validated_data.get("venmo")
 
 
         try:
-            author = Author.objects.create(name=name, email=email)
+            author = Author.objects.create(name=name, email=email, paypal=paypal, venmo=venmo)
         except IntegrityError:
             return Response(
                 {"name": "An author with this name already exists."},
@@ -208,9 +217,10 @@ class AuthorViewSet(ModelViewSet):
         author = self.get_object()
 
         # Query unpaid royalties through Book → Sale (single author FK)
+        # Exclude projected sales (unreleased books)
         subtotal = (
             Sale.objects
-            .filter(book__author=author, author_paid=False)
+            .filter(book__author=author, book__released=True, author_paid=False)
             .aggregate(total=Sum("author_royalty"))
             .get("total")
         ) or Decimal("0.00")
@@ -229,10 +239,11 @@ class AuthorViewSet(ModelViewSet):
         DEC2 = DecimalField(max_digits=12, decimal_places=2)
 
         with transaction.atomic():
+            # Only pay royalties for released books (exclude projected sales)
             qs = (
                 Sale.objects
                 .select_for_update()
-                .filter(book__author=author, author_paid=False)
+                .filter(book__author=author, book__released=True, author_paid=False)
             )
 
             sale_ids = list(qs.values_list("id", flat=True))

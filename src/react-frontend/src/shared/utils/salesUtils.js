@@ -69,7 +69,7 @@ export const isRowComplete = (row) => {
 /**
  * Computes author royalty based on sale source and book data.
  *
- * @param {string} saleSource - 'distributor' or 'handsold'
+ * @param {string} saleSource - 'distributor', 'handsold', or 'kickstarter'
  * @param {number} publisherRevenue - the publisher revenue amount
  * @param {Object} book - the selected book option (from AsyncSelect)
  * @returns {string} computed royalty as a fixed-2 string, or ''
@@ -78,7 +78,7 @@ export const computeAuthorRoyalty = (saleSource, publisherRevenue, book) => {
     const revenue = Number(publisherRevenue);
     if (Number.isNaN(revenue) || !revenue || !book) return '';
 
-    const rate = saleSource === 'handsold' 
+    const rate = (saleSource === 'handsold' || saleSource === 'kickstarter')
         ? Number(book.hand_sold_author_royalty_rate) 
         : Number(book.distributor_author_royalty_rate);
         

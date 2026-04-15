@@ -28,6 +28,18 @@ class Author(models.Model):
         null=True,
         help_text="Author's primary contact email"
     )
+    paypal = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Author's account name for PayPal (paypal.me username, not email)"
+    )
+    venmo = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Author's account name for Venmo"
+    )
 
     def __str__(self):
         return self.name
@@ -62,6 +74,38 @@ class Book(models.Model):
             )
         ],
         help_text="Amazon's unique identifier for the ebook edition of this book (e.g. B09XYZ1234). Optional.",
+    )
+
+    released = models.BooleanField(
+        default=False,
+        help_text="Indicates whether this book has been released to the public. "
+                  "Only released books are eligible for author royalty payment.",
+    )
+
+    kickstarter_item_tag_ebook = models.CharField(
+        max_length=128,
+        blank=True,
+        null=True,
+        validators=[
+            RegexValidator(
+                regex=r"^\S+$",
+                message="Kickstarter item tag must contain no whitespace.",
+            )
+        ],
+        help_text='Kickstarter tag for the ebook edition (e.g. "ebook-the-hobbit"). Optional.',
+    )
+
+    kickstarter_item_tag_print = models.CharField(
+        max_length=128,
+        blank=True,
+        null=True,
+        validators=[
+            RegexValidator(
+                regex=r"^\S+$",
+                message="Kickstarter item tag must contain no whitespace.",
+            )
+        ],
+        help_text='Kickstarter tag for the print edition (e.g. "paperback-the-hobbit"). Optional.',
     )
 
     # Single author per book
@@ -158,11 +202,12 @@ class Sale(models.Model):
     SALE_SOURCE_CHOICES = [
         ("distributor", "Distributor"),
         ("handsold", "Handsold"),
+        ("kickstarter", "Kickstarter"),
     ]
 
     FORMAT_CHOICES = [
         ("print", "Print"),
-        ("ebook", "Ebook"),
+        ("ebook", "eBook"),
         ("kindle unlimited", "Kindle Unlimited"),
     ]
 
@@ -194,4 +239,4 @@ class Sale(models.Model):
 
     def __str__(self):
         qty = self.kenp if self.format == "kindle unlimited" else self.quantity
-        return f"{qty} x {self.book.title} on {self.date.strftime('%Y-%m')}"
+        return f"{qty} x {self.book.title} on {self.date.strftime('%Y-%m')}"  # noqa: E501

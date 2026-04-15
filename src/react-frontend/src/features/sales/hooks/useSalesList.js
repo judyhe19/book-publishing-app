@@ -22,6 +22,7 @@ export function useSalesList() {
         sale_source: "",
         distributor: "",
         format: "",
+        projected: "",
         ordering: SORT_CONFIG.DEFAULT_ORDER,
     });
 
@@ -29,7 +30,7 @@ export function useSalesList() {
     useEffect(() => {
         fetchSales();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filters.start_date, filters.end_date, filters.author_name, filters.sale_source, filters.distributor, filters.format, filters.ordering, page, pageSize, showAll]);
+    }, [filters.start_date, filters.end_date, filters.author_name, filters.sale_source, filters.distributor, filters.format, filters.projected, filters.ordering, page, pageSize, showAll]);
 
     const fetchSales = async () => {
         setLoading(true);
@@ -41,6 +42,7 @@ export function useSalesList() {
             if (filters.sale_source) activeFilters.sale_source = filters.sale_source.toLowerCase();
             if (filters.distributor) activeFilters.distributor = filters.distributor;
             if (filters.format) activeFilters.sale_format = filters.format;
+            if (filters.projected) activeFilters.projected = filters.projected;
             if (filters.ordering) activeFilters.ordering = filters.ordering;
 
             if (showAll) {

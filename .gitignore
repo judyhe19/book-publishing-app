@@ -62,6 +62,7 @@ db.sqlite3
 db.sqlite3-journal
 staticfiles/
 src/django-backend/static/img/covers/
+src/django-backend/static/img/branding/
 
 # Flask stuff:
 instance/
@@ -236,6 +237,7 @@ out/
 # Local env / secrets
 .env.*
 !.env.example
+!.env.backup.example
 *.pem
 *.key
 *.crt

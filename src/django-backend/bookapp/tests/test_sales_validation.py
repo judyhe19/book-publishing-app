@@ -31,6 +31,7 @@ def sample_book(user):
         hand_sold_author_royalty_rate=Decimal("0.20"),
         cover_price=Decimal("20.00"),
         print_cost=Decimal("10.00"),
+        released=True,
     )
     return book
 
@@ -319,3 +320,132 @@ def test_kindle_unlimited_rejects_quantity(authed_client, sample_book):
     resp = authed_client.post("/api/sales/", payload, format="json")
     assert resp.status_code == 400
     assert "quantity" in resp.data
+
+
+# ---------------------------------------------------------------
+# Kickstarter sale source validation tests
+# ---------------------------------------------------------------
+
+def test_kickstarter_allows_print(authed_client, sample_book):
+    """Kickstarter sales can use 'print' format."""
+    payload = {
+        "book": sample_book.id,
+        "quantity": 10,
+        "sale_source": "kickstarter",
+        "format": "print",
+        "date": "2023-01",
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 201
+
+
+def test_kickstarter_allows_ebook(authed_client, sample_book):
+    """Kickstarter sales can use 'ebook' format."""
+    payload = {
+        "book": sample_book.id,
+        "quantity": 10,
+        "sale_source": "kickstarter",
+        "format": "ebook",
+        "date": "2023-01",
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 201
+
+
+def test_kickstarter_rejects_kindle_unlimited(authed_client, sample_book):
+    """Kickstarter sales cannot use 'kindle unlimited' format."""
+    payload = {
+        "book": sample_book.id,
+        "sale_source": "kickstarter",
+        "format": "kindle unlimited",
+        "kenp": 500,
+        "date": "2023-01",
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 400
+    assert "format" in resp.data
+
+
+def test_kickstarter_currency_locked_to_usd(authed_client, sample_book):
+    """Kickstarter sales must use USD currency."""
+    payload = {
+        "book": sample_book.id,
+        "quantity": 10,
+        "sale_source": "kickstarter",
+        "currency": "GBP",
+        "date": "2023-01",
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 400
+    assert "currency" in resp.data
+
+
+def test_kickstarter_defaults_usd(authed_client, sample_book):
+    """Kickstarter sales should default currency to USD."""
+    payload = {
+        "book": sample_book.id,
+        "quantity": 5,
+        "sale_source": "kickstarter",
+        "date": "2023-01",
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 201
+    assert resp.data["currency"] == "USD"
+
+
+def test_kickstarter_computes_revenue(authed_client, sample_book):
+    """Kickstarter revenue = (cover_price - print_cost) × quantity."""
+    payload = {
+        "book": sample_book.id,
+        "quantity": 5,
+        "sale_source": "kickstarter",
+        "date": "2023-01",
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 201
+    # sample_book: cover_price=20.00, print_cost=10.00
+    # revenue = 5 * (20.00 - 10.00) = 50.00
+    assert Decimal(resp.data["publisher_revenue"]) == Decimal("50.00")
+
+
+def test_kickstarter_uses_handsold_royalty_rate(authed_client, sample_book):
+    """Kickstarter royalty uses hand_sold_author_royalty_rate (0.20)."""
+    payload = {
+        "book": sample_book.id,
+        "quantity": 5,
+        "sale_source": "kickstarter",
+        "date": "2023-01",
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 201
+    # revenue = 50.00, royalty = 50.00 * 0.20 = 10.00
+    assert Decimal(resp.data["author_royalty"]) == Decimal("10.00")
+
+
+def test_kickstarter_distributor_cleared(authed_client, sample_book):
+    """Distributor field is cleared for kickstarter sales even if sent."""
+    payload = {
+        "book": sample_book.id,
+        "quantity": 10,
+        "sale_source": "kickstarter",
+        "distributor": "Amazon",
+        "date": "2023-01",
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 201
+    assert resp.data["distributor"] is None
+
+
+def test_kickstarter_ignores_provided_revenue(authed_client, sample_book):
+    """Kickstarter ignores client-sent publisher_revenue and computes it."""
+    payload = {
+        "book": sample_book.id,
+        "quantity": 5,
+        "sale_source": "kickstarter",
+        "publisher_revenue": "999.99",  # should be ignored
+        "date": "2023-01",
+    }
+    resp = authed_client.post("/api/sales/", payload, format="json")
+    assert resp.status_code == 201
+    # Should be computed: 5 * (20.00 - 10.00) = 50.00, not 999.99
+    assert Decimal(resp.data["publisher_revenue"]) == Decimal("50.00")

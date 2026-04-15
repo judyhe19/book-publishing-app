@@ -8,6 +8,7 @@ import SalesListPage from "../features/sales/pages/SalesListPage";
 import SalesInputPage from "../features/sales/pages/SalesInputPage";
 import IngramCSVImportPage from "../features/sales/pages/IngramCSVImportPage";
 import AmazonXLSXImportPage from "../features/sales/pages/AmazonXLSXImportPage";
+import BackerkitXLSXImportPage from "../features/sales/pages/BackerkitXLSXImportPage";
 import AuthorPaymentsPage from "../features/sales/pages/AuthorPaymentsPage";
 import SalesDetailPage from "../features/sales/pages/SalesDetailPage";
 import { RequireAuth } from "../features/auth/routes/RequireAuth";
@@ -19,6 +20,7 @@ import AuthorCreatePage from "../features/author/pages/AuthorCreatePage";
 import AuthorModifyPage from "../features/author/pages/AuthorModifyPage";
 import SeriesEditorPage from "../features/books/pages/SeriesEditorPage";
 import AuthorRoyaltyReportPage from "../features/reports/pages/AuthorRoyaltyReportPage";
+import ReportsPage from "../features/reports/pages/ReportsPage";
 import AuthorDetailPage from "../features/author/pages/AuthorDetailPage";
 
 
@@ -113,6 +115,15 @@ export function AppRoutes() {
       />
 
       <Route
+        path="/sales/import-backerkit"
+        element={
+          <RequireAuth>
+            <BackerkitXLSXImportPage />
+          </RequireAuth>
+        }
+      />
+
+      <Route
         path="/series"
         element={
           <RequireAuth>
@@ -153,6 +164,15 @@ export function AppRoutes() {
         element={
           <RequireAuth>
             <AuthorDetailPage />
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/reports"
+        element={
+          <RequireAuth>
+            <ReportsPage />
           </RequireAuth>
         }
       />

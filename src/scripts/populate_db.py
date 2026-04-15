@@ -20,7 +20,7 @@ BASE_URL = "http://localhost:8000"
 USERNAME = "admin"
 PASSWORD = "458group2"
 
-SALE_SOURCES = ["distributor", "handsold"]
+SALE_SOURCES = ["distributor", "handsold", "kickstarter"]
 
 SAMPLE_COMMENTS = [
     None,
@@ -139,6 +139,7 @@ def generate_books(session, authors, count=150):
             "hand_sold_author_royalty_rate": "0.20",
             "cover_price": str(round(random.uniform(15.00, 35.00), 2)),
             "print_cost": str(round(random.uniform(3.00, 10.00), 2)),
+            "released": random.random() < 0.7,  # ~70% of books are released
         }
 
         resp = session.post(url, json=payload)
@@ -217,6 +218,8 @@ def generate_sales(session, books, count=500):
         # Choose a valid format
         if sale_source == "handsold":
             sale_format = "print"
+        elif sale_source == "kickstarter":
+            sale_format = random.choice(["print", "ebook"])
         else:
             if distributor == "Ingram Spark":
                 sale_format = "print"
@@ -244,6 +247,10 @@ def generate_sales(session, books, count=500):
             currency_code, exchange_rate = random.choice(currencies[1:])  # skip USD
             publisher_revenue_original = round(unit_price * qty_for_calc, 2)
             revenue = round(publisher_revenue_original * exchange_rate, 2)
+        elif sale_source in ("handsold", "kickstarter"):
+            # Revenue is computed by backend for handsold/kickstarter; send quantity only
+            currency_code = "USD"
+            revenue = None
         else:
             revenue = round(unit_price * qty_for_calc, 2)
 
@@ -254,13 +261,15 @@ def generate_sales(session, books, count=500):
             "book": book["id"],
             "date": sale_date.strftime("%Y-%m"),
             "quantity": quantity,
-            "publisher_revenue": str(revenue),
             "sale_source": sale_source,
             "author_paid": author_paid,
             "comment": comment,
             "format": sale_format,
             "currency": currency_code,
         }
+
+        if revenue is not None:
+            sale_obj["publisher_revenue"] = str(revenue)
 
         if distributor:
             sale_obj["distributor"] = distributor
@@ -324,6 +333,7 @@ def ensure_ingram_books(session, authors):
             "hand_sold_author_royalty_rate": "0.20",
             "cover_price": "20.00",
             "print_cost": "10.00",
+            "released": random.random() < 0.75,  # ~75% released
         }
         resp = session.post(url, json=payload)
         if resp.status_code == 201:

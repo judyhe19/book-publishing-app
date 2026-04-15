@@ -32,8 +32,6 @@ export default function AuthorPaymentsPage() {
     payAllUnpaidForAuthor,
   } = useAuthorPayments();
 
-  const onGoSale = (saleId) => navigate(`/sale/${saleId}`);
-
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <PageHeader
@@ -67,7 +65,6 @@ export default function AuthorPaymentsPage() {
             <AuthorPaymentsGroupList
               groups={authorGroups}
               onMarkAllPaid={openConfirm}
-              onGoSale={onGoSale}
             />
 
             {!showAll && (

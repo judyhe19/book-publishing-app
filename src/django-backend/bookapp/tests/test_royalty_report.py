@@ -41,6 +41,7 @@ def make_book(*, isbn_13, title, author, series_name=None, series_position=None)
         hand_sold_author_royalty_rate=Decimal("0.20"),
         cover_price=Decimal("20.00"),
         print_cost=Decimal("10.00"),
+        released=True,
         series_name=series_name,
         series_position=series_position,
     )

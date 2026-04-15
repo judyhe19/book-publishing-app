@@ -37,6 +37,7 @@ def make_book(*, isbn_13, title="T", author=None, royalty_rate="0.10", cover_pri
         hand_sold_author_royalty_rate=Decimal("0.20"),
         cover_price=Decimal(cover_price),
         print_cost=Decimal(print_cost),
+        released=True,
     )
     return book
 
@@ -682,7 +683,7 @@ def test_export_csv_basic(authed_client, user):
         "Date", "Title", "Author", "Source", "Distributor",
         "Format", "Quantity", "KENP", "Original Currency",
         "Pub. Revenue (Original)", "Pub. Revenue (USD)",
-        "Author Royalty (USD)", "Royalty Status", "Comment",
+        "Author Royalty (USD)", "Royalty Status", "isProjected?", "Comment",
     ]
 
     # Data row

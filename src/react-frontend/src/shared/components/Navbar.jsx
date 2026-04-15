@@ -34,22 +34,25 @@ export function Navbar({ branding }) {
         <div className="flex items-center gap-3">
           {user ? (
             <>
-              <Link className="text-sm text-slate-700 hover:text-slate-900" to="/books">
+              <Link className="text-sm text-slate-700 hover:text-emerald-900" to="/books">
                 Books
               </Link>
-              <Link className="text-sm text-slate-700 hover:text-slate-900" to="/sales">
+              <Link className="text-sm text-slate-700 hover:text-emerald-900" to="/sales">
                 Sales
               </Link>
-              <Link className="text-sm text-slate-700 hover:text-slate-900" to="/authors">
+              <Link className="text-sm text-slate-700 hover:text-emerald-900" to="/sales/authors">
+                Author Payments
+              </Link>
+              <Link className="text-sm text-slate-700 hover:text-emerald-900" to="/authors">
                 Authors
               </Link>
-              <Link className="text-sm text-slate-700 hover:text-slate-900" to="/series">
+              <Link className="text-sm text-slate-700 hover:text-emerald-900" to="/series">
                 Series
               </Link>
-              <Link className="text-sm text-slate-700 hover:text-slate-900" to="/reports/royalty">
+              <Link className="text-sm text-slate-700 hover:text-emerald-900" to="/reports">
                 Reports
               </Link>
-              <Link className="text-sm text-slate-700 hover:text-slate-900" to="/changepassword">
+              <Link className="text-sm text-slate-700 hover:text-emerald-900" to="/changepassword">
                 Password
               </Link>
               <Button variant="secondary" onClick={onLogout}>

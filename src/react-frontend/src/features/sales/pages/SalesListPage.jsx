@@ -57,8 +57,11 @@ export default function SalesListPage() {
           <p className="text-slate-500 mt-1">Manage and view your book sales.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" to="/sales/authors">
-            Author Payments
+          <Button
+            className="bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-400"
+            to="/sales/authors"
+          >
+            💰 Author Payments
           </Button>
           <Button variant="success" to="/sales/import-csv">
             Import from CSV

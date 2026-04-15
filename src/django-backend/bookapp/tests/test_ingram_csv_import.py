@@ -44,6 +44,7 @@ def make_book(isbn_13, title="Test Book", author_name="Test Author", royalty_rat
         hand_sold_author_royalty_rate=Decimal("0.20"), # Default for tests
         cover_price=Decimal("20.00"), # Default for tests
         print_cost=Decimal("10.00"), # Default for tests
+        released=True,
     )
     return book
 

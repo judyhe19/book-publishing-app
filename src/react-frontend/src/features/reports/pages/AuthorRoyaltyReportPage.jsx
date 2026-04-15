@@ -5,46 +5,23 @@ import { useLocation } from "react-router-dom";
 import { getAllAuthors } from "../../author/api/authorApi";
 import { getAuthorRoyaltyReport } from "../api/reportApi";
 import { formatMoney } from "../../../shared/utils/formatUtils";
+import { getDefaultQuarterRange } from "../../../shared/utils/quarterUtils";
 import {
   PageHeader,
   Button,
   Card,
   CardContent,
   ErrorAlert,
+  QuarterRangePicker,
 } from "../../../shared/components";
 import "./AuthorRoyaltyReportPage.css";
 
-/** Return the current default range: four quarters ending at current quarter. */
-function getDefaultRange() {
-  const now = new Date();
-  const curYear = now.getFullYear();
-  const curMonth = now.getMonth() + 1; // 1-indexed
-  const curQ = Math.ceil(curMonth / 3);
 
-  // End = current quarter
-  let endYear = curYear;
-  let endQ = curQ;
-
-  // Start = 3 quarters before current → 4 quarters total
-  let startYear = curYear;
-  let startQ = curQ - 3;
-  if (startQ <= 0) {
-    startQ += 4;
-    startYear -= 1;
-  }
-
-  return { startYear, startQ, endYear, endQ };
-}
-
-const QUARTER_OPTIONS = [1, 2, 3, 4];
-
-const selectClass =
-  "rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-900";
 
 export default function AuthorRoyaltyReportPage() {
   const location = useLocation();
   const initialAuthor = location.state?.author || null;
-  const defaults = useMemo(() => getDefaultRange(), []);
+  const defaults = useMemo(() => getDefaultQuarterRange(), []);
 
   // Controls state
   const [authors, setAuthors] = useState([]);
@@ -134,55 +111,16 @@ export default function AuthorRoyaltyReportPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Start Quarter
-                </label>
-                <div className="flex gap-1">
-                  <input
-                    type="number"
-                    className={`${selectClass} year-input`}
-                    value={startYear}
-                    onChange={(e) => setStartYear(e.target.value)}
-                    onWheel={(e) => e.target.blur()}
-                    style={{ width: "80px" }}
-                  />
-                  <select
-                    className={selectClass}
-                    value={startQuarter}
-                    onChange={(e) => setStartQuarter(Number(e.target.value))}
-                  >
-                    {QUARTER_OPTIONS.map((q) => (
-                      <option key={q} value={q}>Q{q}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  End Quarter
-                </label>
-                <div className="flex gap-1">
-                  <input
-                    type="number"
-                    className={`${selectClass} year-input`}
-                    value={endYear}
-                    onChange={(e) => setEndYear(e.target.value)}
-                    onWheel={(e) => e.target.blur()}
-                    style={{ width: "80px" }}
-                  />
-                  <select
-                    className={selectClass}
-                    value={endQuarter}
-                    onChange={(e) => setEndQuarter(Number(e.target.value))}
-                  >
-                    {QUARTER_OPTIONS.map((q) => (
-                      <option key={q} value={q}>Q{q}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+              <QuarterRangePicker
+                startYear={startYear}
+                onStartYearChange={setStartYear}
+                startQuarter={startQuarter}
+                onStartQuarterChange={setStartQuarter}
+                endYear={endYear}
+                onEndYearChange={setEndYear}
+                endQuarter={endQuarter}
+                onEndQuarterChange={setEndQuarter}
+              />
 
               <Button
                 onClick={handleGenerate}

@@ -46,7 +46,12 @@ export default function AuthorListPage() {
               placeholder="Search name or email…"
             />
           </div>
-          <Button variant="secondary" to="/sales/authors">Author Payments</Button>
+          <Button
+            className="bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-400"
+            to="/sales/authors"
+          >
+            💰 Author Payments
+          </Button>
           <Button to="/authors/create">New Author</Button>
         </div>
       </div>

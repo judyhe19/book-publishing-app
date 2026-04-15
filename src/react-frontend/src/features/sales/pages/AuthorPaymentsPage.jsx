@@ -1,6 +1,5 @@
 // src/features/sales/pages/AuthorPaymentsPage.jsx
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Button,
   Card,
@@ -15,7 +14,6 @@ import { useAuthorPayments } from "../hooks/useAuthorPayments";
 import { AuthorPaymentsGroupList } from "../components";
 
 export default function AuthorPaymentsPage() {
-  const navigate = useNavigate();
   const {
     loading,
     authorGroups,
@@ -38,10 +36,10 @@ export default function AuthorPaymentsPage() {
         title="Author Payments"
         subtitle="Grouped by author. Review unpaid royalties and mark them paid."
       >
-        <Button variant="secondary" onClick={() => navigate("/sales")}>
+        <Button variant="secondary" to="/sales">
           Sales Records
         </Button>
-        <Button onClick={() => navigate("/sales/input")}>Input New Sales</Button>
+        <Button to="/sales/input">Input New Sales</Button>
       </PageHeader>
 
       {loading ? (

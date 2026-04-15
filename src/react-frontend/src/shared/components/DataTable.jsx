@@ -90,7 +90,7 @@ export function DataTable({
               const cells = columns.map((col, idx) => (
                 <td
                   key={idx}
-                  className={`px-3 py-3 text-sm text-gray-500 ${
+                  className={`px-3 py-3 align-middle text-sm text-gray-500 ${
                     col.className !== undefined ? col.className : "whitespace-nowrap"
                   }`}
                 >

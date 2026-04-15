@@ -53,7 +53,7 @@ if [ $? -ne 0 ]; then echo "Frontend push failed"; exit 1; fi
 echo -e "${GREEN}[3/4] Updating Configuration on Remote Server...${NC}"
 
 # Create directory on VM if it doesn't exist
-ssh $NETID@$VM_HOST "mkdir -p $PROJECT_DIR"
+ssh $NETID@$VM_HOST "mkdir -p $PROJECT_DIR $PROJECT_DIR/branding $PROJECT_DIR/covers"
 
 # Copy BOTH the compose file and the .env file
 scp docker-compose.yml .env $NETID@$VM_HOST:$PROJECT_DIR/

@@ -19,7 +19,7 @@ ENV_URLS = {
     "prod": "https://vcm-51887.vm.duke.edu"
 }
 USERNAME = "admin"
-PASSWORD = "password"
+PASSWORD = "458group2"
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))

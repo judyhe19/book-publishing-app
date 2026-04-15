@@ -184,54 +184,49 @@ This application supports white-labeling via server-side configuration, allowing
 
 Branding is controlled through:
 - Environment variables in the `.env` file
-- Image files stored on the server in the backend static directory
+- Image files placed in `~/book-app-deployment/branding/` on the VM
 
-The frontend dynamically fetches branding information from the backend at runtime, so any updates are reflected automatically after restarting the application.
+The `branding/` folder is mounted directly into the backend container, so files placed there are immediately available after a restart. The frontend fetches branding from the backend at runtime, so no frontend rebuild is needed.
 
-### 7.2 Configuration
+### 7.2 Copy Your Logo to the VM
 
-Edit the `.env` file in the deployment directory:
+From your **local machine** (not SSH’d into the VM), run:
+
+```bash
+scp "C:\Users\YourName\Downloads\yourlogo.png" NETID@vcm-XXXXX.vm.duke.edu:~/book-app-deployment/branding/yourlogo.png
+```
+
+Replace `YourName`, `NETID`, `vcm-XXXXX`, and `yourlogo.png` with your actual values.
+
+The `branding/` folder is created automatically when you run `deploy.sh`.
+
+### 7.3 Update the .env File
+
+SSH into the VM and edit the `.env` file:
+
+```bash
+ssh NETID@vcm-XXXXX.vm.duke.edu
+nano ~/book-app-deployment/.env
+```
+
+Update the following fields to match your publisher name and logo filename:
+
+```bash
+PUBLISHER_NAME=Your Publisher Name
+APP_TITLE=Your App Title
+PUBLISHER_LOGO_PATH=/static/img/branding/yourlogo.png
+PUBLISHER_FAVICON_PATH=/static/img/branding/yourlogo.png
+```
+
+### 7.4 Restart the Application
+
+After updating the `.env` file and/or branding images, restart the application from the VM:
 
 ```bash
 cd ~/book-app-deployment
-nano .env
-```
-
-Add or update the following fields:
-
-```bash
-PUBLISHER_NAME=Hypothetical Publishing
-APP_TITLE=Hypothetical Publishing
-PUBLISHER_LOGO_PATH=/static/img/branding/logo.png
-PUBLISHER_FAVICON_PATH=/static/img/branding/logo.png
-```
-
-### 7.3 Updating Branding Images
-
-Place your branding image(s) in the backend container’s static directory:
-
-```bash
-/static/img/branding/
-```
-
-For example:
-
-```bash
-logo.png
-acme-logo.png
-publisher.svg
-```
-
-### 7.4 Applying Changes
-
-After updating the `.env` file and/or branding images, restart the application.
-
-```bash
 docker compose down
 docker compose up -d
 ```
-
-This restart is required because environment variables are loaded at application startup.
 
 ### 7.5 Result
 
@@ -240,3 +235,5 @@ After restarting:
 - The browser tab title will update
 - The favicon will update
 - All branding will reflect the new publisher configuration
+
+Branding images persist across restarts because `branding/` is a bind-mounted folder on the VM — not stored inside the container.

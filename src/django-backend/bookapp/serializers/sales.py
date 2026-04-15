@@ -30,7 +30,7 @@ class SaleSerializer(serializers.ModelSerializer):
         ]
 
     def get_author_names(self, obj):
-        author = getattr(obj.book, "author", None)
+        author = obj.author or getattr(obj.book, "author", None)
         if author:
             return [author.name]
         return []
@@ -337,5 +337,9 @@ class SaleWriteSerializer(serializers.ModelSerializer):
                 rate = current_book.distributor_author_royalty_rate
 
             data["author_royalty"] = current_revenue * rate
+
+        # Snapshot the author from the book whenever the book is set/changed
+        if current_book is not None:
+            data["author"] = current_book.author
 
         return data

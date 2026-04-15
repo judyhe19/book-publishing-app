@@ -64,6 +64,7 @@ def make_sale(book, date, quantity=10, revenue="100.00", royalty=None,
             royalty = Decimal(revenue) * book.distributor_author_royalty_rate
     return Sale.objects.create(
         book=book,
+        author=book.author,
         date=date,
         quantity=quantity,
         publisher_revenue=Decimal(revenue),

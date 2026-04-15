@@ -49,7 +49,7 @@ class SaleViewSet(ModelViewSet):
 
     def get_queryset(self):
         qs = Sale.objects.all()
-        qs = qs.select_related("book", "book__author")
+        qs = qs.select_related("book", "book__author", "author")
 
         # Filtering (on list and export_csv)
         if self.action in ("list", "export_csv"):
@@ -66,7 +66,7 @@ class SaleViewSet(ModelViewSet):
             if user_id:
                 qs = qs.filter(book__publisher_user_id=user_id)
             if author_name:
-                qs = qs.filter(book__author__name__icontains=author_name)
+                qs = qs.filter(author__name__icontains=author_name)
             if sale_source:
                 qs = qs.filter(sale_source=sale_source)
             if distributor:
@@ -99,7 +99,7 @@ class SaleViewSet(ModelViewSet):
             # Annotations for sorting
             # Evolution 2: single author on Book via FK
             qs = qs.annotate(
-                first_author_name=F("book__author__name"),
+                first_author_name=F("author__name"),
             )
 
             # Ordering
@@ -377,7 +377,7 @@ class SaleViewSet(ModelViewSet):
             writer.writerow([
                 sale.date.strftime("%Y-%m"),
                 sale.book.title,
-                sale.book.author.name if sale.book.author else "",
+                sale.author.name if sale.author else "",
                 source_display,
                 distributor_display,
                 format_display,

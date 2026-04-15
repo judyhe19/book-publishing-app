@@ -102,7 +102,7 @@ class AllAuthorsRoyaltyReportView(APIView):
                 royalty = (
                     Sale.objects
                     .filter(
-                        book__author=author,
+                        author=author,
                         book__released=True,
                         date__gte=sd,
                         date__lte=ed,

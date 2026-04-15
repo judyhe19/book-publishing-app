@@ -84,19 +84,19 @@ class AuthorPaymentsViewSet(ViewSet):
                 status=status.HTTP_200_OK,
             )
 
-        # Sales rows for these authors (Evolution 2: book has single author FK)
+        # Sales rows for these authors (use snapshotted sale.author)
         rows_qs = (
             Sale.objects
-            .filter(book__author_id__in=author_ids)
-            .select_related("book", "book__author")
-            .order_by("book__author__name", "book__author_id", "-date", "-id")
+            .filter(author_id__in=author_ids)
+            .select_related("book", "author")
+            .order_by("author__name", "author_id", "-date", "-id")
         )
 
         # Aggregate unpaid totals/counts keyed by author_id
         unpaid_agg = (
             Sale.objects
-            .filter(book__author_id__in=author_ids, author_paid=False)
-            .values("book__author_id")
+            .filter(author_id__in=author_ids, author_paid=False)
+            .values("author_id")
             .annotate(
                 unpaid_total=Sum(
                     "author_royalty",
@@ -120,7 +120,7 @@ class AuthorPaymentsViewSet(ViewSet):
         )
 
         unpaid_by_author_id = {
-            row["book__author_id"]: row
+            row["author_id"]: row
             for row in unpaid_agg
         }
 
@@ -149,14 +149,14 @@ class AuthorPaymentsViewSet(ViewSet):
             }
 
         for sale in rows_qs:
-            if not sale.book or not sale.book.author_id:
+            if not sale.author_id:
                 continue
 
-            aid = sale.book.author_id
+            aid = sale.author_id
             if aid not in groups:
                 continue
 
-            author = sale.book.author
+            author = sale.author
             royalty_amt = q2(sale.author_royalty)
 
             is_projected = not bool(getattr(sale.book, "released", True))

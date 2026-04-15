@@ -218,6 +218,13 @@ class Sale(models.Model):
     ]
 
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="sales")
+    author = models.ForeignKey(
+        Author,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sales",
+    )
     date = models.DateField()
     quantity = models.PositiveIntegerField(blank=True, null=True) # unspecified if format is "kindle unlimited".
     sale_source = models.CharField(max_length=20, choices=SALE_SOURCE_CHOICES, default="distributor")

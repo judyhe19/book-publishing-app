@@ -220,7 +220,7 @@ class AuthorViewSet(ModelViewSet):
         # Exclude projected sales (unreleased books)
         subtotal = (
             Sale.objects
-            .filter(book__author=author, book__released=True, author_paid=False)
+            .filter(author=author, book__released=True, author_paid=False)
             .aggregate(total=Sum("author_royalty"))
             .get("total")
         ) or Decimal("0.00")
@@ -243,7 +243,7 @@ class AuthorViewSet(ModelViewSet):
             qs = (
                 Sale.objects
                 .select_for_update()
-                .filter(book__author=author, book__released=True, author_paid=False)
+                .filter(author=author, book__released=True, author_paid=False)
             )
 
             sale_ids = list(qs.values_list("id", flat=True))

@@ -505,11 +505,11 @@ def test_filter_by_author_name(authed_client, user):
     b2 = make_book(isbn_13="9780000000031", title="Book B", author=a2)
 
     s1 = Sale.objects.create(
-        book=b1, quantity=10, publisher_revenue=100,
+        book=b1, author=a1, quantity=10, publisher_revenue=100,
         author_royalty=10, sale_source="distributor", date="2023-01-01"
     )
     s2 = Sale.objects.create(
-        book=b2, quantity=20, publisher_revenue=200,
+        book=b2, author=a2, quantity=20, publisher_revenue=200,
         author_royalty=20, sale_source="distributor", date="2023-02-01"
     )
 

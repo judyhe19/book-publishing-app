@@ -20,7 +20,7 @@ export function Button({ children, variant = "primary", className = "", to, stat
 
   if (to) {
     return (
-      <Link to={to} state={state} className={cls}>
+      <Link to={to} state={state} className={cls} {...props}>
         {children}
       </Link>
     );

@@ -19,6 +19,8 @@ function cleanIsbn(s) {
   return (s || "").replaceAll("-", "").trim();
 }
 
+const DRAFT_KEY = "createBookDraft";
+
 export default function CreateBookPage() {
   const nav = useNavigate();
 
@@ -69,6 +71,43 @@ export default function CreateBookPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
+
+  // Restore draft saved before navigating to New Author
+  useEffect(() => {
+    const saved = sessionStorage.getItem(DRAFT_KEY);
+    if (!saved) return;
+    try {
+      const d = JSON.parse(saved);
+      if (d.title !== undefined) setTitle(d.title);
+      if (d.publicationMonth !== undefined) setPublicationMonth(d.publicationMonth);
+      if (d.isbn13 !== undefined) setIsbn13(d.isbn13);
+      if (d.isbn10 !== undefined) setIsbn10(d.isbn10);
+      if (d.coverPrice !== undefined) setCoverPrice(d.coverPrice);
+      if (d.printCost !== undefined) setPrintCost(d.printCost);
+      if (d.seriesName !== undefined) setSeriesName(d.seriesName);
+      if (d.seriesPosition !== undefined) setSeriesPosition(d.seriesPosition);
+      if (d.coverImagePath !== undefined) setCoverImagePath(d.coverImagePath);
+      if (d.amazonAsin !== undefined) setAmazonAsin(d.amazonAsin);
+      if (d.kickstarterTagEbook !== undefined) setKickstarterTagEbook(d.kickstarterTagEbook);
+      if (d.kickstarterTagPrint !== undefined) setKickstarterTagPrint(d.kickstarterTagPrint);
+      if (d.released !== undefined) setReleased(d.released);
+      if (d.selectedAuthorId !== undefined) setSelectedAuthorId(d.selectedAuthorId);
+      if (d.authorSearch !== undefined) setAuthorSearch(d.authorSearch);
+      if (d.distributorRoyaltyRate !== undefined) setDistributorRoyaltyRate(d.distributorRoyaltyRate);
+      if (d.handSoldRoyaltyRate !== undefined) setHandSoldRoyaltyRate(d.handSoldRoyaltyRate);
+    } catch {}
+    sessionStorage.removeItem(DRAFT_KEY);
+  }, []);
+
+  function saveFormDraft() {
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
+      title, publicationMonth, isbn13, isbn10,
+      coverPrice, printCost, seriesName, seriesPosition,
+      coverImagePath, amazonAsin, kickstarterTagEbook, kickstarterTagPrint,
+      released, selectedAuthorId, authorSearch,
+      distributorRoyaltyRate, handSoldRoyaltyRate,
+    }));
+  }
 
   // Load authors and series options
   useEffect(() => {
@@ -147,6 +186,7 @@ export default function CreateBookPage() {
       };
 
       await booksApi.createBook(payload);
+      sessionStorage.removeItem(DRAFT_KEY);
       nav("/books", { replace: true });
     } catch (e2) {
       setErr(errorMessage(e2));
@@ -190,6 +230,7 @@ export default function CreateBookPage() {
                       className="shrink-0 whitespace-nowrap"
                       to="/authors/create"
                       state={{ returnTo: "/books/input" }}
+                      onClick={saveFormDraft}
                     >
                       New Author
                     </Button>
@@ -371,7 +412,7 @@ export default function CreateBookPage() {
 
               {/* Actions */}
               <div className="mt-5 flex items-center justify-end gap-2">
-                <Button type="button" variant="secondary" onClick={() => nav("/books")}>
+                <Button type="button" variant="secondary" onClick={() => { sessionStorage.removeItem(DRAFT_KEY); nav("/books"); }}>
                   Cancel
                 </Button>
                 <Button disabled={submitting} className="min-w-[120px]">

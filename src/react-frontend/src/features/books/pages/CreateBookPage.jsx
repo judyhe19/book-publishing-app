@@ -187,9 +187,9 @@ export default function CreateBookPage() {
                       />
                     </div>
                     <Button
-                      type="button"
                       className="shrink-0 whitespace-nowrap"
-                      onClick={() => nav("/authors/create", { state: { returnTo: "/books/input" } })}
+                      to="/authors/create"
+                      state={{ returnTo: "/books/input" }}
                     >
                       New Author
                     </Button>

@@ -244,12 +244,8 @@ export default function BookDetailPage() {
 
                 <Button
                   variant="secondary"
-                  onClick={() =>
-                    nav(
-                      "/series",
-                      book.series_name ? { state: { series: book.series_name } } : {}
-                    )
-                  }
+                  to="/series"
+                  state={book.series_name ? { series: book.series_name } : {}}
                 >
                   Manage Series
                 </Button>

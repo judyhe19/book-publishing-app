@@ -1,6 +1,6 @@
 // src/features/sales/pages/SalesListPage.jsx
 import React, { useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useSalesList } from "../hooks/useSalesList";
 import { exportSalesCSV } from "../api/salesApi";
 import { SalesFilters, SalesTable } from "../components";
@@ -14,7 +14,8 @@ import {
 } from "../../../shared/components";
 
 export default function SalesListPage() {
-  const navigate = useNavigate();
+  const location = useLocation();
+  const returnToParam = encodeURIComponent(location.pathname + location.search);
   const {
     sales,
     loading,
@@ -56,22 +57,22 @@ export default function SalesListPage() {
           <p className="text-slate-500 mt-1">Manage and view your book sales.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => navigate("/sales/authors")}>
+          <Button variant="secondary" to="/sales/authors">
             Author Payments
           </Button>
-          <Button variant="success" onClick={() => navigate("/sales/import-csv")}>
+          <Button variant="success" to="/sales/import-csv">
             Import from CSV
           </Button>
-          <Button variant="success" onClick={() => navigate("/sales/import-xlsx")}>
+          <Button variant="success" to="/sales/import-xlsx">
             Import from XLSX
           </Button>
-          <Button variant="success" onClick={() => navigate("/sales/import-backerkit")}>
+          <Button variant="success" to="/sales/import-backerkit">
             Import from Backerkit
           </Button>
           <Button variant="warning" onClick={handleExportCSV}>
             Export CSV
           </Button>
-          <Button onClick={() => navigate("/sales/input")}>Input New Sales</Button>
+          <Button to="/sales/input">Input New Sales</Button>
         </div>
       </div>
 
@@ -93,7 +94,7 @@ export default function SalesListPage() {
               loading={loading}
               ordering={filters.ordering}
               onSort={handleSort}
-              onRowClick={(sale) => navigate(`/sale/${sale.id}?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
+              rowTo={(sale) => `/sale/${sale.id}?returnTo=${returnToParam}`}
             />
           </DualScrollContainer>
 

@@ -1,6 +1,5 @@
 // src/features/books/pages/BooksListPage.jsx
 import React from "react";
-import { useNavigate } from "react-router-dom";
 
 import { useBooksList } from "../hooks/useBooksList";
 import { BooksToolbar, BooksTable } from "../components";
@@ -12,8 +11,6 @@ import {
 } from "../../../shared/components";
 
 export default function BooksListPage() {
-  const navigate = useNavigate();
-
   const {
     loading,
     error,
@@ -29,10 +26,6 @@ export default function BooksListPage() {
     showAll,
     setShowAll,
   } = useBooksList({ pageSize: 50, ordering: "first_author_name,series_position,title" });
-
-  const onGoBook = (book) => {
-    navigate(`/books/${book.id}`);
-  };
 
   return (
     <div className="p-6 space-y-4 max-w-full">
@@ -60,7 +53,7 @@ export default function BooksListPage() {
           books={books}
           ordering={uiOrdering}
           onToggleOrdering={toggleOrdering}
-          onGoBook={onGoBook}
+          rowTo={(b) => `/books/${b.id}`}
         />
       </DualScrollContainer>
 

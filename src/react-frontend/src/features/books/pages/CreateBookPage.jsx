@@ -148,6 +148,7 @@ export default function CreateBookPage() {
     setIsbn10(data.isbn_10 ?? "");
     if (data.publication_date) setPublicationMonth(data.publication_date.slice(0, 7));
     if (data.cover_image_url)  setIsbnCoverUrl(data.cover_image_url);
+    setReleased(true);
 
     if (data.author_match) {
       setSelectedAuthorId(String(data.author_match.author_id));

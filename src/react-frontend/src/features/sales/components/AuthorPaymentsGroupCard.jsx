@@ -30,7 +30,7 @@ function buildVenmoLink(username, amount, note) {
   return `https://venmo.com/${encodeURIComponent(username)}?${params.toString()}`;
 }
 
-export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid, onGoSale }) {
+export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid }) {
   const { author, rows, unpaidTotal, unpaidCount, projectedTotal, projectedCount } = group;
 
   const [page, setPage] = useState(1);
@@ -116,7 +116,7 @@ export default function AuthorPaymentsGroupCard({ group, onMarkAllPaid, onGoSale
         </div>
 
         <div className="mt-4">
-          <AuthorPaymentsTable rows={paginatedRows} onGoSale={onGoSale} />
+          <AuthorPaymentsTable rows={paginatedRows} />
 
           {totalRows > pageSize && (
             <div className="mt-3 flex items-center justify-between text-sm">

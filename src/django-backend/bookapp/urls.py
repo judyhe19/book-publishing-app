@@ -22,6 +22,9 @@ from .views.financial_reports import (
     AmazonSalesReportView,
 )
 from .views.currency import ConvertCurrencyView
+from .views.isbn_lookup import IsbnLookupView
+from .views.isbn_cover_proxy import IsbnCoverProxyView
+from .views.cover_download import CoverImageDownloadView
 from .views.branding_image import BrandingImageView
 from .views.branding import BrandingView
 
@@ -61,11 +64,30 @@ urlpatterns = [
         name="convert-currency",
     ),
 
-    # Cover image upload
+    # ISBN lookup via Google Books
+    path(
+        "books/isbn-lookup/",
+        IsbnLookupView.as_view(),
+        name="isbn-lookup",
+    ),
+    path(
+        "books/isbn-lookup/cover/",
+        IsbnCoverProxyView.as_view(),
+        name="isbn-lookup-cover",
+    ),
+
+    # Cover image upload (manual file upload)
     path(
         "books/upload-cover/",
         CoverImageUploadView.as_view(),
         name="upload-cover",
+    ),
+
+    # Cover image download (fetch from Google Books URL and save to static storage)
+    path(
+        "books/download-cover/",
+        CoverImageDownloadView.as_view(),
+        name="download-cover",
     ),
 
     # Cover image thumbnail (resized for table/list views)

@@ -1,6 +1,6 @@
 // src/features/books/components/BookSalesSection.jsx
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import {
   Card,
   CardHeader,
@@ -29,7 +29,8 @@ function formatMoney(x) {
  * Handles sales table, stats, pagination, and inline sale entry.
  */
 export default function BookSalesSection({ bookId, book, onSaleCreated }) {
-  const navigate = useNavigate();
+  const location = useLocation();
+  const returnToParam = encodeURIComponent(location.pathname + location.search);
   // Sales list
   const {
     sales: bookSales,
@@ -210,7 +211,7 @@ export default function BookSalesSection({ bookId, book, onSaleCreated }) {
           loading={salesLoading}
           ordering={salesOrdering}
           onSort={handleSalesSort}
-          onRowClick={(sale) => navigate(`/sale/${sale.id}?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
+          rowTo={(sale) => `/sale/${sale.id}?returnTo=${returnToParam}`}
         />
 
         {/* Pagination */}

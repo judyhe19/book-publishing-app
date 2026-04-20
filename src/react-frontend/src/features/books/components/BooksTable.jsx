@@ -158,6 +158,7 @@ export default function BooksTable({
   ordering,
   onToggleOrdering,
   onGoBook,
+  rowTo,
   showAuthor = true,
   extraColumns = [],
   sortable = true,
@@ -175,7 +176,8 @@ export default function BooksTable({
       loading={false}
       ordering={ordering}
       onSort={sortable ? onToggleOrdering : undefined}
-      onRowClick={(b) => onGoBook?.(b)}
+      onRowClick={rowTo ? undefined : (b) => onGoBook?.(b)}
+      rowTo={rowTo}
       emptyMessage="No books found."
       fixedLayout={fixedLayout}
     />

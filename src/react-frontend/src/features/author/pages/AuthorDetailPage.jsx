@@ -1,6 +1,6 @@
 // src/features/authors/pages/AuthorDetailPage.jsx
 import React from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 import BooksTable, {
   buildAuthorRoyaltyColumns,
@@ -9,14 +9,9 @@ import { useAuthorDetail } from "../hooks/useAuthorDetail";
 import { DualScrollContainer, Button } from "../../../shared/components";
 
 export default function AuthorDetailPage() {
-  const navigate = useNavigate();
   const { authorId } = useParams();
 
   const { loading, error, author, books, count } = useAuthorDetail(authorId);
-
-  const onGoBook = (book) => {
-    navigate(`/books/${book.id}`);
-  };
 
   return (
     <div className="p-6 space-y-4 max-w-full">
@@ -30,19 +25,14 @@ export default function AuthorDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
-            <Button
-              variant="primary"
-              onClick={() =>
-                navigate("/reports/royalty", {
-                  state: {
-                    author:  { value: author.id, label: author.name }
-                  },
-                })
-              }
-            >
-              Author Report
-         </Button>
-          <Button variant="secondary" onClick={() => navigate("/authors")}>
+          <Button
+            variant="primary"
+            to="/reports/royalty"
+            state={{ author: { value: author?.id, label: author?.name } }}
+          >
+            Author Report
+          </Button>
+          <Button variant="secondary" to="/authors">
             Back
           </Button>
         </div>
@@ -61,7 +51,7 @@ export default function AuthorDetailPage() {
           sortable={false}
           ordering={null}
           onToggleOrdering={null}
-          onGoBook={onGoBook}
+          rowTo={(b) => `/books/${b.id}`}
           extraColumns={buildAuthorRoyaltyColumns()}
           fixedLayout={false}
         />

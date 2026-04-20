@@ -252,7 +252,7 @@ docker compose -f docker-compose.dev.yml ps
 You should see a running `backend` service.
 
 ---
-
+s
 ### Run All Tests
 
 To run the entire test suite:

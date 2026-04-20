@@ -1,6 +1,6 @@
 // src/features/authors/pages/AuthorListPage.jsx
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useAuthorsList } from "../hooks/useAuthorsList";
 import { AuthorsTable } from "../components";
 import {
@@ -14,7 +14,8 @@ import {
 } from "../../../shared/components";
 
 export default function AuthorListPage() {
-  const navigate = useNavigate();
+  const location = useLocation();
+  const returnToParam = encodeURIComponent(location.pathname + location.search);
   const {
     authors,
     loading,
@@ -47,11 +48,11 @@ export default function AuthorListPage() {
           </div>
           <Button
             className="bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-400"
-            onClick={() => navigate("/sales/authors")}
+            to="/sales/authors"
           >
             💰 Author Payments
           </Button>
-          <Button onClick={() => navigate("/authors/create")}>New Author</Button>
+          <Button to="/authors/create">New Author</Button>
         </div>
       </div>
 
@@ -71,7 +72,7 @@ export default function AuthorListPage() {
               loading={loading}
               ordering={filters.ordering}
               onSort={handleSort}
-              onRowClick={(author) => navigate(`/authors/${author.id}?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
+              rowTo={(author) => `/authors/${author.id}?returnTo=${returnToParam}`}
             />
           </DualScrollContainer>
 

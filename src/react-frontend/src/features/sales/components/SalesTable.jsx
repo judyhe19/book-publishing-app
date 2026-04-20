@@ -3,7 +3,7 @@ import React from "react";
 import { TABLE_COLUMNS } from "../config/salesTableConfig";
 import { DataTable } from "../../../shared/components";
 
-export default function SalesTable({ data, loading, ordering, onSort, columns, onRowClick }) {
+export default function SalesTable({ data, loading, ordering, onSort, columns, onRowClick, rowTo }) {
   const baseColumns = columns || TABLE_COLUMNS;
 
   const enhancedColumns = baseColumns.map((col) => {
@@ -61,6 +61,7 @@ export default function SalesTable({ data, loading, ordering, onSort, columns, o
         ordering={ordering}
         onSort={onSort}
         onRowClick={onRowClick}
+        rowTo={rowTo}
         rowClassName={(row) => row.is_projected ? "opacity-50 italic" : ""}
         emptyMessage="No sales found."
         loadingMessage="Loading sales data..."

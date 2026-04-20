@@ -22,6 +22,9 @@ services:
       - .env
     environment:
       - DJANGO_SETTINGS_MODULE=backend.settings
+    volumes:
+      - ./branding:/app/static/img/branding
+      - ./covers:/app/static/img/covers
     depends_on:
       db:
         condition: service_healthy

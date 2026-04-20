@@ -60,7 +60,7 @@ const getColumns = () => [
   },
 ];
 
-export default function AuthorPaymentsTable({ rows, onGoSale }) {
+export default function AuthorPaymentsTable({ rows }) {
   const columns = React.useMemo(
     () => getColumns(),
     []
@@ -76,7 +76,7 @@ export default function AuthorPaymentsTable({ rows, onGoSale }) {
     <DataTable
       data={dataWithId}
       columns={columns}
-      onRowClick={(r) => onGoSale(r.sale.id)}
+      rowTo={(r) => `/sale/${r.sale.id}`}
       emptyMessage="No author payments found."
     />
   );

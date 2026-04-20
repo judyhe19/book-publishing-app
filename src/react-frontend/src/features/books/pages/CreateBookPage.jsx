@@ -11,13 +11,16 @@ import {
   ErrorAlert,
   FormField,
 } from "../../../shared/components";
-import { AuthorPicker, CoverImageField, SeriesPicker } from "../components";
+import { AuthorPicker, CoverImageField, SeriesPicker, IsbnLookupModal } from "../components";
 import { errorMessage } from "../../../shared/utils/errors";
 import * as booksApi from "../api/booksApi";
+import * as isbnApi from "../api/isbnApi";
 
 function cleanIsbn(s) {
   return (s || "").replaceAll("-", "").trim();
 }
+
+const DRAFT_KEY = "createBookDraft";
 
 export default function CreateBookPage() {
   const nav = useNavigate();
@@ -67,8 +70,50 @@ export default function CreateBookPage() {
   const [distributorRoyaltyRate, setDistributorRoyaltyRate] = useState("50");
   const [handSoldRoyaltyRate, setHandSoldRoyaltyRate] = useState("20");
 
+  // ISBN lookup
+  const [isbnModalOpen, setIsbnModalOpen] = useState(false);
+  const [isbnCoverUrl, setIsbnCoverUrl] = useState(null);
+  const [isbnWarning, setIsbnWarning] = useState(null);
+
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
+
+  // Restore draft saved before navigating to New Author
+  useEffect(() => {
+    const saved = sessionStorage.getItem(DRAFT_KEY);
+    if (!saved) return;
+    try {
+      const d = JSON.parse(saved);
+      if (d.title !== undefined) setTitle(d.title);
+      if (d.publicationMonth !== undefined) setPublicationMonth(d.publicationMonth);
+      if (d.isbn13 !== undefined) setIsbn13(d.isbn13);
+      if (d.isbn10 !== undefined) setIsbn10(d.isbn10);
+      if (d.coverPrice !== undefined) setCoverPrice(d.coverPrice);
+      if (d.printCost !== undefined) setPrintCost(d.printCost);
+      if (d.seriesName !== undefined) setSeriesName(d.seriesName);
+      if (d.seriesPosition !== undefined) setSeriesPosition(d.seriesPosition);
+      if (d.coverImagePath !== undefined) setCoverImagePath(d.coverImagePath);
+      if (d.amazonAsin !== undefined) setAmazonAsin(d.amazonAsin);
+      if (d.kickstarterTagEbook !== undefined) setKickstarterTagEbook(d.kickstarterTagEbook);
+      if (d.kickstarterTagPrint !== undefined) setKickstarterTagPrint(d.kickstarterTagPrint);
+      if (d.released !== undefined) setReleased(d.released);
+      if (d.selectedAuthorId !== undefined) setSelectedAuthorId(d.selectedAuthorId);
+      if (d.authorSearch !== undefined) setAuthorSearch(d.authorSearch);
+      if (d.distributorRoyaltyRate !== undefined) setDistributorRoyaltyRate(d.distributorRoyaltyRate);
+      if (d.handSoldRoyaltyRate !== undefined) setHandSoldRoyaltyRate(d.handSoldRoyaltyRate);
+    } catch {}
+    sessionStorage.removeItem(DRAFT_KEY);
+  }, []);
+
+  function saveFormDraft() {
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
+      title, publicationMonth, isbn13, isbn10,
+      coverPrice, printCost, seriesName, seriesPosition,
+      coverImagePath, amazonAsin, kickstarterTagEbook, kickstarterTagPrint,
+      released, selectedAuthorId, authorSearch,
+      distributorRoyaltyRate, handSoldRoyaltyRate,
+    }));
+  }
 
   // Load authors and series options
   useEffect(() => {
@@ -97,6 +142,26 @@ export default function CreateBookPage() {
     return () => { cancelled = true; };
   }, []);
 
+  function onIsbnSuccess(data) {
+    if (data.title)            setTitle(data.title);
+    if (data.isbn_13)          setIsbn13(data.isbn_13);
+    setIsbn10(data.isbn_10 ?? "");
+    if (data.publication_date) setPublicationMonth(data.publication_date.slice(0, 7));
+    if (data.cover_image_url)  setIsbnCoverUrl(data.cover_image_url);
+    setReleased(true);
+
+    if (data.author_match) {
+      setSelectedAuthorId(String(data.author_match.author_id));
+      setAuthorSearch(data.author_match.name);
+      setIsbnWarning(null);
+    } else if (data.authors?.length > 0) {
+      setIsbnWarning(
+        `Author "${data.authors[0]}" from Google Books could not be automatically matched. Please select an author manually.`
+      );
+    }
+
+  }
+
   async function onSubmit(e) {
     e.preventDefault();
     setErr(null);
@@ -119,12 +184,15 @@ export default function CreateBookPage() {
         return;
       }
 
-      // Upload cover image first if a new file was selected
+      // Resolve cover image: manual file upload takes priority, then ISBN URL
       let finalCoverImagePath = coverImagePath.trim() === "" ? null : coverImagePath.trim();
-      
+
       if (coverImageFile) {
         const uploadResult = await booksApi.uploadCoverImage(coverImageFile);
         finalCoverImagePath = uploadResult.cover_image_path;
+      } else if (isbnCoverUrl) {
+        const downloadResult = await isbnApi.downloadCoverFromUrl(isbnCoverUrl);
+        finalCoverImagePath = downloadResult.cover_image_path;
       }
 
       const payload = {
@@ -147,6 +215,7 @@ export default function CreateBookPage() {
       };
 
       await booksApi.createBook(payload);
+      sessionStorage.removeItem(DRAFT_KEY);
       nav("/books", { replace: true });
     } catch (e2) {
       setErr(errorMessage(e2));
@@ -159,10 +228,22 @@ export default function CreateBookPage() {
     <div className="min-h-screen flex items-start justify-center p-6">
       <div className="w-full max-w-3xl">
         <Card>
-          <CardHeader title="Create Book" subtitle="Add a new book to the catalog." />
+          <div className="flex items-center justify-between">
+            <CardHeader title="Create Book" subtitle="Add a new book to the catalog." />
+            <button
+              type="button"
+              className="mr-6 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              onClick={() => { setIsbnModalOpen(true); setIsbnWarning(null); }}
+            >
+              Import from ISBN
+            </button>
+          </div>
           <CardContent>
             <form onSubmit={onSubmit}>
               {authorsErr && <ErrorAlert className="mb-5">Failed to load authors: {authorsErr}</ErrorAlert>}
+              {isbnWarning && (
+                <ErrorAlert variant="warning" className="mb-5">{isbnWarning}</ErrorAlert>
+              )}
 
               <div className="divide-y divide-slate-100">
                 {/* Title & Author — no section header, mirrors edit mode */}
@@ -187,9 +268,10 @@ export default function CreateBookPage() {
                       />
                     </div>
                     <Button
-                      type="button"
                       className="shrink-0 whitespace-nowrap"
-                      onClick={() => nav("/authors/create", { state: { returnTo: "/books/input" } })}
+                      to="/authors/create"
+                      state={{ returnTo: "/books/input" }}
+                      onClick={saveFormDraft}
                     >
                       New Author
                     </Button>
@@ -357,9 +439,9 @@ export default function CreateBookPage() {
                     Cover Image
                   </p>
                   <CoverImageField
-                    value={coverImagePath}
-                    onChange={setCoverImagePath}
-                    onFileChange={setCoverImageFile}
+                    value={isbnCoverUrl ? isbnApi.proxyCoverUrl(isbnCoverUrl) : coverImagePath}
+                    onChange={(v) => { setCoverImagePath(v); setIsbnCoverUrl(null); }}
+                    onFileChange={(f) => { setCoverImageFile(f); if (f) setIsbnCoverUrl(null); }}
                     title={title}
                     label=""
                   />
@@ -371,7 +453,7 @@ export default function CreateBookPage() {
 
               {/* Actions */}
               <div className="mt-5 flex items-center justify-end gap-2">
-                <Button type="button" variant="secondary" onClick={() => nav("/books")}>
+                <Button type="button" variant="secondary" onClick={() => { sessionStorage.removeItem(DRAFT_KEY); nav("/books"); }}>
                   Cancel
                 </Button>
                 <Button disabled={submitting} className="min-w-[120px]">
@@ -382,6 +464,12 @@ export default function CreateBookPage() {
           </CardContent>
         </Card>
       </div>
+
+      <IsbnLookupModal
+        open={isbnModalOpen}
+        onClose={() => setIsbnModalOpen(false)}
+        onSuccess={onIsbnSuccess}
+      />
     </div>
   );
 }

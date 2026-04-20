@@ -3,7 +3,7 @@ import React from "react";
 import { TABLE_COLUMNS } from "../config/authorsTableConfig";
 import { DataTable } from "../../../shared/components";
 
-export default function AuthorsTable({ data, loading, ordering, onSort, onRowClick }) {
+export default function AuthorsTable({ data, loading, ordering, onSort, onRowClick, rowTo }) {
   return (
     <DataTable
       data={data}
@@ -12,6 +12,7 @@ export default function AuthorsTable({ data, loading, ordering, onSort, onRowCli
       ordering={ordering}
       onSort={onSort}
       onRowClick={onRowClick}
+      rowTo={rowTo}
       emptyMessage="No authors found."
       loadingMessage="Loading author data..."
     />

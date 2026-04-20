@@ -24,9 +24,9 @@ PASSWORD = "458group2"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 AUTHORS_CSV = os.path.join(PROJECT_ROOT, "data/ev4-sample-data/authors.csv")
-# BOOKS_CSV = os.path.join(PROJECT_ROOT, "data/ev4-sample-data/books.csv")
+BOOKS_CSV = os.path.join(PROJECT_ROOT, "data/ev4-sample-data/books.csv")
 # For Backerkit testing:
-BOOKS_CSV = os.path.join(PROJECT_ROOT, "data/ev4-sample-data/backerkit_testing_books.csv")
+# BOOKS_CSV = os.path.join(PROJECT_ROOT, "data/ev4-sample-data/backerkit_testing_books.csv")
 RECORDS_CSV = os.path.join(PROJECT_ROOT, "data/ev4-sample-data/records.csv")
 COVERS_DIR = os.path.join(PROJECT_ROOT, "data/ev4-sample-data/img")
 
